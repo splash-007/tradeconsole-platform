@@ -1,11 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import {
   LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare,
-  Bell, Activity, User, ChevronRight, ChevronDown
+  Bell, Activity, User, ChevronRight, ChevronDown, LogOut
 } from 'lucide-react';
 
 interface AgentLayoutProps { children: React.ReactNode; }
@@ -23,11 +23,29 @@ const NAV_ITEMS = [
 
 export default function AgentLayout({ children }: AgentLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const isActive = (href: string) => {
     if (href === '/agent') return pathname === '/agent';
     return pathname.startsWith(href);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    setProfileOpen(false);
+    router.push('/sign-up-login-screen');
   };
 
   return (
@@ -92,10 +110,39 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         <header className="h-12 border-b flex items-center px-4 gap-4 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           <h1 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Agent Portal</h1>
           <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
-            <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
-            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>Agent</span>
+          <div className="flex items-center gap-2 relative" ref={profileRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-2 px-2 py-1 rounded-md transition-colors hover:bg-white/5"
+            >
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
+              <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>Agent</span>
+              <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
+            </button>
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
+                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryptovault.app</p>
+                </div>
+                <div className="py-1">
+                  <Link href="/agent/profile" onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
+                    style={{ color: 'var(--foreground)' }}>
+                    <User size={13} />
+                    My Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
+                    style={{ color: '#ef4444' }}>
+                    <LogOut size={13} />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4">

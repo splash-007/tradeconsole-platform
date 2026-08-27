@@ -1,9 +1,9 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker } from 'lucide-react';
+import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -100,8 +100,26 @@ const GROUP_LABELS: Record<string, string> = {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['marketing', 'operations', 'finance', 'trading', 'compliance', 'support', 'system']);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    setProfileOpen(false);
+    router.push('/sign-up-login-screen');
+  };
 
   const toggleGroup = (label: string) => {
     setExpandedGroups(prev => prev.includes(label) ? prev.filter(g => g !== label) : [...prev, label]);
@@ -222,10 +240,39 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <header className="h-12 border-b flex items-center px-4 gap-4 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           <h1 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Admin Panel</h1>
           <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
-            <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
-            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>super_admin</span>
+          <div className="flex items-center gap-2 relative" ref={profileRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-2 px-2 py-1 rounded-md transition-colors hover:bg-white/5"
+            >
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
+              <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>super_admin</span>
+              <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
+            </button>
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
+                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryptovault.app</p>
+                </div>
+                <div className="py-1">
+                  <Link href="/admin/system/settings" onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
+                    style={{ color: 'var(--foreground)' }}>
+                    <User size={13} />
+                    Profile Settings
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
+                    style={{ color: '#ef4444' }}>
+                    <LogOut size={13} />
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4">
