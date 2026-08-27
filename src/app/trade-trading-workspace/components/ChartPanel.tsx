@@ -4,12 +4,14 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell
 } from 'recharts';
-import { Camera, Maximize2, RotateCcw } from 'lucide-react';
+import { Camera, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 
 interface Props {
   symbol: string;
   timeframe: string;
   onTimeframeChange: (tf: string) => void;
+  onFullscreen?: () => void;
+  isFullscreen?: boolean;
 }
 
 const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D', '1D'];
@@ -56,7 +58,7 @@ const CustomCandleTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function ChartPanel({ symbol, timeframe, onTimeframeChange }: Props) {
+export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFullscreen, isFullscreen }: Props) {
   const basePrice = symbol === 'BTC/USDC' ? 67842 : symbol === 'ETH/USDC' ? 3542 : 182;
   const candles = useMemo(() => generateCandles(36, basePrice * 0.96), [symbol]);
 
@@ -107,8 +109,13 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange }: Pro
         <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
           <Camera size={13} />
         </button>
-        <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
-          <Maximize2 size={13} />
+        <button
+          onClick={onFullscreen}
+          className="p-1.5 rounded hover:bg-muted transition-colors"
+          style={{ color: 'var(--muted-foreground)' }}
+          title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+        >
+          {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
         </button>
         <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
           <RotateCcw size={13} />

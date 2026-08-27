@@ -3,10 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import {
-  LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare,
-  Bell, Activity, User, ChevronRight, ChevronDown, LogOut
-} from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare, Bell, Activity, User, ChevronRight, ChevronDown, LogOut, Sun, Moon, UserPlus } from 'lucide-react';
 
 interface AgentLayoutProps { children: React.ReactNode; }
 
@@ -21,12 +18,40 @@ const NAV_ITEMS = [
   { label: 'Profile', href: '/agent/profile', icon: User },
 ];
 
+interface AgentNotification {
+  id: string;
+  type: 'lead' | 'message' | 'task' | 'system';
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
+
+const INITIAL_NOTIFS: AgentNotification[] = [
+  { id: 'agn-001', type: 'lead', title: 'New Lead Assigned', message: 'Thomas Bergmann has been assigned to you by Admin', time: '2 min ago', read: false },
+  { id: 'agn-002', type: 'message', title: 'New Message', message: 'Alex Morgan: "Hi, I have a question about my deposit"', time: '8 min ago', read: false },
+  { id: 'agn-003', type: 'lead', title: 'New Lead Assigned', message: 'Priya Sharma from India has been assigned to you', time: '25 min ago', read: false },
+  { id: 'agn-004', type: 'message', title: 'New Message', message: 'David Kim: "When will my withdrawal be processed?"', time: '1 hr ago', read: false },
+  { id: 'agn-005', type: 'task', title: 'Task Overdue', message: 'Follow-up call with Maria Garcia is overdue', time: '2 hrs ago', read: true },
+  { id: 'agn-006', type: 'system', title: 'System Update', message: 'New trading features are now available for your clients', time: '3 hrs ago', read: true },
+];
+
+const NOTIF_COLORS: Record<string, string> = {
+  lead: '#F5C400', message: '#3b82f6', task: '#ef4444', system: '#6b7280'
+};
+
 export default function AgentLayout({ children }: AgentLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+  const [notifications, setNotifications] = useState<AgentNotification[]>(INITIAL_NOTIFS);
   const profileRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const isActive = (href: string) => {
     if (href === '/agent') return pathname === '/agent';
@@ -34,9 +59,32 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   };
 
   useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('cv-theme') : null;
+    const dark = saved !== 'light';
+    setIsDark(dark);
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('light', !dark);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('light', !next);
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('cv-theme', next ? 'dark' : 'light');
+    }
+  };
+
+  useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -110,39 +158,112 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         <header className="h-12 border-b flex items-center px-4 gap-4 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           <h1 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Agent Portal</h1>
           <div className="flex-1" />
-          <div className="flex items-center gap-2 relative" ref={profileRef}>
+          <div className="flex items-center gap-2">
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setNotifOpen(!notifOpen)}
+                className="p-2 rounded hover:bg-white/5 transition-colors relative"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                <Bell size={15} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '9px' }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-1 w-80 rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                  <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Notifications</p>
+                      {unreadCount > 0 && <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{unreadCount} unread</p>}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))} className="text-xs" style={{ color: 'var(--primary)' }}>
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto no-scrollbar">
+                    {notifications.map(n => (
+                      <div
+                        key={n.id}
+                        onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}
+                        className="flex items-start gap-3 px-4 py-3 border-b cursor-pointer hover:bg-white/3 transition-colors"
+                        style={{ borderColor: 'var(--border)', backgroundColor: n.read ? 'transparent' : 'rgba(245,196,0,0.03)' }}
+                      >
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${NOTIF_COLORS[n.type]}18` }}>
+                          {n.type === 'lead' ? <UserPlus size={12} style={{ color: NOTIF_COLORS[n.type] }} /> :
+                           n.type === 'message' ? <MessageSquare size={12} style={{ color: NOTIF_COLORS[n.type] }} /> :
+                           <Bell size={12} style={{ color: NOTIF_COLORS[n.type] }} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--foreground)' }}>{n.title}</p>
+                            {!n.read && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--primary)' }} />}
+                          </div>
+                          <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{n.message}</p>
+                          <p className="text-xs mt-1 opacity-60" style={{ color: 'var(--muted-foreground)' }}>{n.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-4 py-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                    <Link href="/agent/notifications" onClick={() => setNotifOpen(false)} className="block w-full text-xs text-center py-1" style={{ color: 'var(--primary)' }}>
+                      View all notifications →
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Day/Night Toggle */}
             <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 px-2 py-1 rounded-md transition-colors hover:bg-white/5"
+              onClick={toggleTheme}
+              className="p-2 rounded hover:bg-white/5 transition-colors"
+              style={{ color: 'var(--muted-foreground)' }}
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
-              <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
-              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>Agent</span>
-              <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
-            {profileOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
-                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryptovault.app</p>
+
+            <div className="flex items-center gap-2 relative" ref={profileRef}>
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center gap-2 px-2 py-1 rounded-md transition-colors hover:bg-white/5"
+              >
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
+                <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
+                <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>Agent</span>
+                <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                  <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryptovault.app</p>
+                  </div>
+                  <div className="py-1">
+                    <Link href="/agent/profile" onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
+                      style={{ color: 'var(--foreground)' }}>
+                      <User size={13} />
+                      My Profile
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
+                      style={{ color: '#ef4444' }}>
+                      <LogOut size={13} />
+                      Logout
+                    </button>
+                  </div>
                 </div>
-                <div className="py-1">
-                  <Link href="/agent/profile" onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
-                    style={{ color: 'var(--foreground)' }}>
-                    <User size={13} />
-                    My Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
-                    style={{ color: '#ef4444' }}>
-                    <LogOut size={13} />
-                    Logout
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4">

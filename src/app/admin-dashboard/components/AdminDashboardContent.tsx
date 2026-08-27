@@ -5,7 +5,7 @@ import AdminKpis from './AdminKpis';
 import RegistrationsChart from './RegistrationsChart';
 import SourcePerformanceChart from './SourcePerformanceChart';
 import RegistrationsTable from './RegistrationsTable';
-import { UserPlus, ClipboardPlus, X, Check, Users, ClipboardList } from 'lucide-react';
+import { UserPlus, ClipboardPlus, X, Check, Users, ClipboardList, Bell, TrendingUp } from 'lucide-react';
 
 interface AgentFormData {
   name: string;
@@ -38,6 +38,15 @@ export default function AdminDashboardContent() {
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [agentSaved, setAgentSaved] = useState(false);
   const [taskSaved, setTaskSaved] = useState(false);
+  const [dismissedLeads, setDismissedLeads] = useState<Set<string>>(new Set());
+
+  const LIVE_LEADS = [
+    { id: 'll-001', name: 'Thomas Bergmann', country: 'Germany', source: 'Google Ads', time: '1 min ago' },
+    { id: 'll-002', name: 'Priya Sharma', country: 'India', source: 'Organic', time: '5 min ago' },
+    { id: 'll-003', name: 'Carlos Mendez', country: 'Mexico', source: 'Facebook', time: '12 min ago' },
+  ];
+
+  const visibleLeads = LIVE_LEADS.filter(l => !dismissedLeads.has(l.id));
 
   const [agentForm, setAgentForm] = useState<AgentFormData>({ name: '', email: '', role: 'agent', phone: '', language: 'English' });
   const [taskForm, setTaskForm] = useState<TaskFormData>({ title: '', assignedAgent: '', customer: '', type: 'Call Customer', priority: 'Medium', dueDate: '', notes: '' });
@@ -97,6 +106,29 @@ export default function AdminDashboardContent() {
           <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Live data</span>
         </div>
       </div>
+
+      {/* New Lead Notifications */}
+      {visibleLeads.length > 0 && (
+        <div className="space-y-2">
+          {visibleLeads.map(lead => (
+            <div key={lead.id} className="flex items-center gap-3 px-4 py-2.5 rounded-xl border animate-fade-in"
+              style={{ backgroundColor: 'rgba(245,196,0,0.05)', borderColor: 'rgba(245,196,0,0.25)' }}>
+              <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(245,196,0,0.15)' }}>
+                <UserPlus size={12} style={{ color: 'var(--primary)' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>New Lead: {lead.name}</span>
+                <span className="text-xs ml-2" style={{ color: 'var(--muted-foreground)' }}>{lead.country} · via {lead.source}</span>
+              </div>
+              <span className="text-xs shrink-0" style={{ color: 'var(--muted-foreground)' }}>{lead.time}</span>
+              <button onClick={() => setDismissedLeads(prev => new Set([...prev, lead.id]))}
+                className="p-1 rounded hover:bg-white/10 transition-colors shrink-0" style={{ color: 'var(--muted-foreground)' }}>
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">

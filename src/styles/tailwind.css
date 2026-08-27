@@ -28,6 +28,29 @@
   --panel-border: #1F2020;
 }
 
+.light {
+  --background: #F8F9FA;
+  --foreground: #111313;
+  --primary: #D4A800;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EAECEC;
+  --secondary-foreground: #4B5563;
+  --accent: #D4A800;
+  --accent-foreground: #FFFFFF;
+  --muted: #E5E7E7;
+  --muted-foreground: #6B7280;
+  --card: #FFFFFF;
+  --card-foreground: #111313;
+  --border: #D1D5DB;
+  --input: #F3F4F6;
+  --ring: #D4A800;
+  --positive: #16A34A;
+  --negative: #DC2626;
+  --warning: #D97706;
+  --panel: #F3F4F6;
+  --panel-border: #D1D5DB;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
