@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -119,19 +119,68 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     read: boolean;
   }
 
-  const [adminNotifs, setAdminNotifs] = useState<AdminNotification[]>([
+  const DEFAULT_NOTIFS: AdminNotification[] = [
     { id: 'an-001', type: 'lead', title: 'New Lead Arrived', message: 'Thomas Bergmann registered from Germany via Google Ads campaign', time: '1 min ago', read: false },
     { id: 'an-002', type: 'lead', title: 'New Lead Arrived', message: 'Priya Sharma registered from India via Organic Search', time: '5 min ago', read: false },
     { id: 'an-003', type: 'registration', title: 'Registration Spike', message: '12 new registrations in the last hour — 40% above average', time: '15 min ago', read: false },
     { id: 'an-004', type: 'deposit', title: 'Large Deposit Pending', message: '$50,000 deposit from Alex Morgan requires manual review', time: '30 min ago', read: false },
     { id: 'an-005', type: 'kyc', title: 'KYC Documents Submitted', message: 'Maria Garcia submitted KYC documents for review', time: '1 hr ago', read: true },
     { id: 'an-006', type: 'system', title: 'System Alert', message: 'Unusual trading activity detected on account #CV-4821', time: '2 hrs ago', read: true },
-  ]);
+  ];
+
+  const loadNotifs = (): AdminNotification[] => {
+    if (typeof window === 'undefined') return DEFAULT_NOTIFS;
+    try {
+      const saved = localStorage.getItem('cv-admin-notifs');
+      if (saved) {
+        const readIds: string[] = JSON.parse(saved);
+        return DEFAULT_NOTIFS.map(n => ({ ...n, read: readIds.includes(n.id) ? true : n.read }));
+      }
+    } catch {}
+    return DEFAULT_NOTIFS;
+  };
+
+  const [adminNotifs, setAdminNotifs] = useState<AdminNotification[]>(DEFAULT_NOTIFS);
+
+  useEffect(() => {
+    setAdminNotifs(loadNotifs());
+  }, []);
+
+  const persistReadState = (notifs: AdminNotification[]) => {
+    if (typeof localStorage !== 'undefined') {
+      const readIds = notifs.filter(n => n.read).map(n => n.id);
+      localStorage.setItem('cv-admin-notifs', JSON.stringify(readIds));
+    }
+  };
+
+  const markAdminNotifRead = (id: string) => {
+    setAdminNotifs(prev => {
+      const next = prev.map(x => x.id === id ? { ...x, read: true } : x);
+      persistReadState(next);
+      return next;
+    });
+  };
+
+  const markAllAdminNotifsRead = () => {
+    setAdminNotifs(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      persistReadState(next);
+      return next;
+    });
+  };
 
   const unreadCount = adminNotifs.filter(n => !n.read).length;
 
   const NOTIF_COLORS: Record<string, string> = {
     lead: '#F5C400', registration: '#22c55e', deposit: '#3b82f6', kyc: '#f59e0b', system: '#ef4444'
+  };
+
+  const NOTIF_HREFS: Record<string, string> = {
+    lead: '/admin/registrations',
+    registration: '/admin/registrations',
+    deposit: '/admin/finance/deposits',
+    kyc: '/admin/compliance/verification',
+    system: '/admin/system/audit',
   };
 
   useEffect(() => {
@@ -360,7 +409,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       {unreadCount > 0 && <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{unreadCount} unread</p>}
                     </div>
                     {unreadCount > 0 && (
-                      <button onClick={() => setAdminNotifs(prev => prev.map(n => ({ ...n, read: true })))} className="text-xs" style={{ color: 'var(--primary)' }}>
+                      <button onClick={() => markAllAdminNotifsRead()} className="text-xs" style={{ color: 'var(--primary)' }}>
                         Mark all read
                       </button>
                     )}
@@ -369,12 +418,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     {adminNotifs.map(n => (
                       <div
                         key={n.id}
-                        onClick={() => setAdminNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}
+                        onClick={() => {
+                          markAdminNotifRead(n.id);
+                          if (NOTIF_HREFS[n.type]) {
+                            router.push(NOTIF_HREFS[n.type]);
+                          }
+                        }}
                         className="flex items-start gap-3 px-4 py-3 border-b cursor-pointer hover:bg-white/3 transition-colors"
                         style={{ borderColor: 'var(--border)', backgroundColor: n.read ? 'transparent' : 'rgba(245,196,0,0.03)' }}
                       >
                         <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${NOTIF_COLORS[n.type]}18` }}>
-                          {n.type === 'lead' ? <UserPlus size={12} style={{ color: NOTIF_COLORS[n.type] }} /> : <Bell size={12} style={{ color: NOTIF_COLORS[n.type] }} />}
+                          {n.type === 'lead' ? <UserPlus size={12} style={{ color: NOTIF_COLORS[n.type] }} /> :
+                           n.type === 'registration' ? <Users size={12} style={{ color: NOTIF_COLORS[n.type] }} /> :
+                           n.type === 'deposit' ? <CreditCard size={12} style={{ color: NOTIF_COLORS[n.type] }} /> :
+                           n.type === 'kyc' ? <Shield size={12} style={{ color: NOTIF_COLORS[n.type] }} /> :
+                           <AlertTriangle size={12} style={{ color: NOTIF_COLORS[n.type] }} />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">

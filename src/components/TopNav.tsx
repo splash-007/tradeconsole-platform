@@ -63,6 +63,26 @@ export default function TopNav() {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Load persisted read state
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('cv-client-notifs');
+        if (saved) {
+          const readIds: string[] = JSON.parse(saved);
+          setNotifications(CLIENT_NOTIFICATIONS.map(n => ({ ...n, read: readIds.includes(n.id) ? true : n.read })));
+        }
+      } catch {}
+    }
+  }, []);
+
+  const persistClientReadState = (notifs: ClientNotification[]) => {
+    if (typeof localStorage !== 'undefined') {
+      const readIds = notifs.filter(n => n.read).map(n => n.id);
+      localStorage.setItem('cv-client-notifs', JSON.stringify(readIds));
+    }
+  };
+
+  useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('cv-theme') : null;
     const dark = saved !== 'light';
     setIsDark(dark);
@@ -95,8 +115,20 @@ export default function TopNav() {
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  const markRead = (id: string) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const markAllRead = () => {
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      persistClientReadState(next);
+      return next;
+    });
+  };
+  const markRead = (id: string) => {
+    setNotifications(prev => {
+      const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      persistClientReadState(next);
+      return next;
+    });
+  };
 
   const handleLogout = () => {
     setProfileOpen(false);
