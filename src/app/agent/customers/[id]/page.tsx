@@ -1,5 +1,6 @@
 import AgentLayout from '@/components/AgentLayout';
 import AgentCustomerDetailContent from './components/AgentCustomerDetailContent';
-export default function AgentCustomerDetailPage({ params }: { params: { id: string } }) {
-  return <AgentLayout><AgentCustomerDetailContent customerId={params.id} /></AgentLayout>;
+export default async function AgentCustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <AgentLayout><AgentCustomerDetailContent customerId={id} /></AgentLayout>;
 }

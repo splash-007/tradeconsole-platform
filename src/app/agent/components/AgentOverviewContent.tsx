@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { agentService, AgentOverviewStats, AgentTask, AssignedCustomer } from '@/services/agent.service';
 import { Card, KpiCard, StatusBadge } from '@/components/admin/AdminUI';
+import MarketAIChat from '@/components/agent/MarketAIChat';
 
 const AGENT_ID = 'agent-001';
 const PRIORITY_COLORS: Record<string, string> = { urgent: '#ef4444', high: '#F5C400', medium: '#3b82f6', low: '#6b7280' };
@@ -13,6 +14,7 @@ export default function AgentOverviewContent() {
   const [tasks, setTasks] = useState<AgentTask[]>([]);
   const [customers, setCustomers] = useState<AssignedCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [aiCollapsed, setAiCollapsed] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -53,7 +55,8 @@ export default function AgentOverviewContent() {
         <KpiCard label="Completed Tasks" value={stats?.completedTasks || 0} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Main grid: tasks + customers + AI chat */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Priority Tasks */}
         <Card>
           <div className="flex items-center justify-between mb-3">
@@ -95,6 +98,12 @@ export default function AgentOverviewContent() {
             ))}
           </div>
         </Card>
+
+        {/* AI Market Chat */}
+        <MarketAIChat
+          collapsed={aiCollapsed}
+          onToggle={() => setAiCollapsed(v => !v)}
+        />
       </div>
     </div>
   );

@@ -3,18 +3,16 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import {
-  Bell, ChevronDown, User, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight,
-  Star, Sun, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase,
-  Shield, BookOpen, MoreHorizontal
-} from 'lucide-react';
+import { Bell, ChevronDown, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight, Star, Sun, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, Shield, BookOpen, MoreHorizontal, MessageSquare, Wallet } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
   { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
-  { label: 'Copy Trading', href: '#', icon: User },
+  { label: 'Messages', href: '/messages', icon: MessageSquare },
+  { label: 'Funds', href: '/finance', icon: Wallet },
+  { label: 'KYC', href: '/kyc', icon: Shield },
   { label: 'Rewards', href: '#', icon: Star },
   { label: 'Academy', href: '#', icon: BookOpen },
 ];
@@ -60,16 +58,16 @@ export default function TopNav() {
         <div className="flex items-center gap-1">
           {/* Account actions */}
           <div className="hidden md:flex items-center gap-1 mr-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 active:scale-95"
+            <Link href="/finance" className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 active:scale-95"
               style={{ backgroundColor: 'var(--positive)', color: '#fff' }}>
               <ArrowDownToLine size={12} />
               Deposit
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all duration-150 hover:bg-muted active:scale-95"
+            </Link>
+            <Link href="/finance" className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all duration-150 hover:bg-muted active:scale-95"
               style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
               <ArrowUpFromLine size={12} />
               Withdraw
-            </button>
+            </Link>
             <button className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-all duration-150 hover:bg-muted active:scale-95"
               style={{ color: 'var(--muted-foreground)' }}>
               <ArrowLeftRight size={12} />
@@ -101,6 +99,12 @@ export default function TopNav() {
           <Link href="/admin-dashboard" className="hidden lg:flex items-center gap-1 px-2 py-1.5 rounded text-xs transition-all hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
             <Shield size={13} />
             <span>Admin</span>
+          </Link>
+
+          {/* Settings link */}
+          <Link href="/settings" className="hidden lg:flex items-center gap-1 px-2 py-1.5 rounded text-xs transition-all hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
+            <Sun size={13} />
+            <span>Settings</span>
           </Link>
 
           {/* Mobile hamburger */}
