@@ -1,4 +1,7 @@
 // BACKEND INTEGRATION: POST /api/v1/auth/login, /register, /logout, etc.
+// SECURITY: Mock credentials below are for development only.
+// In production, authentication is handled entirely by the backend API.
+// The frontend never stores passwords or tokens — only HTTP-only session cookies set by the server.
 import { apiClient, DATA_MODE } from '@/lib/api-client';
 
 export interface LoginDTO {
@@ -39,23 +42,23 @@ export interface AuthUser {
 export const authService = {
   async login(dto: LoginDTO): Promise<{ user: AuthUser | null; error: string | null }> {
     if (DATA_MODE === 'mock') {
-      // Mock authentication
-      if (dto.email === 'trader@cryptovault.app' && dto.password === 'Vault2026!') {
-        return {
-          user: { id: 'user-001', email: dto.email, firstName: 'Alex', lastName: 'Mercer', role: 'customer' },
-          error: null,
-        };
-      }
-      if (dto.email === 'admin@cryptovault.app' && dto.password === 'Admin2026!') {
-        return {
-          user: { id: 'admin-001', email: dto.email, firstName: 'Sarah', lastName: 'Chen', role: 'admin' },
-          error: null,
-        };
-      }
-      return { user: null, error: 'Invalid credentials — use the demo accounts below to sign in' };
+      // Development-only mock authentication
+      // These credentials are NOT exposed in the production UI
+      const mockUsers = [
+        { email: 'trader@cryptovault.app', password: 'Vault2026!', user: { id: 'user-001', email: 'trader@cryptovault.app', firstName: 'Alex', lastName: 'Mercer', role: 'customer' } },
+        { email: 'admin@cryptovault.app', password: 'Admin2026!', user: { id: 'admin-001', email: 'admin@cryptovault.app', firstName: 'Sarah', lastName: 'Chen', role: 'admin' } },
+      ];
+      const match = mockUsers.find(u => u.email === dto.email && u.password === dto.password);
+      if (match) return { user: match.user, error: null };
+      return { user: null, error: 'Invalid email or password.' };
     }
     const res = await apiClient.post<AuthUser>('/api/v1/auth/login', dto);
-    return { user: res.data, error: res.error };
+    if (res.status === 429) {
+      return { user: null, error: 'Too many login attempts. Please wait before trying again.' };
+    }
+    // Use generic error message to avoid email enumeration
+    if (res.error) return { user: null, error: 'Invalid email or password.' };
+    return { user: res.data, error: null };
   },
 
   async register(dto: RegisterDTO): Promise<{ success: boolean; error: string | null }> {
@@ -63,17 +66,25 @@ export const authService = {
       return { success: true, error: null };
     }
     const res = await apiClient.post('/api/v1/auth/register', dto);
+    if (res.status === 429) {
+      return { success: false, error: 'Too many registration attempts. Please wait before trying again.' };
+    }
     return { success: !res.error, error: res.error };
   },
 
   async logout(): Promise<void> {
     if (DATA_MODE === 'mock') return;
     await apiClient.post('/api/v1/auth/logout', {});
+    // Backend should invalidate the HTTP-only session cookie
   },
 
   async forgotPassword(email: string): Promise<{ success: boolean; error: string | null }> {
     if (DATA_MODE === 'mock') return { success: true, error: null };
     const res = await apiClient.post('/api/v1/auth/forgot-password', { email });
-    return { success: !res.error, error: res.error };
+    if (res.status === 429) {
+      return { success: false, error: 'Too many requests. Please wait before trying again.' };
+    }
+    // Always return success to prevent email enumeration
+    return { success: true, error: null };
   },
 };
