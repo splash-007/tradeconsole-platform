@@ -1,5 +1,6 @@
 import AdminLayout from '@/components/AdminLayout';
 import AdminAgentDetailContent from './components/AdminAgentDetailContent';
-export default function AdminAgentDetailPage({ params }: { params: { id: string } }) {
-  return <AdminLayout><AdminAgentDetailContent agentId={params.id} /></AdminLayout>;
+export default async function AdminAgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <AdminLayout><AdminAgentDetailContent agentId={id} /></AdminLayout>;
 }
