@@ -9,6 +9,7 @@ import WatchlistPanel from './WatchlistPanel';
 import RecentTradesPanel from './RecentTradesPanel';
 import MarketOverviewPanel from './MarketOverviewPanel';
 import TopMoversPanel from './TopMoversPanel';
+import LiveOrdersPanel from '@/components/trading/LiveOrdersPanel';
 import { marketsService, MarketInstrument, OrderBook as OrderBookType, RecentTrade } from '@/services/markets.service';
 
 export default function TradingWorkspace() {
@@ -18,6 +19,7 @@ export default function TradingWorkspace() {
   const [recentTrades, setRecentTrades] = useState<RecentTrade[]>([]);
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [timeframe, setTimeframe] = useState('1H');
+  const [showLiveOrders, setShowLiveOrders] = useState(true);
 
   useEffect(() => {
     marketsService.getInstruments().then(setInstruments);
@@ -70,6 +72,13 @@ export default function TradingWorkspace() {
           <OrderForm symbol={selectedSymbol} currentPrice={currentInstrument?.lastPrice || 0} />
         </div>
       </div>
+
+      {/* Live Orders bar (collapsible) */}
+      {showLiveOrders && (
+        <div className="shrink-0 border-t px-3 py-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
+          <LiveOrdersPanel symbol={selectedSymbol} />
+        </div>
+      )}
 
       {/* Bottom row: Watchlist | Recent Trades | Market Overview | Top Movers */}
       <div className="flex shrink-0 border-t" style={{ height: '200px', borderColor: 'var(--border)' }}>

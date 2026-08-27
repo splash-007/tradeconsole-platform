@@ -3,7 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { agentService, AssignedCustomer } from '@/services/agent.service';
 import { callingService, CallSession, CallState } from '@/services/calling.service';
 import { chatService, ChatMessage } from '@/services/chat.service';
-import { PageHeader, Card, ActionButton } from '@/components/admin/AdminUI';
+import { financeService, DepositRequest, WithdrawalRequest } from '@/services/finance.service';
+import { PageHeader, Card, ActionButton, StatusBadge } from '@/components/admin/AdminUI';
+import AssetControlPanel from '@/components/agent/AssetControlPanel';
+
+import { Shield, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 const AGENT_ID = 'agent-001';
 const ONLINE_DOT: Record<string, string> = { online: '#22c55e', away: '#f59e0b', offline: '#6b7280' };
@@ -27,8 +31,11 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [internalNote, setInternalNote] = useState('');
-  const [activeTab, setActiveTab] = useState<'chat' | 'notes' | 'timeline'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'notes' | 'timeline' | 'kyc' | 'finance' | 'assets'>('chat');
   const [loading, setLoading] = useState(true);
+  const [deposits, setDeposits] = useState<DepositRequest[]>([]);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [financeTab, setFinanceTab] = useState<'deposits' | 'withdrawals'>('deposits');
 
   useEffect(() => {
     agentService.getCustomerDetail(customerId, AGENT_ID).then(c => {
@@ -36,6 +43,8 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
       setLoading(false);
     });
     chatService.getMessages('conv-001', true).then(setMessages);
+    financeService.getDeposits(customerId).then(setDeposits);
+    financeService.getWithdrawals(customerId).then(setWithdrawals);
   }, [customerId]);
 
   useEffect(() => {
@@ -86,6 +95,15 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
     ended: 'Call Ended', failed: 'Call Failed', unavailable: 'Unavailable',
   };
 
+  const TABS: { id: typeof activeTab; label: string }[] = [
+    { id: 'chat', label: 'Chat' },
+    { id: 'notes', label: 'Notes' },
+    { id: 'timeline', label: 'Timeline' },
+    { id: 'kyc', label: 'KYC' },
+    { id: 'finance', label: 'Finance' },
+    { id: 'assets', label: 'Assets' },
+  ];
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -113,14 +131,26 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
               ['Priority', customer.priority],
               ['Last Contact', customer.lastContact || '—'],
               ['Next Action', customer.nextAction || '—'],
-              ['Email', customer.email === null ? '🔒 Hidden (no permission)' : customer.email || '—'],
-              ['Phone', customer.phone === null ? '🔒 Hidden (no permission)' : customer.phone || '—'],
+              ['Email', customer.email === null ? '🔒 Hidden' : customer.email || '—'],
+              ['Phone', customer.phone === null ? '🔒 Hidden' : customer.phone || '—'],
             ].map(([label, value]) => (
               <div key={label} className="flex justify-between">
                 <span style={{ color: 'var(--muted-foreground)' }}>{label}</span>
                 <span style={{ color: String(value).includes('🔒') ? '#ef4444' : 'var(--foreground)' }}>{value}</span>
               </div>
             ))}
+          </div>
+
+          {/* Quick stats */}
+          <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-2" style={{ borderColor: 'var(--border)' }}>
+            <div className="text-center p-2 rounded" style={{ backgroundColor: 'rgba(34,197,94,0.08)' }}>
+              <p className="text-xs font-bold" style={{ color: '#22c55e' }}>${deposits.reduce((s, d) => s + d.amount, 0).toLocaleString()}</p>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Total Deposits</p>
+            </div>
+            <div className="text-center p-2 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.08)' }}>
+              <p className="text-xs font-bold" style={{ color: '#ef4444' }}>${withdrawals.reduce((s, w) => s + w.amount, 0).toLocaleString()}</p>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Withdrawals</p>
+            </div>
           </div>
 
           {/* Call button */}
@@ -136,7 +166,6 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
                     {callState === 'connected' && `Connected · ${formatDuration(callDuration)}`}
                     {callState === 'ended' && 'Call Ended'}
                   </p>
-                  {callState === 'ringing' && <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Ringing...</p>}
                 </div>
                 {(callState === 'connected' || callState === 'ringing') && (
                   <div className="flex gap-1">
@@ -162,19 +191,20 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
           </div>
         </Card>
 
-        {/* Chat / Notes / Timeline */}
+        {/* Tabbed panel */}
         <div className="md:col-span-2">
           <Card padding="p-0">
-            <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
-              {(['chat', 'notes', 'timeline'] as const).map(tab => (
-                <button key={tab} onClick={() => setActiveTab(tab)}
-                  className="text-xs px-4 py-2.5 capitalize transition-colors"
-                  style={{ color: activeTab === tab ? 'var(--primary)' : 'var(--muted-foreground)', borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent' }}>
-                  {tab === 'notes' ? 'Internal Notes' : tab}
+            <div className="flex border-b overflow-x-auto no-scrollbar" style={{ borderColor: 'var(--border)' }}>
+              {TABS.map(tab => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className="text-xs px-3 py-2.5 capitalize transition-colors shrink-0"
+                  style={{ color: activeTab === tab.id ? 'var(--primary)' : 'var(--muted-foreground)', borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent' }}>
+                  {tab.label}
                 </button>
               ))}
             </div>
 
+            {/* Chat */}
             {activeTab === 'chat' && (
               <div className="flex flex-col h-80">
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -200,6 +230,7 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
               </div>
             )}
 
+            {/* Notes */}
             {activeTab === 'notes' && (
               <div className="flex flex-col h-80">
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -225,6 +256,7 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
               </div>
             )}
 
+            {/* Timeline */}
             {activeTab === 'timeline' && (
               <div className="p-3 space-y-2 h-80 overflow-y-auto">
                 {TIMELINE.map((t, i) => (
@@ -236,6 +268,82 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* KYC */}
+            {activeTab === 'kyc' && (
+              <div className="p-3 h-80 overflow-y-auto">
+                <div className="flex items-center gap-2 mb-3">
+                  <Shield size={14} style={{ color: 'var(--primary)' }} />
+                  <h4 className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>KYC Verification Status</h4>
+                </div>
+                <div className="space-y-2 text-xs">
+                  {[
+                    { label: 'Identity Verification', status: 'verified' },
+                    { label: 'Address Verification', status: 'verified' },
+                    { label: 'Document Upload', status: 'verified' },
+                    { label: 'Selfie Check', status: 'pending' },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-center justify-between p-2 rounded border" style={{ borderColor: 'var(--border)' }}>
+                      <span style={{ color: 'var(--foreground)' }}>{item.label}</span>
+                      <StatusBadge status={item.status} />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 p-2 rounded text-xs" style={{ backgroundColor: 'rgba(245,196,0,0.06)', color: 'var(--muted-foreground)' }}>
+                  Overall KYC Status: <span style={{ color: 'var(--primary)' }}>Partially Verified</span>
+                </div>
+              </div>
+            )}
+
+            {/* Finance */}
+            {activeTab === 'finance' && (
+              <div className="h-80 overflow-y-auto">
+                <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
+                  {(['deposits', 'withdrawals'] as const).map(ft => (
+                    <button key={ft} onClick={() => setFinanceTab(ft)}
+                      className="text-xs px-4 py-2 capitalize transition-colors"
+                      style={{ color: financeTab === ft ? 'var(--primary)' : 'var(--muted-foreground)', borderBottom: financeTab === ft ? '2px solid var(--primary)' : '2px solid transparent' }}>
+                      {ft}
+                    </button>
+                  ))}
+                </div>
+                <div className="p-3 space-y-2">
+                  {financeTab === 'deposits' && deposits.map(d => (
+                    <div key={d.id} className="flex items-center gap-3 p-2 rounded border text-xs" style={{ borderColor: 'var(--border)' }}>
+                      <ArrowDownLeft size={12} style={{ color: '#22c55e' }} />
+                      <div className="flex-1">
+                        <p style={{ color: 'var(--foreground)' }}>+${d.amount.toLocaleString()} {d.currency}</p>
+                        <p style={{ color: 'var(--muted-foreground)' }}>{d.method.replace('_', ' ')} · {d.submittedAt}</p>
+                      </div>
+                      <StatusBadge status={d.status} />
+                    </div>
+                  ))}
+                  {financeTab === 'withdrawals' && withdrawals.map(w => (
+                    <div key={w.id} className="flex items-center gap-3 p-2 rounded border text-xs" style={{ borderColor: 'var(--border)' }}>
+                      <ArrowUpRight size={12} style={{ color: '#ef4444' }} />
+                      <div className="flex-1">
+                        <p style={{ color: 'var(--foreground)' }}>-${w.amount.toLocaleString()} {w.currency}</p>
+                        <p style={{ color: 'var(--muted-foreground)' }}>{w.method.replace('_', ' ')} · {w.submittedAt}</p>
+                      </div>
+                      <StatusBadge status={w.status} />
+                    </div>
+                  ))}
+                  {financeTab === 'deposits' && deposits.length === 0 && (
+                    <p className="text-xs text-center py-4" style={{ color: 'var(--muted-foreground)' }}>No deposits found</p>
+                  )}
+                  {financeTab === 'withdrawals' && withdrawals.length === 0 && (
+                    <p className="text-xs text-center py-4" style={{ color: 'var(--muted-foreground)' }}>No withdrawals found</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Asset Control */}
+            {activeTab === 'assets' && (
+              <div className="p-3 h-80 overflow-y-auto">
+                <AssetControlPanel customer={customer} />
               </div>
             )}
           </Card>
