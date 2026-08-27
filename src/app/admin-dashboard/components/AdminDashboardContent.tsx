@@ -5,7 +5,7 @@ import AdminKpis from './AdminKpis';
 import RegistrationsChart from './RegistrationsChart';
 import SourcePerformanceChart from './SourcePerformanceChart';
 import RegistrationsTable from './RegistrationsTable';
-import { UserPlus, ClipboardPlus, X, Check, Users, ClipboardList, Bell, TrendingUp } from 'lucide-react';
+import { UserPlus, ClipboardPlus, X, Check, Users, ClipboardList } from 'lucide-react';
 
 interface AgentFormData {
   name: string;

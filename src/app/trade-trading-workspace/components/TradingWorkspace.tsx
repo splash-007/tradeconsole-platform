@@ -11,7 +11,7 @@ import MarketOverviewPanel from './MarketOverviewPanel';
 import TopMoversPanel from './TopMoversPanel';
 import LiveOrdersPanel from '@/components/trading/LiveOrdersPanel';
 import { marketsService, MarketInstrument, OrderBook as OrderBookType, RecentTrade } from '@/services/markets.service';
-import { LayoutGrid, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { LayoutGrid, ChevronDown, ChevronUp, Search, BookOpen, TrendingUp, BarChart2, List } from 'lucide-react';
 
 interface AssetCategory {
   label: string;
@@ -44,6 +44,8 @@ const MOCK_PRICES: Record<string, { price: number; change: number }> = {
   'FLOKI/USDC': { price: 0.000198, change: 8.21 },
 };
 
+type MobileTab = 'chart' | 'order' | 'book' | 'info';
+
 export default function TradingWorkspace() {
   const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDC');
   const [instruments, setInstruments] = useState<MarketInstrument[]>([]);
@@ -56,6 +58,7 @@ export default function TradingWorkspace() {
   const [assetSearch, setAssetSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('Major');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('chart');
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -103,6 +106,13 @@ export default function TradingWorkspace() {
     setAssetSearch('');
   };
 
+  const MOBILE_TABS: { id: MobileTab; label: string; icon: React.ElementType }[] = [
+    { id: 'chart', label: 'Chart', icon: BarChart2 },
+    { id: 'order', label: 'Trade', icon: TrendingUp },
+    { id: 'book', label: 'Book', icon: BookOpen },
+    { id: 'info', label: 'Info', icon: List },
+  ];
+
   return (
     <div
       ref={workspaceRef}
@@ -113,23 +123,23 @@ export default function TradingWorkspace() {
       <div className="flex items-center gap-2 px-3 py-1.5 border-b shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <button
           onClick={() => setShowAssetSelector(!showAssetSelector)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all hover:bg-white/5"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all hover:bg-white/5 shrink-0"
           style={{ borderColor: showAssetSelector ? 'var(--primary)' : 'var(--border)', color: 'var(--foreground)', backgroundColor: showAssetSelector ? 'rgba(245,196,0,0.08)' : 'transparent' }}
         >
           <LayoutGrid size={13} style={{ color: 'var(--primary)' }} />
-          All Assets
+          <span className="hidden sm:inline">All Assets</span>
           {showAssetSelector ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
         </button>
 
         {/* Quick symbol chips */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1">
           {['BTC/USDC', 'ETH/USDC', 'BNB/USDC', 'SOL/USDC', 'DOGE/USDC', 'ADA/USDC'].map(sym => {
             const info = MOCK_PRICES[sym];
             return (
               <button
                 key={sym}
                 onClick={() => handleSelectSymbol(sym)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs whitespace-nowrap transition-all"
+                className="flex items-center gap-1.5 px-2 py-1 rounded text-xs whitespace-nowrap transition-all shrink-0"
                 style={{
                   backgroundColor: selectedSymbol === sym ? 'rgba(245,196,0,0.12)' : 'transparent',
                   color: selectedSymbol === sym ? 'var(--primary)' : 'var(--muted-foreground)',
@@ -138,7 +148,7 @@ export default function TradingWorkspace() {
               >
                 <span className="font-semibold">{sym.split('/')[0]}</span>
                 {info && (
-                  <span className={info.change >= 0 ? 'text-positive' : 'text-negative'}>
+                  <span className={`hidden sm:inline ${info.change >= 0 ? 'text-positive' : 'text-negative'}`}>
                     {info.change >= 0 ? '+' : ''}{info.change.toFixed(2)}%
                   </span>
                 )}
@@ -166,12 +176,12 @@ export default function TradingWorkspace() {
             </div>
 
             {/* Category tabs */}
-            <div className="flex gap-1 mb-3">
+            <div className="flex gap-1 mb-3 overflow-x-auto no-scrollbar">
               {ASSET_CATEGORIES.map(cat => (
                 <button
                   key={cat.label}
                   onClick={() => setActiveCategory(cat.label)}
-                  className="px-3 py-1 text-xs rounded transition-all"
+                  className="px-3 py-1 text-xs rounded transition-all shrink-0"
                   style={{
                     backgroundColor: activeCategory === cat.label ? 'var(--primary)' : 'transparent',
                     color: activeCategory === cat.label ? '#000' : 'var(--muted-foreground)',
@@ -184,7 +194,7 @@ export default function TradingWorkspace() {
             </div>
 
             {/* Asset grid */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {filteredSymbols.map(sym => {
                 const info = MOCK_PRICES[sym];
                 const isSelected = selectedSymbol === sym;
@@ -229,58 +239,133 @@ export default function TradingWorkspace() {
         onSelectSymbol={setSelectedSymbol}
       />
 
-      {/* Main workspace — top section */}
-      <div className="flex min-h-0" style={{ flex: '1 1 0' }}>
-        {/* Chart area */}
-        <div className="flex min-w-0 min-h-0" style={{ flex: '1 1 0' }}>
-          <div className="flex-1 min-w-0 min-h-0">
-            <ChartPanel
-              symbol={selectedSymbol}
-              timeframe={timeframe}
-              onTimeframeChange={setTimeframe}
-              onFullscreen={toggleFullscreen}
-              isFullscreen={isFullscreen}
-            />
+      {/* ===== DESKTOP LAYOUT ===== */}
+      <div className="hidden md:flex flex-col flex-1 min-h-0">
+        {/* Main workspace — top section */}
+        <div className="flex min-h-0" style={{ flex: '1 1 0' }}>
+          {/* Chart area */}
+          <div className="flex min-w-0 min-h-0" style={{ flex: '1 1 0' }}>
+            <div className="flex-1 min-w-0 min-h-0">
+              <ChartPanel
+                symbol={selectedSymbol}
+                timeframe={timeframe}
+                onTimeframeChange={setTimeframe}
+                onFullscreen={toggleFullscreen}
+                isFullscreen={isFullscreen}
+              />
+            </div>
+            <ChartToolbar selectedTool={selectedTool} onSelectTool={setSelectedTool} />
           </div>
-          {/* Right-side vertical chart toolbar */}
-          <ChartToolbar selectedTool={selectedTool} onSelectTool={setSelectedTool} />
+
+          {/* Order Book */}
+          <div className="shrink-0 flex flex-col border-l" style={{ width: '200px', borderColor: 'var(--border)' }}>
+            {orderBook && <OrderBook orderBook={orderBook} currentPrice={currentInstrument?.lastPrice || 0} />}
+          </div>
+
+          {/* Order Form */}
+          <div className="shrink-0 flex flex-col border-l overflow-y-auto no-scrollbar" style={{ width: '220px', borderColor: 'var(--border)' }}>
+            <OrderForm symbol={selectedSymbol} currentPrice={currentInstrument?.lastPrice || 0} />
+          </div>
         </div>
 
-        {/* Order Book */}
-        <div className="shrink-0 flex flex-col border-l" style={{ width: '200px', borderColor: 'var(--border)' }}>
-          {orderBook && <OrderBook orderBook={orderBook} currentPrice={currentInstrument?.lastPrice || 0} />}
-        </div>
+        {/* Live Orders bar */}
+        {showLiveOrders && (
+          <div className="shrink-0 border-t px-3 py-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
+            <LiveOrdersPanel symbol={selectedSymbol} />
+          </div>
+        )}
 
-        {/* Order Form */}
-        <div className="shrink-0 flex flex-col border-l overflow-y-auto no-scrollbar" style={{ width: '220px', borderColor: 'var(--border)' }}>
-          <OrderForm symbol={selectedSymbol} currentPrice={currentInstrument?.lastPrice || 0} />
+        {/* Bottom row */}
+        <div className="flex shrink-0 border-t" style={{ height: '200px', borderColor: 'var(--border)' }}>
+          <div className="flex-1 min-w-0 border-r" style={{ borderColor: 'var(--border)' }}>
+            <WatchlistPanel instruments={instruments} selectedSymbol={selectedSymbol} onSelectSymbol={setSelectedSymbol} />
+          </div>
+          <div className="shrink-0 border-r" style={{ width: '260px', borderColor: 'var(--border)' }}>
+            <RecentTradesPanel trades={recentTrades} />
+          </div>
+          <div className="shrink-0 border-r" style={{ width: '280px', borderColor: 'var(--border)' }}>
+            <MarketOverviewPanel symbol={selectedSymbol} instrument={currentInstrument} />
+          </div>
+          <div className="shrink-0" style={{ width: '240px' }}>
+            <TopMoversPanel instruments={instruments} onSelectSymbol={setSelectedSymbol} />
+          </div>
         </div>
       </div>
 
-      {/* Live Orders bar (collapsible) */}
-      {showLiveOrders && (
-        <div className="shrink-0 border-t px-3 py-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
-          <LiveOrdersPanel symbol={selectedSymbol} />
-        </div>
-      )}
+      {/* ===== MOBILE LAYOUT ===== */}
+      <div className="md:hidden flex flex-col flex-1 min-h-0">
+        {/* Mobile tab content */}
+        <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+          {mobileTab === 'chart' && (
+            <div className="flex flex-col h-full">
+              <div className="flex-1 min-h-0" style={{ minHeight: '300px' }}>
+                <ChartPanel
+                  symbol={selectedSymbol}
+                  timeframe={timeframe}
+                  onTimeframeChange={setTimeframe}
+                  onFullscreen={toggleFullscreen}
+                  isFullscreen={isFullscreen}
+                />
+              </div>
+              {showLiveOrders && (
+                <div className="shrink-0 border-t px-3 py-2" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
+                  <LiveOrdersPanel symbol={selectedSymbol} />
+                </div>
+              )}
+            </div>
+          )}
 
-      {/* Bottom row: Watchlist | Recent Trades | Market Overview | Top Movers */}
-      <div className="flex shrink-0 border-t" style={{ height: '200px', borderColor: 'var(--border)' }}>
-        <div className="flex-1 min-w-0 border-r" style={{ borderColor: 'var(--border)' }}>
-          <WatchlistPanel
-            instruments={instruments}
-            selectedSymbol={selectedSymbol}
-            onSelectSymbol={setSelectedSymbol}
-          />
+          {mobileTab === 'order' && (
+            <div className="overflow-y-auto no-scrollbar">
+              <OrderForm symbol={selectedSymbol} currentPrice={currentInstrument?.lastPrice || 0} />
+            </div>
+          )}
+
+          {mobileTab === 'book' && (
+            <div className="flex flex-col">
+              {orderBook && (
+                <div style={{ minHeight: '300px' }}>
+                  <OrderBook orderBook={orderBook} currentPrice={currentInstrument?.lastPrice || 0} />
+                </div>
+              )}
+              <div className="border-t" style={{ borderColor: 'var(--border)', minHeight: '200px' }}>
+                <RecentTradesPanel trades={recentTrades} />
+              </div>
+            </div>
+          )}
+
+          {mobileTab === 'info' && (
+            <div className="flex flex-col gap-0">
+              <div style={{ minHeight: '200px' }}>
+                <MarketOverviewPanel symbol={selectedSymbol} instrument={currentInstrument} />
+              </div>
+              <div className="border-t" style={{ borderColor: 'var(--border)', minHeight: '200px' }}>
+                <WatchlistPanel instruments={instruments} selectedSymbol={selectedSymbol} onSelectSymbol={handleSelectSymbol} />
+              </div>
+              <div className="border-t" style={{ borderColor: 'var(--border)', minHeight: '200px' }}>
+                <TopMoversPanel instruments={instruments} onSelectSymbol={handleSelectSymbol} />
+              </div>
+            </div>
+          )}
         </div>
-        <div className="shrink-0 border-r" style={{ width: '260px', borderColor: 'var(--border)' }}>
-          <RecentTradesPanel trades={recentTrades} />
-        </div>
-        <div className="shrink-0 border-r" style={{ width: '280px', borderColor: 'var(--border)' }}>
-          <MarketOverviewPanel symbol={selectedSymbol} instrument={currentInstrument} />
-        </div>
-        <div className="shrink-0" style={{ width: '240px' }}>
-          <TopMoversPanel instruments={instruments} onSelectSymbol={setSelectedSymbol} />
+
+        {/* Mobile bottom tab bar */}
+        <div className="shrink-0 border-t flex" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          {MOBILE_TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setMobileTab(tab.id)}
+              className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-xs font-medium transition-colors"
+              style={{
+                color: mobileTab === tab.id ? 'var(--primary)' : 'var(--muted-foreground)',
+                backgroundColor: mobileTab === tab.id ? 'rgba(245,196,0,0.08)' : 'transparent',
+                borderTop: mobileTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
+              }}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

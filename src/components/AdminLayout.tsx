@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -102,6 +102,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['marketing', 'operations', 'finance', 'trading', 'compliance', 'support', 'system']);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -166,6 +167,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close mobile drawer on route change
+  useEffect(() => { setMobileDrawerOpen(false); }, [pathname]);
+
   const handleLogout = () => {
     setProfileOpen(false);
     router.push('/sign-up-login-screen');
@@ -183,12 +187,102 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return pathname.startsWith(href);
   };
 
+  const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
+    <>
+      <nav className="flex-1 overflow-y-auto py-2 no-scrollbar">
+        {groups.map(group => {
+          const items = SIDEBAR_ITEMS.filter(i => i.group === group);
+          const groupLabel = GROUP_LABELS[group];
+          return (
+            <div key={`admin-group-${group}`} className="mb-1">
+              {groupLabel && (!collapsed || mobile) && (
+                <p className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>
+                  {groupLabel}
+                </p>
+              )}
+              {items.map(item => {
+                const isActive = isActiveItem(item.href);
+                const hasChildren = item.children && item.children.length > 0;
+                const isExpanded = expandedGroups.includes(item.label);
+                const anyChildActive = hasChildren && item.children!.some(c => isActiveItem(c.href));
+
+                return (
+                  <div key={`admin-nav-${item.label}`}>
+                    {hasChildren ? (
+                      <button
+                        onClick={() => toggleGroup(item.label)}
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:bg-white/5 ${(!collapsed || mobile) ? '' : 'justify-center'}`}
+                        style={{ color: anyChildActive ? 'var(--primary)' : 'var(--muted-foreground)' }}
+                      >
+                        <item.icon size={14} className="shrink-0" />
+                        {(!collapsed || mobile) && (
+                          <>
+                            <span className="flex-1 text-left">{item.label}</span>
+                            {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        onClick={() => mobile && setMobileDrawerOpen(false)}
+                        className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:bg-white/5 ${(!collapsed || mobile) ? '' : 'justify-center'}`}
+                        style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: isActive ? 'rgba(245,196,0,0.08)' : undefined }}
+                      >
+                        <item.icon size={14} className="shrink-0" />
+                        {(!collapsed || mobile) && <span className="flex-1">{item.label}</span>}
+                        {(!collapsed || mobile) && item.badge && (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    )}
+                    {hasChildren && isExpanded && (!collapsed || mobile) && (
+                      <div className="ml-5 border-l pl-2 my-0.5" style={{ borderColor: 'var(--border)' }}>
+                        {item.children!.map(child => {
+                          const childActive = isActiveItem(child.href);
+                          return (
+                            <Link
+                              key={`admin-child-${child.label}`}
+                              href={child.href}
+                              onClick={() => mobile && setMobileDrawerOpen(false)}
+                              className="flex items-center gap-2 px-2 py-1.5 text-xs rounded transition-all hover:bg-white/5"
+                              style={{ color: childActive ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: childActive ? 'rgba(245,196,0,0.08)' : undefined }}
+                            >
+                              <child.icon size={12} />
+                              {child.label}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </nav>
+      {!mobile && (
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex items-center justify-center h-9 border-t text-xs transition-colors hover:bg-white/5"
+          style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <span className="flex items-center gap-1"><ChevronDown size={14} style={{ transform: 'rotate(90deg)' }} /> Collapse</span>}
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
-      {/* Sidebar */}
-      <aside className={`${collapsed ? 'w-14' : 'w-56'} shrink-0 border-r flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}
-        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        {/* Logo */}
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden lg:flex ${collapsed ? 'w-14' : 'w-56'} shrink-0 border-r flex-col transition-all duration-300 ease-in-out overflow-hidden`}
+        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      >
         <div className="flex items-center gap-2 px-3 h-12 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
           <AppLogo size={26} />
           {!collapsed && (
@@ -198,96 +292,48 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           )}
         </div>
-
-        {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-2 no-scrollbar">
-          {groups.map(group => {
-            const items = SIDEBAR_ITEMS.filter(i => i.group === group);
-            const groupLabel = GROUP_LABELS[group];
-            return (
-              <div key={`admin-group-${group}`} className="mb-1">
-                {groupLabel && !collapsed && (
-                  <p className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>
-                    {groupLabel}
-                  </p>
-                )}
-                {items.map(item => {
-                  const isActive = isActiveItem(item.href);
-                  const hasChildren = item.children && item.children.length > 0;
-                  const isExpanded = expandedGroups.includes(item.label);
-                  const anyChildActive = hasChildren && item.children!.some(c => isActiveItem(c.href));
-
-                  return (
-                    <div key={`admin-nav-${item.label}`}>
-                      {hasChildren ? (
-                        <button
-                          onClick={() => toggleGroup(item.label)}
-                          className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:bg-white/5 ${collapsed ? 'justify-center' : ''}`}
-                          style={{ color: anyChildActive ? 'var(--primary)' : 'var(--muted-foreground)' }}
-                        >
-                          <item.icon size={14} className="shrink-0" />
-                          {!collapsed && (
-                            <>
-                              <span className="flex-1 text-left">{item.label}</span>
-                              {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                            </>
-                          )}
-                        </button>
-                      ) : (
-                        <Link
-                          href={item.href}
-                          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium transition-all duration-150 hover:bg-white/5 ${collapsed ? 'justify-center' : ''}`}
-                          style={{ color: isActive ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: isActive ? 'rgba(245,196,0,0.08)' : undefined }}
-                        >
-                          <item.icon size={14} className="shrink-0" />
-                          {!collapsed && <span className="flex-1">{item.label}</span>}
-                          {!collapsed && item.badge && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-                              {item.badge}
-                            </span>
-                          )}
-                        </Link>
-                      )}
-                      {hasChildren && isExpanded && !collapsed && (
-                        <div className="ml-5 border-l pl-2 my-0.5" style={{ borderColor: 'var(--border)' }}>
-                          {item.children!.map(child => {
-                            const childActive = isActiveItem(child.href);
-                            return (
-                              <Link
-                                key={`admin-child-${child.label}`}
-                                href={child.href}
-                                className="flex items-center gap-2 px-2 py-1.5 text-xs rounded transition-all hover:bg-white/5"
-                                style={{ color: childActive ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: childActive ? 'rgba(245,196,0,0.08)' : undefined }}
-                              >
-                                <child.icon size={12} />
-                                {child.label}
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Collapse toggle */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center justify-center h-9 border-t text-xs transition-colors hover:bg-white/5"
-          style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
-        >
-          {collapsed ? <ChevronRight size={14} /> : <span className="flex items-center gap-1"><ChevronDown size={14} style={{ transform: 'rotate(90deg)' }} /> Collapse</span>}
-        </button>
+        <SidebarContent />
       </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileDrawerOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setMobileDrawerOpen(false)} />
+      )}
+
+      {/* Mobile Drawer */}
+      <div
+        className={`lg:hidden fixed top-0 left-0 h-full z-50 flex flex-col transition-transform duration-300 ease-in-out ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ width: '260px', backgroundColor: 'var(--card)', borderRight: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between px-3 h-12 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2">
+            <AppLogo size={22} />
+            <div>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Admin Panel</p>
+            </div>
+          </div>
+          <button onClick={() => setMobileDrawerOpen(false)} className="p-1.5 rounded hover:bg-white/5" style={{ color: 'var(--muted-foreground)' }}>
+            <X size={16} />
+          </button>
+        </div>
+        <SidebarContent mobile />
+      </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Admin topbar */}
-        <header className="h-12 border-b flex items-center px-4 gap-4 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <header className="h-12 border-b flex items-center px-4 gap-3 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          {/* Mobile hamburger */}
+          <button
+            className="lg:hidden p-1.5 rounded hover:bg-white/5 shrink-0"
+            style={{ color: 'var(--muted-foreground)' }}
+            onClick={() => setMobileDrawerOpen(true)}
+            aria-label="Open navigation"
+          >
+            <Menu size={18} />
+          </button>
+
           <h1 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Admin Panel</h1>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
@@ -307,7 +353,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-1 w-80 rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Notifications</p>
@@ -319,7 +365,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto no-scrollbar">
+                  <div className="max-h-72 overflow-y-auto no-scrollbar">
                     {adminNotifs.map(n => (
                       <div
                         key={n.id}
@@ -353,7 +399,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {/* Day/Night Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded hover:bg-white/5 transition-colors"
+              className="p-2 rounded hover:bg-white/5 transition-colors hidden sm:flex"
               style={{ color: 'var(--muted-foreground)' }}
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
@@ -366,8 +412,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 className="flex items-center gap-2 px-2 py-1 rounded-md transition-colors hover:bg-white/5"
               >
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
-                <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
-                <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>super_admin</span>
+                <span className="text-xs hidden sm:block" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
+                <span className="text-xs px-1.5 py-0.5 rounded hidden md:block" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>super_admin</span>
               </button>
               {profileOpen && (
                 <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
@@ -379,15 +425,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <Link href="/admin/system/settings" onClick={() => setProfileOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
                       style={{ color: 'var(--foreground)' }}>
-                      <User size={13} />
-                      Profile Settings
+                      <User size={13} /> Profile Settings
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
                       style={{ color: '#ef4444' }}>
-                      <LogOut size={13} />
-                      Logout
+                      <LogOut size={13} /> Logout
                     </button>
                   </div>
                 </div>
@@ -395,7 +439,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4">
+        <main className="flex-1 overflow-auto p-3 md:p-4">
           {children}
         </main>
       </div>

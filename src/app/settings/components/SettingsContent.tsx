@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { User, Shield, Bell, Eye, EyeOff, Smartphone, Key, LogOut, Check } from 'lucide-react';
+import { User, Shield, Bell, Eye, EyeOff, Smartphone, Key, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History } from 'lucide-react';
 
 type Tab = 'profile' | 'security' | 'notifications' | 'preferences';
 
@@ -11,38 +11,61 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'preferences', label: 'Preferences', icon: Eye },
 ];
 
+const MOCK_SESSIONS = [
+  { device: 'Chrome on macOS', location: 'London, UK', lastActive: 'Current session', current: true, browser: 'Chrome 120' },
+  { device: 'Safari on iPhone', location: 'London, UK', lastActive: '2 hours ago', current: false, browser: 'Safari 17' },
+  { device: 'Firefox on Windows', location: 'Manchester, UK', lastActive: '3 days ago', current: false, browser: 'Firefox 121' },
+];
+
+const MOCK_LOGIN_HISTORY = [
+  { date: '27 Aug 2026, 21:13', device: 'Chrome on macOS', browser: 'Chrome 120', location: 'London, UK', result: 'success' },
+  { date: '26 Aug 2026, 09:42', device: 'Safari on iPhone', browser: 'Safari 17', location: 'London, UK', result: 'success' },
+  { date: '25 Aug 2026, 14:21', device: 'Unknown device', browser: 'Unknown', location: 'Frankfurt, DE', result: 'failed' },
+  { date: '24 Aug 2026, 18:05', device: 'Chrome on macOS', browser: 'Chrome 120', location: 'London, UK', result: 'success' },
+  { date: '23 Aug 2026, 11:30', device: 'Firefox on Windows', browser: 'Firefox 121', location: 'Manchester, UK', result: 'success' },
+];
+
 export default function SettingsContent() {
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [sessions, setSessions] = useState(MOCK_SESSIONS);
 
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const revokeSession = (idx: number) => {
+    setSessions(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const revokeAllOther = () => {
+    setSessions(prev => prev.filter(s => s.current));
+  };
+
   return (
     <div className="py-4 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Settings & Security</h1>
+        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Settings &amp; Security</h1>
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Manage your account settings and security preferences</p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
         {/* Sidebar tabs */}
-        <div className="w-48 shrink-0">
-          <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="sm:w-48 shrink-0">
+          <div className="rounded-xl border overflow-hidden flex sm:flex-col" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             {TABS.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors border-b last:border-b-0 hover:bg-white/5 ${activeTab === tab.id ? 'bg-primary-subtle' : ''}`}
+                className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 sm:gap-3 px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-left transition-colors border-r sm:border-r-0 sm:border-b last:border-0 hover:bg-white/5 ${activeTab === tab.id ? 'bg-primary-subtle' : ''}`}
                 style={{ borderColor: 'rgba(255,255,255,0.05)', color: activeTab === tab.id ? 'var(--primary)' : 'var(--muted-foreground)' }}
               >
                 <tab.icon size={15} />
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -51,10 +74,9 @@ export default function SettingsContent() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {activeTab === 'profile' && (
-            <div className="rounded-xl border p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="rounded-xl border p-4 sm:p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Profile Information</h2>
 
-              {/* Avatar */}
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold"
                   style={{ backgroundColor: 'var(--primary)', color: '#000' }}>A</div>
@@ -67,15 +89,15 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { label: 'First Name', value: 'Alex', placeholder: 'First name' },
-                  { label: 'Last Name', value: 'Morgan', placeholder: 'Last name' },
+                  { label: 'First Name', value: 'Alex', placeholder: 'First name', colSpan: false },
+                  { label: 'Last Name', value: 'Morgan', placeholder: 'Last name', colSpan: false },
                   { label: 'Email Address', value: 'alex.morgan@email.com', placeholder: 'Email', colSpan: true },
-                  { label: 'Phone Number', value: '+1 (555) 000-0000', placeholder: 'Phone' },
-                  { label: 'Country', value: 'United States', placeholder: 'Country' },
+                  { label: 'Phone Number', value: '+1 (555) 000-0000', placeholder: 'Phone', colSpan: false },
+                  { label: 'Country', value: 'United States', placeholder: 'Country', colSpan: false },
                 ].map((field, idx) => (
-                  <div key={`pf-${idx}`} className={field.colSpan ? 'col-span-2' : ''}>
+                  <div key={`pf-${idx}`} className={field.colSpan ? 'sm:col-span-2' : ''}>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>{field.label}</label>
                     <input
                       type="text"
@@ -109,8 +131,11 @@ export default function SettingsContent() {
           {activeTab === 'security' && (
             <div className="space-y-4">
               {/* Change Password */}
-              <div className="rounded-xl border p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="rounded-xl border p-4 sm:p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Change Password</h2>
+                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                  Passwords are transmitted over HTTPS and stored using secure hashing. Never share your password.
+                </p>
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Current Password</label>
@@ -118,6 +143,7 @@ export default function SettingsContent() {
                       <input
                         type={showCurrentPw ? 'text' : 'password'}
                         placeholder="Enter current password"
+                        autoComplete="current-password"
                         className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none pr-10"
                         style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                       />
@@ -131,7 +157,8 @@ export default function SettingsContent() {
                     <div className="relative">
                       <input
                         type={showNewPw ? 'text' : 'password'}
-                        placeholder="Enter new password"
+                        placeholder="Min. 8 characters"
+                        autoComplete="new-password"
                         className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none pr-10"
                         style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                       />
@@ -145,6 +172,7 @@ export default function SettingsContent() {
                     <input
                       type="password"
                       placeholder="Confirm new password"
+                      autoComplete="new-password"
                       className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none"
                       style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                     />
@@ -157,8 +185,8 @@ export default function SettingsContent() {
               </div>
 
               {/* 2FA */}
-              <div className="rounded-xl border p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <div className="flex items-start justify-between">
+              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(245,196,0,0.12)' }}>
                       <Smartphone size={16} style={{ color: 'var(--primary)' }} />
@@ -166,17 +194,22 @@ export default function SettingsContent() {
                     <div>
                       <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Two-Factor Authentication</h3>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-                        Add an extra layer of security to your account using an authenticator app.
+                        Add an extra layer of security using a TOTP authenticator app (e.g. Google Authenticator, Authy).
                       </p>
                       <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full font-semibold ${twoFaEnabled ? 'text-positive' : 'text-negative'}`}
                         style={{ backgroundColor: twoFaEnabled ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }}>
                         {twoFaEnabled ? '● Enabled' : '● Disabled'}
                       </span>
+                      {!twoFaEnabled && (
+                        <p className="text-xs mt-2 p-2 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.06)', color: 'var(--muted-foreground)', border: '1px solid rgba(245,196,0,0.15)' }}>
+                          2FA setup requires backend integration. Enable when API is available.
+                        </p>
+                      )}
                     </div>
                   </div>
                   <button
                     onClick={() => setTwoFaEnabled(!twoFaEnabled)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:bg-muted"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:bg-muted shrink-0"
                     style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
                   >
                     {twoFaEnabled ? 'Disable' : 'Enable'}
@@ -185,17 +218,17 @@ export default function SettingsContent() {
               </div>
 
               {/* API Keys */}
-              <div className="rounded-xl border p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-3 mb-4">
                   <Key size={16} style={{ color: 'var(--primary)' }} />
                   <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>API Keys</h3>
                 </div>
-                <div className="rounded-lg border p-3 flex items-center justify-between" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                  <div>
+                <div className="rounded-lg border p-3 flex items-center justify-between gap-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
+                  <div className="min-w-0">
                     <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Main API Key</p>
-                    <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--muted-foreground)' }}>cv_••••••••••••••••••••••••••••••••</p>
+                    <p className="text-xs font-mono mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>cv_••••••••••••••••••••••••••••••••</p>
                   </div>
-                  <button className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted"
+                  <button className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0"
                     style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
                     Reveal
                   </button>
@@ -207,40 +240,95 @@ export default function SettingsContent() {
               </div>
 
               {/* Active Sessions */}
-              <div className="rounded-xl border p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Active Sessions</h3>
-                  <button className="text-xs text-negative hover:underline">Revoke All</button>
-                </div>
-                {[
-                  { device: 'Chrome on macOS', ip: '192.168.1.1', time: 'Current session', current: true },
-                  { device: 'Safari on iPhone', ip: '192.168.1.2', time: '2 hours ago', current: false },
-                ].map((session, idx) => (
-                  <div key={`sess-${idx}`} className="flex items-center justify-between py-2.5 border-b last:border-b-0" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--muted)' }}>
-                        <Smartphone size={14} style={{ color: 'var(--muted-foreground)' }} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{session.device}</p>
-                        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{session.ip} · {session.time}</p>
-                      </div>
-                    </div>
-                    {session.current ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold text-positive" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>Current</span>
-                    ) : (
-                      <button className="text-xs text-negative hover:underline">
-                        <LogOut size={13} />
-                      </button>
-                    )}
+              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <Monitor size={15} style={{ color: 'var(--primary)' }} />
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Active Sessions</h3>
                   </div>
-                ))}
+                  <button onClick={revokeAllOther} className="text-xs hover:underline" style={{ color: 'var(--negative)' }}>
+                    Sign out all other sessions
+                  </button>
+                </div>
+                <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                  Devices currently signed in to your account. Sign out sessions you don&apos;t recognise.
+                </p>
+                <div className="space-y-0">
+                  {sessions.map((session, idx) => (
+                    <div key={`sess-${idx}`} className="flex items-center justify-between py-3 border-b last:border-b-0 gap-3" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--muted)' }}>
+                          <Monitor size={14} style={{ color: 'var(--muted-foreground)' }} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--foreground)' }}>{session.device}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                              <MapPin size={10} /> {session.location}
+                            </span>
+                            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                              <Clock size={10} /> {session.lastActive}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      {session.current ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold text-positive shrink-0" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>Current</span>
+                      ) : (
+                        <button onClick={() => revokeSession(idx)} className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0" style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}>
+                          <LogOut size={12} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Login History */}
+              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <History size={15} style={{ color: 'var(--primary)' }} />
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Login Activity</h3>
+                </div>
+                <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                  Recent sign-in attempts to your account. Contact support if you see unrecognised activity.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs min-w-[480px]">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        {['Date', 'Device', 'Browser', 'Location', 'Result'].map(h => (
+                          <th key={h} className="text-left pb-2 pr-3 font-semibold" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {MOCK_LOGIN_HISTORY.map((entry, idx) => (
+                        <tr key={`lh-${idx}`} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td className="py-2.5 pr-3" style={{ color: 'var(--foreground)' }}>{entry.date}</td>
+                          <td className="py-2.5 pr-3 truncate max-w-[120px]" style={{ color: 'var(--foreground)' }}>{entry.device}</td>
+                          <td className="py-2.5 pr-3" style={{ color: 'var(--muted-foreground)' }}>{entry.browser}</td>
+                          <td className="py-2.5 pr-3" style={{ color: 'var(--muted-foreground)' }}>{entry.location}</td>
+                          <td className="py-2.5">
+                            {entry.result === 'success' ? (
+                              <span className="px-1.5 py-0.5 rounded text-positive font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)' }}>Success</span>
+                            ) : (
+                              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--negative)' }}>
+                                <AlertTriangle size={10} /> Failed
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'notifications' && (
-            <div className="rounded-xl border p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="rounded-xl border p-4 sm:p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Notification Preferences</h2>
               {[
                 { label: 'Trade Executions', desc: 'Get notified when your orders are filled', defaultOn: true },
@@ -256,7 +344,7 @@ export default function SettingsContent() {
           )}
 
           {activeTab === 'preferences' && (
-            <div className="rounded-xl border p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="rounded-xl border p-4 sm:p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Display Preferences</h2>
               <div className="space-y-4">
                 {[
@@ -294,8 +382,8 @@ export default function SettingsContent() {
 function NotificationToggle({ label, desc, defaultOn }: { label: string; desc: string; defaultOn: boolean }) {
   const [on, setOn] = useState(defaultOn);
   return (
-    <div className="flex items-center justify-between py-2 border-b last:border-b-0" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-      <div>
+    <div className="flex items-center justify-between py-2 border-b last:border-b-0 gap-3" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+      <div className="min-w-0">
         <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</p>
         <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{desc}</p>
       </div>

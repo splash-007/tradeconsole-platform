@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare, Bell, Activity, User, ChevronRight, ChevronDown, LogOut, Sun, Moon, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare, Bell, Activity, User, ChevronRight, ChevronDown, LogOut, Sun, Moon, UserPlus, Menu, X } from 'lucide-react';
 
 interface AgentLayoutProps { children: React.ReactNode; }
 
@@ -44,6 +44,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
@@ -62,45 +63,61 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('cv-theme') : null;
     const dark = saved !== 'light';
     setIsDark(dark);
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('light', !dark);
-    }
+    if (typeof document !== 'undefined') document.documentElement.classList.toggle('light', !dark);
   }, []);
 
   const toggleTheme = () => {
     const next = !isDark;
     setIsDark(next);
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('light', !next);
-    }
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('cv-theme', next ? 'dark' : 'light');
-    }
+    if (typeof document !== 'undefined') document.documentElement.classList.toggle('light', !next);
+    if (typeof localStorage !== 'undefined') localStorage.setItem('cv-theme', next ? 'dark' : 'light');
   };
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setProfileOpen(false);
-      }
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
-        setNotifOpen(false);
-      }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => { setMobileDrawerOpen(false); }, [pathname]);
 
   const handleLogout = () => {
     setProfileOpen(false);
     router.push('/sign-up-login-screen');
   };
 
+  const NavList = ({ mobile = false }: { mobile?: boolean }) => (
+    <nav className="flex-1 overflow-y-auto py-2 no-scrollbar">
+      {NAV_ITEMS.map(item => {
+        const active = isActive(item.href);
+        return (
+          <Link key={item.href} href={item.href}
+            onClick={() => mobile && setMobileDrawerOpen(false)}
+            className={`flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all hover:bg-white/5 ${(!collapsed || mobile) ? '' : 'justify-center'}`}
+            style={{ color: active ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: active ? 'rgba(245,196,0,0.08)' : undefined }}>
+            <item.icon size={14} className="shrink-0" />
+            {(!collapsed || mobile) && <span className="flex-1">{item.label}</span>}
+            {(!collapsed || mobile) && item.badge && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
+                {item.badge}
+              </span>
+            )}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
-      {/* Sidebar */}
-      <aside className={`${collapsed ? 'w-14' : 'w-52'} shrink-0 border-r flex flex-col transition-all duration-300`}
-        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden lg:flex ${collapsed ? 'w-14' : 'w-52'} shrink-0 border-r flex-col transition-all duration-300`}
+        style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+      >
         <div className="flex items-center gap-2 px-3 h-12 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
           <AppLogo size={24} />
           {!collapsed && (
@@ -111,26 +128,8 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-2 no-scrollbar">
-          {NAV_ITEMS.map(item => {
-            const active = isActive(item.href);
-            return (
-              <Link key={item.href} href={item.href}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-medium transition-all hover:bg-white/5 ${collapsed ? 'justify-center' : ''}`}
-                style={{ color: active ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: active ? 'rgba(245,196,0,0.08)' : undefined }}>
-                <item.icon size={14} className="shrink-0" />
-                {!collapsed && <span className="flex-1">{item.label}</span>}
-                {!collapsed && item.badge && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+        <NavList />
 
-        {/* Agent status */}
         {!collapsed && (
           <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-2">
@@ -153,9 +152,61 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         </button>
       </aside>
 
+      {/* Mobile Drawer Overlay */}
+      {mobileDrawerOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/60" onClick={() => setMobileDrawerOpen(false)} />
+      )}
+
+      {/* Mobile Drawer */}
+      <div
+        className={`lg:hidden fixed top-0 left-0 h-full z-50 flex flex-col transition-transform duration-300 ease-in-out ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ width: '240px', backgroundColor: 'var(--card)', borderRight: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between px-3 h-12 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2">
+            <AppLogo size={22} />
+            <div>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Agent Portal</p>
+            </div>
+          </div>
+          <button onClick={() => setMobileDrawerOpen(false)} className="p-1.5 rounded hover:bg-white/5" style={{ color: 'var(--muted-foreground)' }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <NavList mobile />
+
+        <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium truncate" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Online</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="w-full flex items-center gap-2 px-2 py-2 rounded text-xs transition-colors hover:bg-white/5" style={{ color: '#ef4444' }}>
+            <LogOut size={13} /> Logout
+          </button>
+        </div>
+      </div>
+
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-12 border-b flex items-center px-4 gap-4 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <header className="h-12 border-b flex items-center px-4 gap-3 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          {/* Mobile hamburger */}
+          <button
+            className="lg:hidden p-1.5 rounded hover:bg-white/5 shrink-0"
+            style={{ color: 'var(--muted-foreground)' }}
+            onClick={() => setMobileDrawerOpen(true)}
+            aria-label="Open navigation"
+          >
+            <Menu size={18} />
+          </button>
+
           <h1 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Agent Portal</h1>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
@@ -175,7 +226,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-1 w-80 rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Notifications</p>
@@ -187,7 +238,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto no-scrollbar">
+                  <div className="max-h-72 overflow-y-auto no-scrollbar">
                     {notifications.map(n => (
                       <div
                         key={n.id}
@@ -223,7 +274,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
             {/* Day/Night Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded hover:bg-white/5 transition-colors"
+              className="p-2 rounded hover:bg-white/5 transition-colors hidden sm:flex"
               style={{ color: 'var(--muted-foreground)' }}
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
@@ -236,8 +287,8 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                 className="flex items-center gap-2 px-2 py-1 rounded-md transition-colors hover:bg-white/5"
               >
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
-                <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
-                <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>Agent</span>
+                <span className="text-xs hidden sm:block" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
+                <span className="text-xs px-1.5 py-0.5 rounded hidden md:block" style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)' }}>Agent</span>
                 <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
               </button>
               {profileOpen && (
@@ -250,15 +301,13 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                     <Link href="/agent/profile" onClick={() => setProfileOpen(false)}
                       className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
                       style={{ color: 'var(--foreground)' }}>
-                      <User size={13} />
-                      My Profile
+                      <User size={13} /> Profile
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5"
                       style={{ color: '#ef4444' }}>
-                      <LogOut size={13} />
-                      Logout
+                      <LogOut size={13} /> Logout
                     </button>
                   </div>
                 </div>
@@ -266,7 +315,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
             </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4">
+        <main className="flex-1 overflow-auto p-3 md:p-4">
           {children}
         </main>
       </div>
