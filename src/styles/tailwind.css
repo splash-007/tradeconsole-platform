@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #070707;
+  --foreground: #F1F1F1;
+  --primary: #F5C400;
+  --primary-foreground: #070707;
+  --secondary: #111313;
+  --secondary-foreground: #A0A0A0;
+  --accent: #F5C400;
+  --accent-foreground: #070707;
+  --muted: #1A1C1C;
+  --muted-foreground: #6B7280;
+  --card: #0D0E0E;
+  --card-foreground: #F1F1F1;
+  --border: #1F2020;
+  --input: #161818;
+  --ring: #F5C400;
+  --radius: 6px;
+  --font-sans: var(--font-dm-sans), sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), monospace;
+  --positive: #22C55E;
+  --negative: #EF4444;
+  --warning: #F59E0B;
+  --panel: #111313;
+  --panel-border: #1F2020;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-positive {
+    color: var(--positive);
+  }
+
+  .text-negative {
+    color: var(--negative);
+  }
+
+  .bg-positive-subtle {
+    background-color: rgba(34, 197, 94, 0.08);
+  }
+
+  .bg-negative-subtle {
+    background-color: rgba(239, 68, 68, 0.08);
+  }
+
+  .bg-primary-subtle {
+    background-color: rgba(245, 196, 0, 0.08);
+  }
+
+  .border-positive {
+    border-color: var(--positive);
+  }
+
+  .border-negative {
+    border-color: var(--negative);
+  }
+
+  .panel {
+    background-color: var(--panel);
+    border: 1px solid var(--panel-border);
+  }
+
+  .gold-glow {
+    box-shadow: 0 0 20px rgba(245, 196, 0, 0.15);
+  }
+
+  .chart-gradient-gold {
+    stop-color: var(--primary);
+  }
+
+  .text-gold {
+    color: var(--primary);
+  }
+
+  .bg-gold {
+    background-color: var(--primary);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.2s ease-out;
+  }
+
+  .animate-pulse-green {
+    animation: pulseGreen 1s ease-in-out;
+  }
+
+  .animate-pulse-red {
+    animation: pulseRed 1s ease-in-out;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseGreen {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(34, 197, 94, 0.15); }
+}
+
+@keyframes pulseRed {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(239, 68, 68, 0.15); }
+}
