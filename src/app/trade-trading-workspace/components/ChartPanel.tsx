@@ -4,6 +4,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell
 } from 'recharts';
+import { Camera, Maximize2, RotateCcw } from 'lucide-react';
 
 interface Props {
   symbol: string;
@@ -11,7 +12,7 @@ interface Props {
   onTimeframeChange: (tf: string) => void;
 }
 
-const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D'];
+const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D', '1D'];
 
 function generateCandles(count: number, basePrice: number) {
   const candles = [];
@@ -57,31 +58,35 @@ const CustomCandleTooltip = ({ active, payload, label }: any) => {
 
 export default function ChartPanel({ symbol, timeframe, onTimeframeChange }: Props) {
   const basePrice = symbol === 'BTC/USDC' ? 67842 : symbol === 'ETH/USDC' ? 3542 : 182;
-  const candles = useMemo(() => generateCandles(32, basePrice * 0.96), [symbol]);
+  const candles = useMemo(() => generateCandles(36, basePrice * 0.96), [symbol]);
 
-  // For candlestick simulation: use Bar for body, Line for high/low wicks
   const chartData = candles.map(c => ({
     ...c,
     bodyLow: Math.min(c.open, c.close),
     bodyHigh: Math.max(c.open, c.close),
     bodySize: Math.abs(c.close - c.open),
-    wickRange: [c.low, c.high],
   }));
+
+  // OHLC label for header
+  const last = chartData[chartData.length - 1];
+  const changeVal = last ? (last.close - last.open) : 0;
+  const changePct = last ? ((changeVal / last.open) * 100) : 0;
 
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ backgroundColor: 'var(--background)' }}>
-      {/* Chart toolbar top */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      {/* Timeframe + tools bar */}
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         {/* Timeframes */}
         <div className="flex items-center gap-0.5">
-          {TIMEFRAMES.map(tf => (
+          {TIMEFRAMES.map((tf, idx) => (
             <button
-              key={`tf-${tf}`}
+              key={`tf-${tf}-${idx}`}
               onClick={() => onTimeframeChange(tf)}
               className={`px-2 py-1 text-xs rounded transition-all duration-150 font-medium ${
-                timeframe === tf
-                  ? 'bg-primary-subtle text-gold' :'text-muted-foreground hover:text-foreground hover:bg-muted'
+                timeframe === tf && idx === TIMEFRAMES.indexOf(tf)
+                  ? 'text-gold font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
+              style={timeframe === tf && idx === TIMEFRAMES.indexOf(tf) ? { color: 'var(--primary)' } : {}}
             >
               {tf}
             </button>
@@ -90,84 +95,97 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange }: Pro
 
         <div className="w-px h-4 mx-1" style={{ backgroundColor: 'var(--border)' }} />
 
-        {/* Chart type */}
-        {['Candles', 'Line', 'Area'].map(ct => (
-          <button
-            key={`ct-${ct}`}
-            className={`px-2 py-1 text-xs rounded transition-all ${ct === 'Candles' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
-          >
-            {ct}
-          </button>
-        ))}
+        {/* Indicators button */}
+        <button className="flex items-center gap-1 px-2 py-1 text-xs rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 9L4 5L7 7L11 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Indicators
+        </button>
 
         <div className="flex-1" />
 
-        {/* Indicators */}
-        <button className="px-2 py-1 text-xs rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
-          MA(7)
+        {/* Right icons */}
+        <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
+          <Camera size={13} />
         </button>
-        <button className="px-2 py-1 text-xs rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
-          MA(25)
+        <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
+          <Maximize2 size={13} />
         </button>
-        <button className="px-2 py-1 text-xs rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
-          + Indicator
+        <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
+          <RotateCcw size={13} />
         </button>
       </div>
 
+      {/* OHLC info bar */}
+      <div className="flex items-center gap-3 px-3 py-1 shrink-0" style={{ backgroundColor: 'var(--background)' }}>
+        <span className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
+          {symbol} · {timeframe} · CRYPTO VAULT
+        </span>
+        {last && (
+          <>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>O <span className="font-mono" style={{ color: 'var(--foreground)' }}>{last.open.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>H <span className="font-mono text-positive">{last.high.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>L <span className="font-mono text-negative">{last.low.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>C <span className={`font-mono ${changeVal >= 0 ? 'text-positive' : 'text-negative'}`}>{last.close.toFixed(2)}</span></span>
+            <span className={`text-xs font-semibold ${changeVal >= 0 ? 'text-positive' : 'text-negative'}`}>
+              {changeVal >= 0 ? '+' : ''}{changeVal.toFixed(2)} ({changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%)
+            </span>
+          </>
+        )}
+      </div>
+
       {/* Chart body */}
-      <div className="flex-1 min-h-0 p-2">
-        <ResponsiveContainer width="100%" height="75%">
+      <div className="flex-1 min-h-0 px-2 pb-1">
+        <ResponsiveContainer width="100%" height="76%">
           <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="2 4" stroke="var(--border)" />
+            <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" />
             <XAxis
               dataKey="time"
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }}
+              tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
               axisLine={false}
               tickLine={false}
-              interval={4}
+              interval={5}
             />
             <YAxis
               domain={['auto', 'auto']}
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }}
+              tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v.toFixed(0)}
-              width={56}
+              width={52}
               orientation="right"
             />
             <Tooltip content={<CustomCandleTooltip />} />
-            {/* Wick lines */}
-            <Bar dataKey="bodySize" stackId="candle" fill="transparent" stroke="transparent">
+            <Bar dataKey="bodySize" fill="transparent" stroke="transparent">
               {chartData.map((entry, idx) => (
                 <Cell
                   key={`cell-body-${idx}`}
-                  fill={entry.isUp ? 'var(--positive)' : 'var(--negative)'}
-                  stroke={entry.isUp ? 'var(--positive)' : 'var(--negative)'}
+                  fill={entry.isUp ? '#22c55e' : '#ef4444'}
+                  stroke={entry.isUp ? '#22c55e' : '#ef4444'}
                 />
               ))}
             </Bar>
-            {/* MA line */}
+            {/* MA line — gold */}
             <Line
               type="monotone"
               dataKey="close"
               stroke="var(--primary)"
-              strokeWidth={1}
+              strokeWidth={1.5}
               dot={false}
-              strokeOpacity={0.5}
+              strokeOpacity={0.7}
             />
           </ComposedChart>
         </ResponsiveContainer>
 
         {/* Volume sub-chart */}
-        <ResponsiveContainer width="100%" height="22%">
+        <ResponsiveContainer width="100%" height="21%">
           <ComposedChart data={chartData} margin={{ top: 2, right: 8, left: 0, bottom: 0 }}>
             <XAxis dataKey="time" hide />
-            <YAxis hide orientation="right" width={56} />
+            <YAxis hide orientation="right" width={52} />
             <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
               {chartData.map((entry, idx) => (
                 <Cell
                   key={`cell-vol-${idx}`}
-                  fill={entry.isUp ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}
+                  fill={entry.isUp ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}
                 />
               ))}
             </Bar>

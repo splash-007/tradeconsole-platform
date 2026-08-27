@@ -6,7 +6,7 @@ import AppLogo from '@/components/ui/AppLogo';
 import {
   Bell, ChevronDown, User, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight,
   Star, Sun, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase,
-  Shield, BookOpen, MoreHorizontal
+  Shield, BookOpen, MoreHorizontal, MessageSquare
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
+  { label: 'Messages', href: '/messages', icon: MessageSquare },
   { label: 'Copy Trading', href: '#', icon: User },
   { label: 'Rewards', href: '#', icon: Star },
   { label: 'Academy', href: '#', icon: BookOpen },
@@ -101,6 +102,12 @@ export default function TopNav() {
           <Link href="/admin-dashboard" className="hidden lg:flex items-center gap-1 px-2 py-1.5 rounded text-xs transition-all hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
             <Shield size={13} />
             <span>Admin</span>
+          </Link>
+
+          {/* Settings link */}
+          <Link href="/settings" className="hidden lg:flex items-center gap-1 px-2 py-1.5 rounded text-xs transition-all hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
+            <Sun size={13} />
+            <span>Settings</span>
           </Link>
 
           {/* Mobile hamburger */}

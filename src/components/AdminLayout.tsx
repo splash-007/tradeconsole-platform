@@ -222,12 +222,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <header className="h-12 border-b flex items-center px-4 gap-4 shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           <h1 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Admin Panel</h1>
           <div className="flex-1" />
-          <Link href="/agent" className="text-xs px-3 py-1.5 rounded border transition-colors hover:bg-white/5" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
-            Agent View
-          </Link>
-          <Link href="/trading-dashboard" className="text-xs px-3 py-1.5 rounded border transition-colors hover:bg-white/5" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
-            ← Back to App
-          </Link>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>S</div>
             <span className="text-xs" style={{ color: 'var(--foreground)' }}>Sarah Chen</span>
