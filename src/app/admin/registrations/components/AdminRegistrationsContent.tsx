@@ -3,12 +3,14 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { marketingService, Registration } from '@/services/marketing.service';
 import { AdminTable, StatusBadge, PageHeader, Card, SearchInput, ActionButton, KpiCard } from '@/components/admin/AdminUI';
+import AssignAgentModal from '@/app/admin/customers/[id]/components/AssignAgentModal';
 
 export default function AdminRegistrationsContent() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [assignTarget, setAssignTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     marketingService.getRegistrations().then(data => {
@@ -46,7 +48,11 @@ export default function AdminRegistrationsContent() {
       render: (r: Registration) => (
         <div className="flex gap-1">
           <Link href={`/admin/customers/${r.id}`}><ActionButton>View</ActionButton></Link>
-          <ActionButton>Assign</ActionButton>
+          <ActionButton
+            onClick={() => setAssignTarget({ id: r.id, name: `${r.firstName} ${r.lastName}` })}
+          >
+            Assign
+          </ActionButton>
         </div>
       )
     },
@@ -68,7 +74,7 @@ export default function AdminRegistrationsContent() {
       <Card padding="p-0">
         <div className="flex items-center gap-3 p-3 border-b" style={{ borderColor: 'var(--border)' }}>
           <SearchInput value={search} onChange={setSearch} placeholder="Search registrations..." />
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {statuses.map(s => (
               <button key={s} onClick={() => setStatusFilter(s)}
                 className="text-xs px-2.5 py-1 rounded capitalize transition-colors"
@@ -86,6 +92,14 @@ export default function AdminRegistrationsContent() {
         </div>
         <AdminTable columns={columns} data={filtered} loading={loading} />
       </Card>
+
+      {assignTarget && (
+        <AssignAgentModal
+          customerId={assignTarget.id}
+          customerName={assignTarget.name}
+          onClose={() => setAssignTarget(null)}
+        />
+      )}
     </div>
   );
 }

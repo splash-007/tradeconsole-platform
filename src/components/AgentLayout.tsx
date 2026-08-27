@@ -40,6 +40,25 @@ const NOTIF_COLORS: Record<string, string> = {
   lead: '#F5C400', message: '#3b82f6', task: '#ef4444', system: '#6b7280'
 };
 
+const NOTIF_HREFS: Record<string, string> = {
+  lead: '/agent/customers',
+  message: '/agent/messages',
+  task: '/agent/tasks',
+  system: '/agent/notifications',
+};
+
+const loadAgentNotifs = (): AgentNotification[] => {
+  if (typeof window === 'undefined') return INITIAL_NOTIFS;
+  try {
+    const saved = localStorage.getItem('cv-agent-notifs');
+    if (saved) {
+      const readIds: string[] = JSON.parse(saved);
+      return INITIAL_NOTIFS.map(n => ({ ...n, read: readIds.includes(n.id) ? true : n.read }));
+    }
+  } catch {}
+  return INITIAL_NOTIFS;
+};
+
 export default function AgentLayout({ children }: AgentLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -53,6 +72,33 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   const notifRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    setNotifications(loadAgentNotifs());
+  }, []);
+
+  const persistAgentReadState = (notifs: AgentNotification[]) => {
+    if (typeof localStorage !== 'undefined') {
+      const readIds = notifs.filter(n => n.read).map(n => n.id);
+      localStorage.setItem('cv-agent-notifs', JSON.stringify(readIds));
+    }
+  };
+
+  const markAgentNotifRead = (id: string) => {
+    setNotifications(prev => {
+      const next = prev.map(x => x.id === id ? { ...x, read: true } : x);
+      persistAgentReadState(next);
+      return next;
+    });
+  };
+
+  const markAllAgentNotifsRead = () => {
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      persistAgentReadState(next);
+      return next;
+    });
+  };
 
   const isActive = (href: string) => {
     if (href === '/agent') return pathname === '/agent';
@@ -233,7 +279,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                       {unreadCount > 0 && <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{unreadCount} unread</p>}
                     </div>
                     {unreadCount > 0 && (
-                      <button onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))} className="text-xs" style={{ color: 'var(--primary)' }}>
+                      <button onClick={() => markAllAgentNotifsRead()} className="text-xs" style={{ color: 'var(--primary)' }}>
                         Mark all read
                       </button>
                     )}
@@ -242,7 +288,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                     {notifications.map(n => (
                       <div
                         key={n.id}
-                        onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}
+                        onClick={() => markAgentNotifRead(n.id)}
                         className="flex items-start gap-3 px-4 py-3 border-b cursor-pointer hover:bg-white/3 transition-colors"
                         style={{ borderColor: 'var(--border)', backgroundColor: n.read ? 'transparent' : 'rgba(245,196,0,0.03)' }}
                       >
