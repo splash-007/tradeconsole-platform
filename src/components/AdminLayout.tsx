@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle, GitBranch } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -78,6 +78,7 @@ const SIDEBAR_ITEMS: NavItem[] = [
     label: 'System', href: '#', icon: Cpu, group: 'system', children: [
       { label: 'Notifications', href: '/admin/system/notifications', icon: Bell },
       { label: 'Staff', href: '/admin/system/staff', icon: Users },
+      { label: 'Organization', href: '/admin/system/organization', icon: GitBranch },
       { label: 'Roles & Permissions', href: '/admin/system/roles', icon: KeyRound },
       { label: 'Audit Logs', href: '/admin/system/audit', icon: ScrollText },
       { label: 'Settings', href: '/admin/system/settings', icon: Settings },

@@ -62,14 +62,12 @@ function AuthScreenInner() {
     const result = await authService.login({ email: data.email, password: data.password });
     setIsLoading(false);
     if (result.error) {
-      setAuthError('Invalid email or password.');
+      setAuthError(result.error);
       return;
     }
-    if (result.user?.role === 'admin') {
-      window.location.href = '/admin-dashboard';
-    } else {
-      window.location.href = '/trading-dashboard';
-    }
+    // Use server-determined redirect URL based on validated role
+    const redirectTo = result.redirectTo || '/trading-dashboard';
+    window.location.href = redirectTo;
   };
 
   const onRegister = async (data: RegisterFormData) => {
