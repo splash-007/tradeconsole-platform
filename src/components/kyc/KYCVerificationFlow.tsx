@@ -1,8 +1,8 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { kycService, DocumentType } from '@/services/kyc.service';
 import { ActionButton } from '@/components/admin/AdminUI';
-import { CheckCircle, Upload, AlertCircle, Clock, Shield, Sparkles, UserCheck, FileCheck, Lock } from 'lucide-react';
+import { CheckCircle, Upload, AlertCircle, Clock, Shield, Sparkles, UserCheck, FileCheck, Lock, X, File } from 'lucide-react';
 
 const STEPS = [
   { id: 1, title: 'Personal Info', description: 'Name, date of birth, nationality', icon: UserCheck },
@@ -18,35 +18,99 @@ const DOC_TYPES: { value: DocumentType; label: string }[] = [
   { value: 'drivers_license', label: "Driver's Licence" },
 ];
 
-interface UploadBoxProps {
-  label: string;
-  uploaded: boolean;
-  onUpload: () => void;
+interface UploadedFile {
+  file: File;
+  preview?: string;
 }
 
-function UploadBox({ label, uploaded, onUpload }: UploadBoxProps) {
+interface FileUploadBoxProps {
+  label: string;
+  sublabel?: string;
+  uploaded: UploadedFile | null;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+  accept?: string;
+}
+
+function FileUploadBox({ label, sublabel, uploaded, onUpload, onRemove, accept = 'image/*,.pdf' }: FileUploadBoxProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onUpload(file);
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const isImage = uploaded?.file.type.startsWith('image/');
+
+  if (uploaded) {
+    return (
+      <div
+        className="flex flex-col gap-2 p-3 rounded-xl border-2 transition-all w-full"
+        style={{ borderColor: 'var(--primary)', backgroundColor: 'rgba(245,196,0,0.04)' }}
+      >
+        {/* Preview */}
+        {isImage && uploaded.preview ? (
+          <div className="w-full h-20 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
+            <img src={uploaded.preview} alt="Document preview" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-full h-20 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
+            <File size={24} style={{ color: 'var(--primary)' }} />
+          </div>
+        )}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <CheckCircle size={11} style={{ color: 'var(--primary)' }} />
+              <span className="text-xs font-semibold truncate" style={{ color: 'var(--primary)' }}>{label}</span>
+            </div>
+            <p className="text-xs truncate" style={{ color: 'var(--muted-foreground)' }}>{uploaded.file.name}</p>
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)', opacity: 0.7 }}>{formatSize(uploaded.file.size)}</p>
+          </div>
+          <button
+            onClick={onRemove}
+            className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 hover:bg-red-500/20 transition-colors"
+            style={{ color: '#ef4444' }}
+          >
+            <X size={10} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <button
-      onClick={onUpload}
-      className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-all w-full group"
-      style={{
-        borderColor: uploaded ? 'var(--primary)' : 'var(--border)',
-        backgroundColor: uploaded ? 'rgba(245,196,0,0.06)' : 'rgba(255,255,255,0.02)',
-      }}
-    >
-      {uploaded ? (
-        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(245,196,0,0.15)' }}>
-          <CheckCircle size={16} style={{ color: 'var(--primary)' }} />
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <button
+        onClick={() => inputRef.current?.click()}
+        className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-all w-full group min-h-[100px]"
+        style={{
+          borderColor: 'var(--border)',
+          backgroundColor: 'rgba(255,255,255,0.02)',
+        }}
+      >
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors group-hover:bg-white/10" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+          <Upload size={15} style={{ color: 'var(--muted-foreground)' }} />
         </div>
-      ) : (
-        <div className="w-8 h-8 rounded-full flex items-center justify-center transition-colors group-hover:bg-white/10" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-          <Upload size={16} style={{ color: 'var(--muted-foreground)' }} />
+        <div className="text-center">
+          <span className="text-xs font-semibold block" style={{ color: 'var(--foreground)' }}>{label}</span>
+          {sublabel && <span className="text-xs block mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{sublabel}</span>}
+          <span className="text-xs block mt-1" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Click to browse</span>
         </div>
-      )}
-      <span className="text-xs font-medium" style={{ color: uploaded ? 'var(--primary)' : 'var(--muted-foreground)' }}>
-        {uploaded ? 'Uploaded ✓' : label}
-      </span>
-    </button>
+      </button>
+    </>
   );
 }
 
@@ -78,11 +142,29 @@ export default function KYCVerificationFlow({ onComplete, isFirstLogin }: KYCVer
   const [docNumber, setDocNumber] = useState('');
   const [docExpiry, setDocExpiry] = useState('');
 
-  // Step 4 — Uploads
-  const [frontUploaded, setFrontUploaded] = useState(false);
-  const [backUploaded, setBackUploaded] = useState(false);
-  const [selfieUploaded, setSelfieUploaded] = useState(false);
-  const [poaUploaded, setPoaUploaded] = useState(false);
+  // Step 4 — File uploads
+  const [frontFile, setFrontFile] = useState<UploadedFile | null>(null);
+  const [backFile, setBackFile] = useState<UploadedFile | null>(null);
+  const [selfieFile, setSelfieFile] = useState<UploadedFile | null>(null);
+  const [poaFile, setPoaFile] = useState<UploadedFile | null>(null);
+
+  const createUploadedFile = (file: File): UploadedFile => {
+    const isImage = file.type.startsWith('image/');
+    if (isImage) {
+      const preview = URL.createObjectURL(file);
+      return { file, preview };
+    }
+    return { file };
+  };
+
+  const handleFileUpload = (setter: (f: UploadedFile | null) => void) => (file: File) => {
+    setter(createUploadedFile(file));
+  };
+
+  const handleFileRemove = (current: UploadedFile | null, setter: (f: UploadedFile | null) => void) => () => {
+    if (current?.preview) URL.revokeObjectURL(current.preview);
+    setter(null);
+  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -96,7 +178,7 @@ export default function KYCVerificationFlow({ onComplete, isFirstLogin }: KYCVer
   const inputCls = "w-full text-xs px-3 py-2.5 rounded-lg border outline-none transition-colors focus:ring-1 focus:ring-yellow-500/30";
   const inputStyle = { backgroundColor: 'rgba(255,255,255,0.04)', borderColor: 'var(--border)', color: 'var(--foreground)' };
 
-  // KYC Approved state (shown after admin approves — in real app this would come from backend)
+  // KYC Approved state
   if (approved) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-5 text-center">
@@ -145,6 +227,21 @@ export default function KYCVerificationFlow({ onComplete, isFirstLogin }: KYCVer
           <p className="text-xs max-w-xs leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
             Your documents have been submitted successfully. Our compliance team will review within 1–2 business days. You'll receive a notification and email once approved.
           </p>
+        </div>
+        {/* Uploaded files summary */}
+        <div className="w-full max-w-xs space-y-1.5">
+          {[
+            { label: 'Document Front', file: frontFile },
+            { label: 'Document Back', file: backFile },
+            { label: 'Selfie with Document', file: selfieFile },
+            { label: 'Proof of Address', file: poaFile },
+          ].filter(f => f.file).map(({ label, file }) => (
+            <div key={label} className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ backgroundColor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
+              <CheckCircle size={11} style={{ color: '#22c55e' }} />
+              <span style={{ color: 'var(--foreground)' }}>{label}</span>
+              <span className="ml-auto truncate max-w-[100px]" style={{ color: 'var(--muted-foreground)' }}>{file!.file.name}</span>
+            </div>
+          ))}
         </div>
         <div className="w-full max-w-xs space-y-2">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(245,196,0,0.06)', border: '1px solid rgba(245,196,0,0.2)' }}>
@@ -288,13 +385,53 @@ export default function KYCVerificationFlow({ onComplete, isFirstLogin }: KYCVer
           <div className="space-y-3">
             <div className="p-3 rounded-lg text-xs flex items-start gap-2" style={{ backgroundColor: 'rgba(245,196,0,0.06)', border: '1px solid rgba(245,196,0,0.2)', color: 'var(--muted-foreground)' }}>
               <AlertCircle size={12} className="mt-0.5 shrink-0" style={{ color: 'var(--primary)' }} />
-              Ensure documents are clear, unobstructed and all four corners are visible. Max file size: 10MB per file.
+              <span>Accepted formats: JPG, PNG, PDF. Max 10 MB per file. Ensure all four corners are visible and text is legible.</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <UploadBox label="Document Front" uploaded={frontUploaded} onUpload={() => setFrontUploaded(true)} />
-              <UploadBox label="Document Back" uploaded={backUploaded} onUpload={() => setBackUploaded(true)} />
-              <UploadBox label="Selfie with Document" uploaded={selfieUploaded} onUpload={() => setSelfieUploaded(true)} />
-              <UploadBox label="Proof of Address" uploaded={poaUploaded} onUpload={() => setPoaUploaded(true)} />
+              <FileUploadBox
+                label="Document Front"
+                sublabel="Front side of your ID"
+                uploaded={frontFile}
+                onUpload={handleFileUpload(setFrontFile)}
+                onRemove={handleFileRemove(frontFile, setFrontFile)}
+              />
+              <FileUploadBox
+                label="Document Back"
+                sublabel="Back side of your ID"
+                uploaded={backFile}
+                onUpload={handleFileUpload(setBackFile)}
+                onRemove={handleFileRemove(backFile, setBackFile)}
+              />
+              <FileUploadBox
+                label="Selfie with Document"
+                sublabel="Hold ID next to your face"
+                uploaded={selfieFile}
+                onUpload={handleFileUpload(setSelfieFile)}
+                onRemove={handleFileRemove(selfieFile, setSelfieFile)}
+              />
+              <FileUploadBox
+                label="Proof of Address"
+                sublabel="Utility bill or bank statement"
+                uploaded={poaFile}
+                onUpload={handleFileUpload(setPoaFile)}
+                onRemove={handleFileRemove(poaFile, setPoaFile)}
+                accept="image/*,.pdf"
+              />
+            </div>
+            {/* Upload progress summary */}
+            <div className="flex items-center gap-2 pt-1">
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${([frontFile, backFile, selfieFile, poaFile].filter(Boolean).length / 4) * 100}%`,
+                    backgroundColor: 'var(--primary)',
+                  }}
+                />
+              </div>
+              <span className="text-xs shrink-0" style={{ color: 'var(--muted-foreground)' }}>
+                {[frontFile, backFile, selfieFile, poaFile].filter(Boolean).length}/4 uploaded
+              </span>
             </div>
           </div>
         )}
@@ -310,14 +447,14 @@ export default function KYCVerificationFlow({ onComplete, isFirstLogin }: KYCVer
                 ['Document Type', DOC_TYPES.find(d => d.value === docType)?.label || '—'],
                 ['Document Number', docNumber || '—'],
                 ['Document Expiry', docExpiry || '—'],
-                ['Front Upload', frontUploaded ? '✓ Uploaded' : '✗ Missing'],
-                ['Back Upload', backUploaded ? '✓ Uploaded' : '✗ Missing'],
-                ['Selfie', selfieUploaded ? '✓ Uploaded' : '✗ Missing'],
-                ['Proof of Address', poaUploaded ? '✓ Uploaded' : '✗ Missing'],
+                ['Front Upload', frontFile ? `✓ ${frontFile.file.name}` : '✗ Missing'],
+                ['Back Upload', backFile ? `✓ ${backFile.file.name}` : '✗ Missing'],
+                ['Selfie', selfieFile ? `✓ ${selfieFile.file.name}` : '✗ Missing'],
+                ['Proof of Address', poaFile ? `✓ ${poaFile.file.name}` : '✗ Missing'],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between text-xs py-1.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
                   <span style={{ color: 'var(--muted-foreground)' }}>{label}</span>
-                  <span style={{ color: String(value).includes('✗') ? '#ef4444' : 'var(--foreground)' }}>{value}</span>
+                  <span className="max-w-[180px] truncate text-right" style={{ color: String(value).includes('✗') ? '#ef4444' : 'var(--foreground)' }}>{value}</span>
                 </div>
               ))}
             </div>

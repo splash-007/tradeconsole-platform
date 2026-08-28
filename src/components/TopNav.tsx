@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, ChevronDown, ArrowDownToLine, ArrowUpFromLine, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign } from 'lucide-react';
+import { Bell, ChevronDown, ArrowDownToLine, ArrowUpFromLine, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
   { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
+  { label: 'Transactions', href: '/transactions', icon: History },
   { label: 'Messages', href: '/messages', icon: MessageSquare },
   { label: 'Funds', href: '/finance', icon: Wallet },
   { label: 'KYC', href: '/kyc', icon: Shield },
