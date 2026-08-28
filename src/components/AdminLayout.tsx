@@ -229,7 +229,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const handleLogout = () => {
     setProfileOpen(false);
-    router.push('/sign-up-login-screen');
+    router.push('/secure-login');
   };
 
   const toggleGroup = (label: string) => {

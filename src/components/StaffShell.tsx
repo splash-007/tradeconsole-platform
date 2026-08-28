@@ -14,6 +14,7 @@ import type { RoleId, NavItem } from '@/lib/rbac';
 import { ROLE_NAV_ITEMS, ROLE_DISPLAY_NAMES, ROLE_DEFAULT_ROUTES } from '@/lib/rbac';
 import { staffChatService } from '@/services/staff-chat.service';
 import type { PresenceStatus } from '@/services/staff-chat.service';
+import StaffChatPanel from '@/components/StaffChatPanel';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare, Bell,
@@ -66,6 +67,7 @@ export default function StaffShell({
   const [isDark, setIsDark] = useState(true);
   const [myPresence, setMyPresence] = useState<PresenceStatus>('online');
   const [unreadChat, setUnreadChat] = useState(0);
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const presenceRef = useRef<HTMLDivElement>(null);
 
@@ -107,7 +109,7 @@ export default function StaffShell({
 
   const handleLogout = () => {
     if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('cv_session');
-    router.push('/sign-up-login-screen');
+    router.push('/secure-login');
   };
 
   const handlePresenceChange = async (status: PresenceStatus) => {
@@ -309,11 +311,11 @@ export default function StaffShell({
           <div className="flex-1" />
 
           <div className="flex items-center gap-2">
-            {/* Internal Chat */}
-            <Link
-              href="/staff/chat"
+            {/* Internal Chat — floating panel trigger */}
+            <button
+              onClick={() => setChatPanelOpen(prev => !prev)}
               className="p-2 rounded hover:bg-white/5 transition-colors relative"
-              style={{ color: 'var(--muted-foreground)' }}
+              style={{ color: chatPanelOpen ? 'var(--primary)' : 'var(--muted-foreground)' }}
               title="Internal Chat"
             >
               <MessageSquare size={15} />
@@ -322,7 +324,7 @@ export default function StaffShell({
                   {unreadChat > 9 ? '9+' : unreadChat}
                 </span>
               )}
-            </Link>
+            </button>
 
             {/* Theme toggle */}
             <button
@@ -379,6 +381,14 @@ export default function StaffShell({
           {children}
         </main>
       </div>
+
+      {/* Floating Chat Panel */}
+      {chatPanelOpen && (
+        <StaffChatPanel
+          mode="floating"
+          onClose={() => setChatPanelOpen(false)}
+        />
+      )}
     </div>
   );
 }
