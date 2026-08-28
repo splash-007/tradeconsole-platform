@@ -132,7 +132,7 @@ export default function AdminDashboardContent() {
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--positive)' }} />
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Live data{refreshing ? ' · syncing…' : ''}</span>
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Platform{refreshing ? ' · syncing…' : ''}</span>
         </div>
       </div>
 

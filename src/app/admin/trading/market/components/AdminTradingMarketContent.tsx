@@ -18,16 +18,12 @@ export default function AdminTradingMarketContent() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Market Overview" subtitle="Live market data — all prices via centralized market-data.service" />
-      <div className="flex items-center gap-2 px-3 py-2 rounded border text-xs" style={{ borderColor: 'rgba(245,196,0,0.3)', backgroundColor: 'rgba(245,196,0,0.05)', color: 'var(--muted-foreground)' }}>
-        <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#22c55e' }} />
-        MOCK DATA MODE — Connect market-data.service to live provider when backend is ready
-      </div>
+      <PageHeader title="Market Overview" subtitle="All prices via centralized market-data.service" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Tracked Instruments" value={quotes.length} />
         <KpiCard label="Gainers" value={quotes.filter(q => q.changePct24h > 0).length} />
         <KpiCard label="Losers" value={quotes.filter(q => q.changePct24h < 0).length} />
-        <KpiCard label="Data Source" value="Mock Provider" sub="Replace with live feed" />
+        <KpiCard label="Neutral" value={quotes.filter(q => q.changePct24h === 0).length} />
       </div>
       <Card padding="p-0">
         <AdminTable
@@ -42,11 +38,6 @@ export default function AdminTradingMarketContent() {
             )},
             { key: 'high24h', label: '24h High', render: (q: MarketQuote) => `$${q.high24h.toLocaleString()}` },
             { key: 'low24h', label: '24h Low', render: (q: MarketQuote) => `$${q.low24h.toLocaleString()}` },
-            { key: 'isSimulated', label: 'Data Type', render: (q: MarketQuote) => (
-              <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: q.isSimulated ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)', color: q.isSimulated ? '#ef4444' : '#22c55e' }}>
-                {q.isSimulated ? 'SIMULATED' : 'MOCK'}
-              </span>
-            )},
           ]}
           data={quotes.map(q => ({ ...q, id: q.symbol }))}
           loading={loading}
