@@ -54,6 +54,8 @@ export default function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<ClientNotification[]>(DASHBOARD_NOTIFICATIONS);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [lastUpdated, setLastUpdated] = useState('');
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -65,7 +67,29 @@ export default function DashboardContent() {
       setInstruments(inst);
       setPositions(pos);
       setLoading(false);
+      const now = new Date();
+      setLastUpdated(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
     });
+  }, []);
+
+  // Real-time polling every 15 seconds for customer dashboard
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSyncing(true);
+      Promise.all([
+        dashboardService.getOverview(),
+        marketsService.getInstruments(),
+        portfolioService.getPositions(),
+      ]).then(([ov, inst, pos]) => {
+        setOverview(ov);
+        setInstruments(inst);
+        setPositions(pos);
+        setSyncing(false);
+        const now = new Date();
+        setLastUpdated(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
+      });
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const portfolioHistory = positions.length > 0 ? buildPortfolioHistory(positions) : overview?.portfolioHistory ?? [];
@@ -81,7 +105,7 @@ export default function DashboardContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Dashboard</h1>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Welcome back, Alex · Last updated Aug 27, 14:45 UTC</p>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Welcome back, Alex · Last updated {lastUpdated || 'Aug 27, 14:45'} UTC{syncing ? ' · syncing…' : ''}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--positive)' }} />

@@ -108,9 +108,15 @@ export interface StaffMember {
   lastName: string;
   email: string;
   role: string;
-  status: 'active' | 'suspended';
+  managerId?: string;
+  managerName?: string;
+  department?: string;
+  office?: string;
+  shift?: string;
+  status: 'active' | 'suspended' | 'disabled';
   lastActive: string;
   createdAt: string;
+  presenceStatus?: 'online' | 'away' | 'busy' | 'offline';
 }
 
 export interface Role {
@@ -157,23 +163,46 @@ const MOCK_WITHDRAWALS: WithdrawalRequest[] = [
 ];
 
 const MOCK_STAFF: StaffMember[] = [
-  { id: 'admin-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@cryptovault.app', role: 'super_admin', status: 'active', lastActive: '2026-08-27 14:40', createdAt: '2026-01-01' },
-  { id: 'agent-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@cryptovault.app', role: 'agent', status: 'active', lastActive: '2026-08-27 14:40', createdAt: '2026-03-15' },
-  { id: 'agent-002', firstName: 'James', lastName: 'Park', email: 'james.park@cryptovault.app', role: 'agent', status: 'active', lastActive: '2026-08-27 14:35', createdAt: '2026-04-01' },
-  { id: 'agent-003', firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@cryptovault.app', role: 'agent', status: 'active', lastActive: '2026-08-27 13:20', createdAt: '2026-05-10' },
-  { id: 'agent-004', firstName: 'David', lastName: 'Kim', email: 'david.kim@cryptovault.app', role: 'senior_agent', status: 'active', lastActive: '2026-08-27 09:15', createdAt: '2026-02-20' },
+  { id: 'admin-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@cryptovault.app', role: 'super_admin', status: 'active', lastActive: '2026-08-27 14:40', createdAt: '2026-01-01', presenceStatus: 'online' },
+  { id: 'broker-001', firstName: 'James', lastName: 'Park', email: 'james.park@cryptovault.app', role: 'broker', status: 'active', lastActive: '2026-08-27 14:35', createdAt: '2026-04-01', managerId: 'bm-001', managerName: 'Sarah Chen', department: 'Sales', presenceStatus: 'online' },
+  { id: 'broker-002', firstName: 'Emma', lastName: 'Wilson', email: 'emma.wilson@cryptovault.app', role: 'broker', status: 'active', lastActive: '2026-08-27 14:20', createdAt: '2026-05-10', managerId: 'bm-001', managerName: 'Sarah Chen', department: 'Sales', presenceStatus: 'busy' },
+  { id: 'ftd-001', firstName: 'Carlos', lastName: 'Mendez', email: 'carlos.mendez@cryptovault.app', role: 'ftd_broker', status: 'active', lastActive: '2026-08-27 13:15', createdAt: '2026-06-01', managerId: 'cm-001', managerName: 'Robert Chen', department: 'Conversion', presenceStatus: 'online' },
+  { id: 'ret-001', firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@cryptovault.app', role: 'retention_broker', status: 'active', lastActive: '2026-08-27 12:00', createdAt: '2026-03-15', managerId: 'rm-001', managerName: 'Lisa Wang', department: 'Retention', presenceStatus: 'away' },
+  { id: 'comp-001', firstName: 'Yuki', lastName: 'Tanaka', email: 'yuki.tanaka@cryptovault.app', role: 'compliance_broker', status: 'active', lastActive: '2026-08-27 11:30', createdAt: '2026-04-20', managerId: 'cm-001', managerName: 'Lisa Wang', department: 'Compliance', presenceStatus: 'online' },
+  { id: 'aff-001', firstName: 'Marco', lastName: 'Rossi', email: 'marco.rossi@cryptovault.app', role: 'affiliate', status: 'active', lastActive: '2026-08-27 10:00', createdAt: '2026-02-10', managerId: 'am-001', managerName: 'Elena Vasquez', presenceStatus: 'online' },
+  { id: 'fin-001', firstName: 'David', lastName: 'Kim', email: 'david.kim@cryptovault.app', role: 'finance', status: 'active', lastActive: '2026-08-27 14:00', createdAt: '2026-01-15', department: 'Finance', presenceStatus: 'online' },
+  { id: 'vp-001', firstName: 'Robert', lastName: 'Chen', email: 'robert.chen@cryptovault.app', role: 'vp_sales', status: 'active', lastActive: '2026-08-27 09:00', createdAt: '2026-01-01', presenceStatus: 'online' },
+  { id: 'cm-001', firstName: 'Lisa', lastName: 'Wang', email: 'lisa.wang@cryptovault.app', role: 'compliance_manager', status: 'active', lastActive: '2026-08-27 13:45', createdAt: '2026-02-01', department: 'Compliance', presenceStatus: 'online' },
+  { id: 'bm-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen2@cryptovault.app', role: 'broker_manager', status: 'active', lastActive: '2026-08-27 14:40', createdAt: '2026-03-01', managerId: 'vp-001', managerName: 'Robert Chen', department: 'Sales', presenceStatus: 'online' },
+  { id: 'sm-001', firstName: 'Alex', lastName: 'Torres', email: 'alex.torres@cryptovault.app', role: 'shift_manager', status: 'active', lastActive: '2026-08-27 08:00', createdAt: '2026-05-01', presenceStatus: 'online' },
+  { id: 'op-001', firstName: 'Anna', lastName: 'Kowalski', email: 'anna.kowalski@cryptovault.app', role: 'operator', status: 'active', lastActive: '2026-08-27 14:10', createdAt: '2026-06-15', presenceStatus: 'online' },
+  { id: 'tl-001', firstName: 'Liam', lastName: 'Johnson', email: 'liam.johnson@cryptovault.app', role: 'team_leader', status: 'active', lastActive: '2026-08-27 13:00', createdAt: '2026-04-10', managerId: 'bm-001', managerName: 'Sarah Chen', presenceStatus: 'away' },
 ];
 
 const MOCK_ROLES: Role[] = [
   { id: 'role-001', name: 'super_admin', description: 'Full platform access', permissions: ['*'], userCount: 1 },
-  { id: 'role-002', name: 'admin', description: 'Administrative access', permissions: ['admin.*'], userCount: 2 },
-  { id: 'role-003', name: 'manager', description: 'Team management', permissions: ['customers.*', 'agents.*', 'tasks.*'], userCount: 3 },
-  { id: 'role-004', name: 'agent', description: 'Customer service agent', permissions: ['assigned_customers.view', 'tasks.update', 'calls.initiate', 'chat.send'], userCount: 12 },
-  { id: 'role-005', name: 'marketing', description: 'Marketing team', permissions: ['marketing.*', 'registrations.view'], userCount: 4 },
-  { id: 'role-006', name: 'finance', description: 'Finance team', permissions: ['finance.*', 'transactions.*'], userCount: 3 },
-  { id: 'role-007', name: 'compliance', description: 'Compliance team', permissions: ['verification.*', 'documents.*'], userCount: 2 },
-  { id: 'role-008', name: 'support', description: 'Support team', permissions: ['support.*', 'conversations.view'], userCount: 5 },
-  { id: 'role-009', name: 'customer', description: 'End customer', permissions: ['own_account.*'], userCount: 14820 },
+  { id: 'role-002', name: 'admin', description: 'Administrative access', permissions: ['admin.*'], userCount: 1 },
+  { id: 'role-003', name: 'affiliate', description: 'Affiliate partner', permissions: ['affiliate_stats.view', 'campaigns.view', 'commissions.view'], userCount: 8 },
+  { id: 'role-004', name: 'operator', description: 'Customer operator', permissions: ['assigned_customers.view', 'tasks.*', 'calls.*'], userCount: 5 },
+  { id: 'role-005', name: 'broker', description: 'Sales broker', permissions: ['assigned_customers.view', 'tasks.*', 'calls.*', 'messages.*'], userCount: 12 },
+  { id: 'role-006', name: 'ftd_broker', description: 'First-time deposit broker', permissions: ['assigned_customers.view', 'ftd.*', 'calls.*'], userCount: 5 },
+  { id: 'role-007', name: 'retention_broker', description: 'Retention specialist', permissions: ['assigned_customers.view', 'retention.*', 'calls.*'], userCount: 6 },
+  { id: 'role-008', name: 'compliance_broker', description: 'Compliance verification', permissions: ['compliance_cases.view', 'kyc.*'], userCount: 4 },
+  { id: 'role-009', name: 'new_affiliate_manager', description: 'New affiliate onboarding', permissions: ['new_affiliates.*', 'campaigns.*'], userCount: 2 },
+  { id: 'role-010', name: 'affiliate_manager', description: 'Affiliate team manager', permissions: ['affiliates.*', 'campaigns.*', 'reports.*'], userCount: 3 },
+  { id: 'role-011', name: 'broker_manager', description: 'Broker team manager', permissions: ['broker_team.*', 'customers.view', 'assignments.*'], userCount: 3 },
+  { id: 'role-012', name: 'desk_manager', description: 'Desk operations manager', permissions: ['desk.*', 'assignments.*'], userCount: 2 },
+  { id: 'role-013', name: 'shift_manager', description: 'Shift supervisor', permissions: ['shift.*', 'staff_online.view'], userCount: 3 },
+  { id: 'role-014', name: 'desk_broker', description: 'Desk broker', permissions: ['assigned_customers.view', 'tasks.*', 'calls.*'], userCount: 8 },
+  { id: 'role-015', name: 'marketer_manager', description: 'Marketing manager', permissions: ['marketing.*', 'campaigns.*', 'affiliates.*'], userCount: 2 },
+  { id: 'role-016', name: 'compliance_manager', description: 'Compliance manager', permissions: ['compliance.*', 'verification.*', 'documents.*'], userCount: 2 },
+  { id: 'role-017', name: 'team_leader', description: 'Team leader', permissions: ['team.*', 'tasks.*', 'performance.view'], userCount: 4 },
+  { id: 'role-018', name: 'office', description: 'Office operations', permissions: ['office.*', 'staff.view', 'customers.view'], userCount: 3 },
+  { id: 'role-019', name: 'vp_sales', description: 'VP of Sales', permissions: ['sales_overview.*', 'teams.view', 'performance.*', 'revenue.view'], userCount: 1 },
+  { id: 'role-020', name: 'finance', description: 'Finance team', permissions: ['finance.*', 'transactions.*', 'deposits.*', 'withdrawals.*'], userCount: 3 },
+  { id: 'role-021', name: 'conversion_manager', description: 'Conversion manager', permissions: ['conversion.*', 'ftd_brokers.*', 'assignments.*'], userCount: 2 },
+  { id: 'role-022', name: 'retention_manager', description: 'Retention manager', permissions: ['retention.*', 'retention_brokers.*'], userCount: 2 },
+  { id: 'role-023', name: 'customer', description: 'End customer', permissions: ['own_account.*'], userCount: 14820 },
 ];
 
 export const adminService = {

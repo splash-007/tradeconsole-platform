@@ -1,6 +1,7 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { RefreshCw, Download } from 'lucide-react';
 import { marketingService, Registration } from '@/services/marketing.service';
 import { AdminTable, StatusBadge, PageHeader, Card, SearchInput, ActionButton, KpiCard } from '@/components/admin/AdminUI';
 import AssignAgentModal from '@/app/admin/customers/[id]/components/AssignAgentModal';
@@ -8,22 +9,51 @@ import AssignAgentModal from '@/app/admin/customers/[id]/components/AssignAgentM
 export default function AdminRegistrationsContent() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [assignTarget, setAssignTarget] = useState<{ id: string; name: string } | null>(null);
 
-  useEffect(() => {
-    marketingService.getRegistrations().then(data => {
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const data = await marketingService.getRegistrations();
       setRegistrations(data);
+    } finally {
       setLoading(false);
-    });
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const sources = ['all', ...Array.from(new Set(registrations.map(r => r.source).filter(Boolean)))];
 
   const filtered = registrations.filter(r => {
     const matchSearch = `${r.firstName} ${r.lastName} ${r.email} ${r.country}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchSource = sourceFilter === 'all' || r.source === sourceFilter;
+    return matchSearch && matchStatus && matchSource;
   });
+
+  const exportCSV = () => {
+    const headers = ['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Country', 'Source', 'Affiliate', 'Campaign', 'Registered At', 'Status', 'Assigned Staff'];
+    const rows = filtered.map(r => [
+      r.id, r.firstName, r.lastName, r.email, r.phone || '', r.country,
+      r.source || '', r.affiliate || '', r.campaign || '',
+      r.registeredAt, r.status, r.assignedStaff || ''
+    ]);
+    const csv = [headers, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `registrations_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const columns = [
     {
@@ -48,11 +78,7 @@ export default function AdminRegistrationsContent() {
       render: (r: Registration) => (
         <div className="flex gap-1">
           <Link href={`/admin/customers/${r.id}`}><ActionButton>View</ActionButton></Link>
-          <ActionButton
-            onClick={() => setAssignTarget({ id: r.id, name: `${r.firstName} ${r.lastName}` })}
-          >
-            Assign
-          </ActionButton>
+          <ActionButton onClick={() => setAssignTarget({ id: r.id, name: `${r.firstName} ${r.lastName}` })}>Assign</ActionButton>
         </div>
       )
     },
@@ -72,8 +98,9 @@ export default function AdminRegistrationsContent() {
       </div>
 
       <Card padding="p-0">
-        <div className="flex items-center gap-3 p-3 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex flex-wrap items-center gap-2 p-3 border-b" style={{ borderColor: 'var(--border)' }}>
           <SearchInput value={search} onChange={setSearch} placeholder="Search registrations..." />
+          {/* Status filters */}
           <div className="flex gap-1 flex-wrap">
             {statuses.map(s => (
               <button key={s} onClick={() => setStatusFilter(s)}
@@ -87,8 +114,40 @@ export default function AdminRegistrationsContent() {
               </button>
             ))}
           </div>
+          {/* Source filter */}
+          <select
+            value={sourceFilter}
+            onChange={e => setSourceFilter(e.target.value)}
+            className="text-xs px-2 py-1 rounded border outline-none"
+            style={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+          >
+            {sources.map(s => <option key={s} value={s}>{s === 'all' ? 'All Sources' : s}</option>)}
+          </select>
           <div className="flex-1" />
-          <ActionButton variant="primary">Export CSV</ActionButton>
+          {/* Right-side actions: Refresh + Export CSV */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchData(true)}
+              disabled={refreshing}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border transition-colors hover:opacity-80"
+              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)', backgroundColor: 'transparent' }}
+              title="Refresh data"
+            >
+              <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border font-medium transition-colors hover:opacity-80"
+              style={{ borderColor: 'var(--primary)', color: '#000', backgroundColor: 'var(--primary)' }}
+            >
+              <Download size={12} />
+              Export CSV
+            </button>
+          </div>
+        </div>
+        <div className="px-3 py-1.5 border-b text-xs" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
+          Showing {filtered.length} of {registrations.length} registrations
         </div>
         <AdminTable columns={columns} data={filtered} loading={loading} />
       </Card>

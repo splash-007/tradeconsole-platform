@@ -15,6 +15,8 @@ export default function AgentOverviewContent() {
   const [customers, setCustomers] = useState<AssignedCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [aiCollapsed, setAiCollapsed] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState('');
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -26,7 +28,29 @@ export default function AgentOverviewContent() {
       setTasks(t);
       setCustomers(c);
       setLoading(false);
+      const now = new Date();
+      setLastUpdated(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
     });
+  }, []);
+
+  // Real-time polling every 20 seconds for agent dashboard
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSyncing(true);
+      Promise.all([
+        agentService.getOverviewStats(AGENT_ID),
+        agentService.getTasks(AGENT_ID),
+        agentService.getAssignedCustomers(AGENT_ID),
+      ]).then(([s, t, c]) => {
+        setStats(s);
+        setTasks(t);
+        setCustomers(c);
+        setSyncing(false);
+        const now = new Date();
+        setLastUpdated(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
+      });
+    }, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) return <div className="animate-pulse space-y-4">{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-24 rounded-lg" style={{ backgroundColor: 'var(--card)' }} />)}</div>;
@@ -42,7 +66,10 @@ export default function AgentOverviewContent() {
     <div className="space-y-4">
       <div>
         <h1 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>Good afternoon, Sarah</h1>
-        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Aug 27, 2026 · Here's your workspace overview</p>
+        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          Aug 27, 2026 · Here's your workspace overview
+          {lastUpdated && <span className="ml-1">· Updated {lastUpdated}{syncing ? ' · syncing…' : ''}</span>}
+        </p>
       </div>
 
       {/* KPIs */}

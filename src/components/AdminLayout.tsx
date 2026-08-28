@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle, GitBranch, LineChart } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -23,6 +23,12 @@ const SIDEBAR_ITEMS: NavItem[] = [
   { label: 'Customers', href: '/admin/customers', icon: UserCog, group: 'customers' },
 
   {
+    label: 'Performance', href: '#', icon: LineChart, group: 'performance', children: [
+      { label: 'Analytics', href: '/admin/performance', icon: BarChart2 },
+    ]
+  },
+
+  {
     label: 'Marketing', href: '#', icon: Megaphone, group: 'marketing', children: [
       { label: 'Marketing Overview', href: '/admin/marketing', icon: BarChart2 },
       { label: 'Sources', href: '/admin/marketing/sources', icon: Globe },
@@ -30,6 +36,20 @@ const SIDEBAR_ITEMS: NavItem[] = [
       { label: 'Campaigns', href: '/admin/marketing/campaigns', icon: TrendingUp },
       { label: 'UTM Analytics', href: '/admin/marketing/utm', icon: BarChart },
       { label: 'Conversion Funnel', href: '/admin/marketing/funnel', icon: Filter },
+    ]
+  },
+
+  {
+    label: 'Compliance', href: '#', icon: ShieldCheck, group: 'compliance', children: [
+      { label: 'Verification', href: '/admin/compliance/verification', icon: Shield },
+      { label: 'Documents', href: '/admin/compliance/documents', icon: FileText },
+    ]
+  },
+
+  {
+    label: 'Support', href: '#', icon: HeadphonesIcon, group: 'support', children: [
+      { label: 'Conversations', href: '/admin/support/conversations', icon: MessageSquare },
+      { label: 'Tickets', href: '/admin/support/tickets', icon: Ticket },
     ]
   },
 
@@ -61,23 +81,10 @@ const SIDEBAR_ITEMS: NavItem[] = [
   },
 
   {
-    label: 'Compliance', href: '#', icon: ShieldCheck, group: 'compliance', children: [
-      { label: 'Verification', href: '/admin/compliance/verification', icon: Shield },
-      { label: 'Documents', href: '/admin/compliance/documents', icon: FileText },
-    ]
-  },
-
-  {
-    label: 'Support', href: '#', icon: HeadphonesIcon, group: 'support', children: [
-      { label: 'Conversations', href: '/admin/support/conversations', icon: MessageSquare },
-      { label: 'Tickets', href: '/admin/support/tickets', icon: Ticket },
-    ]
-  },
-
-  {
     label: 'System', href: '#', icon: Cpu, group: 'system', children: [
       { label: 'Notifications', href: '/admin/system/notifications', icon: Bell },
       { label: 'Staff', href: '/admin/system/staff', icon: Users },
+      { label: 'Organization', href: '/admin/system/organization', icon: GitBranch },
       { label: 'Roles & Permissions', href: '/admin/system/roles', icon: KeyRound },
       { label: 'Audit Logs', href: '/admin/system/audit', icon: ScrollText },
       { label: 'Settings', href: '/admin/system/settings', icon: Settings },
@@ -89,6 +96,7 @@ const SIDEBAR_ITEMS: NavItem[] = [
 const GROUP_LABELS: Record<string, string> = {
   main: '',
   customers: 'Customers',
+  performance: 'Performance',
   marketing: 'Marketing',
   operations: 'Operations',
   finance: 'Finance',
@@ -225,7 +233,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const toggleGroup = (label: string) => {
-    setExpandedGroups(prev => prev.includes(label) ? prev.filter(g => g !== label) : [...prev, label]);
+    setExpandedGroups(prev =>
+      prev.includes(label)
+        ? prev.filter(g => g !== label)
+        : [label]
+    );
   };
 
   const groups = Array.from(new Set(SIDEBAR_ITEMS.map(i => i.group)));
