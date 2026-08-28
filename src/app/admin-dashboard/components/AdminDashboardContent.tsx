@@ -39,6 +39,8 @@ export default function AdminDashboardContent() {
   const [agentSaved, setAgentSaved] = useState(false);
   const [taskSaved, setTaskSaved] = useState(false);
   const [dismissedLeads, setDismissedLeads] = useState<Set<string>>(new Set());
+  const [lastUpdated, setLastUpdated] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const LIVE_LEADS = [
     { id: 'll-001', name: 'Thomas Bergmann', country: 'Germany', source: 'Google Ads', time: '1 min ago' },
@@ -63,7 +65,31 @@ export default function AdminDashboardContent() {
       setTimeline(tl);
       setSources(src);
       setLoading(false);
+      const now = new Date();
+      setLastUpdated(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
     });
+  }, []);
+
+  // Real-time polling every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshing(true);
+      Promise.all([
+        marketingService.getOverview(),
+        marketingService.getRegistrations(),
+        marketingService.getRegistrationTimeline(),
+        marketingService.getSourcePerformance(),
+      ]).then(([ov, regs, tl, src]) => {
+        setOverview(ov);
+        setRegistrations(regs);
+        setTimeline(tl);
+        setSources(src);
+        setRefreshing(false);
+        const now = new Date();
+        setLastUpdated(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
+      });
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleCreateAgent = () => {
@@ -99,11 +125,14 @@ export default function AdminDashboardContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Admin Dashboard</h1>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Aug 27, 2026 · Overview & Quick Actions</p>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            Aug 27, 2026 · Overview & Quick Actions
+            {lastUpdated && <span className="ml-2">· Updated {lastUpdated}</span>}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--positive)' }} />
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Live data</span>
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Live data{refreshing ? ' · syncing…' : ''}</span>
         </div>
       </div>
 

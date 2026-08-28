@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle, GitBranch } from 'lucide-react';
+import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle, GitBranch, LineChart } from 'lucide-react';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -21,6 +21,12 @@ const SIDEBAR_ITEMS: NavItem[] = [
 
   { label: 'Registrations', href: '/admin/registrations', icon: Users, group: 'customers', badge: '84' },
   { label: 'Customers', href: '/admin/customers', icon: UserCog, group: 'customers' },
+
+  {
+    label: 'Performance', href: '#', icon: LineChart, group: 'performance', children: [
+      { label: 'Analytics', href: '/admin/performance', icon: BarChart2 },
+    ]
+  },
 
   {
     label: 'Marketing', href: '#', icon: Megaphone, group: 'marketing', children: [
@@ -90,6 +96,7 @@ const SIDEBAR_ITEMS: NavItem[] = [
 const GROUP_LABELS: Record<string, string> = {
   main: '',
   customers: 'Customers',
+  performance: 'Performance',
   marketing: 'Marketing',
   operations: 'Operations',
   finance: 'Finance',
