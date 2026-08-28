@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { PageHeader, Card, ActionButton, StatusBadge } from '@/components/admin/AdminUI';
 import AssignAgentModal from './AssignAgentModal';
+import { notificationService } from '@/services/notification.service';
+import { CheckCircle, Mail } from 'lucide-react';
 
 const MOCK_CUSTOMER = {
   id: 'cust-001', firstName: 'Alex', lastName: 'Morgan', email: 'alex.morgan@gmail.com',
@@ -84,6 +86,7 @@ export default function AdminCustomerDetailContent({ customerId }: { customerId:
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [notes, setNotes] = useState(MOCK_NOTES);
+  const [notifSent, setNotifSent] = useState<string | null>(null);
   const c = MOCK_CUSTOMER;
 
   const addNote = () => {
@@ -92,8 +95,60 @@ export default function AdminCustomerDetailContent({ customerId }: { customerId:
     setNewNote('');
   };
 
+  const handleConfirmDeposit = async (amount: number) => {
+    await notificationService.notifyDepositConfirmed(
+      { id: c.id, email: c.email, name: `${c.firstName} ${c.lastName}` },
+      amount
+    );
+    setNotifSent(`Deposit confirmation email sent to ${c.email}`);
+    setTimeout(() => setNotifSent(null), 4000);
+  };
+
+  const handleWithdrawalStatus = async (status: 'pending' | 'approved' | 'rejected', amount: number) => {
+    await notificationService.notifyWithdrawalStatus(
+      { id: c.id, email: c.email, name: `${c.firstName} ${c.lastName}` },
+      status, amount
+    );
+    setNotifSent(`Withdrawal ${status} notification sent to ${c.email}`);
+    setTimeout(() => setNotifSent(null), 4000);
+  };
+
+  const handleProfileUpdate = async (fields: string) => {
+    await notificationService.notifyProfileUpdated(
+      { id: c.id, email: c.email, name: `${c.firstName} ${c.lastName}` },
+      fields
+    );
+    setNotifSent(`Profile update notification sent to ${c.email}`);
+    setTimeout(() => setNotifSent(null), 4000);
+  };
+
+  const handleKYCApprove = async () => {
+    await notificationService.notifyKYCApproved(
+      { id: c.id, email: c.email, name: `${c.firstName} ${c.lastName}` }
+    );
+    setNotifSent(`KYC approval notification & email sent to ${c.email}`);
+    setTimeout(() => setNotifSent(null), 4000);
+  };
+
+  const handleKYCReject = async (reason: string) => {
+    await notificationService.notifyKYCRejected(
+      { id: c.id, email: c.email, name: `${c.firstName} ${c.lastName}` },
+      reason
+    );
+    setNotifSent(`KYC rejection notification sent to ${c.email}`);
+    setTimeout(() => setNotifSent(null), 4000);
+  };
+
   return (
     <div className="space-y-4">
+      {/* Notification sent toast */}
+      {notifSent && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}>
+          <CheckCircle size={13} />
+          {notifSent}
+        </div>
+      )}
+
       {/* Header */}
       <PageHeader
         title={`${c.firstName} ${c.lastName}`}
@@ -105,7 +160,9 @@ export default function AdminCustomerDetailContent({ customerId }: { customerId:
               <span className="text-xs capitalize" style={{ color: 'var(--muted-foreground)' }}>{c.onlineStatus}</span>
             </div>
             <ActionButton onClick={() => setShowAssignModal(true)} variant="primary">Assign Agent</ActionButton>
-            <ActionButton>Send Notification</ActionButton>
+            <ActionButton onClick={() => handleProfileUpdate('Account information')}>
+              <Mail size={11} className="inline mr-1" />Send Notification
+            </ActionButton>
             <ActionButton variant="danger">Suspend</ActionButton>
           </>
         }
@@ -266,7 +323,7 @@ export default function AdminCustomerDetailContent({ customerId }: { customerId:
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['Reference', 'Type', 'Amount', 'Currency', 'Status', 'Date'].map(h => (
+                  {['Reference', 'Type', 'Amount', 'Currency', 'Status', 'Date', 'Actions'].map(h => (
                     <th key={h} className="px-4 py-2 text-left font-medium" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
                   ))}
                 </tr>
@@ -282,6 +339,35 @@ export default function AdminCustomerDetailContent({ customerId }: { customerId:
                     <td className="px-4 py-2" style={{ color: 'var(--muted-foreground)' }}>{tx.currency}</td>
                     <td className="px-4 py-2"><StatusBadge status={tx.status} /></td>
                     <td className="px-4 py-2" style={{ color: 'var(--muted-foreground)' }}>{tx.date}</td>
+                    <td className="px-4 py-2">
+                      {tx.type === 'deposit' && tx.status !== 'completed' && (
+                        <button
+                          onClick={() => handleConfirmDeposit(parseFloat(tx.amount.replace(/[^0-9.]/g, '')))}
+                          className="text-xs px-2 py-1 rounded font-medium transition-all"
+                          style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}
+                        >
+                          Confirm
+                        </button>
+                      )}
+                      {tx.type === 'withdrawal' && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleWithdrawalStatus('pending', parseFloat(tx.amount.replace(/[^0-9.]/g, '')))}
+                            className="text-xs px-2 py-1 rounded font-medium transition-all"
+                            style={{ backgroundColor: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}
+                          >
+                            Pending
+                          </button>
+                          <button
+                            onClick={() => handleWithdrawalStatus('approved', parseFloat(tx.amount.replace(/[^0-9.]/g, '')))}
+                            className="text-xs px-2 py-1 rounded font-medium transition-all"
+                            style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.25)' }}
+                          >
+                            Approve
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -329,7 +415,25 @@ export default function AdminCustomerDetailContent({ customerId }: { customerId:
       {activeTab === 'Verification' && (
         <div className="space-y-4">
           <Card>
-            <h3 className="text-xs font-semibold mb-4 uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>KYC Verification Status</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>KYC Verification Status</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleKYCApprove}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all active:scale-95"
+                  style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)' }}
+                >
+                  <CheckCircle size={11} /> Approve KYC
+                </button>
+                <button
+                  onClick={() => handleKYCReject('Documents require re-submission')}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-semibold transition-all active:scale-95"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.25)' }}
+                >
+                  Reject KYC
+                </button>
+              </div>
+            </div>
             <div className="space-y-3">
               {KYC_STEPS.map((step, i) => (
                 <div key={i} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'var(--background)' }}>

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, ChevronDown, ArrowDownToLine, ArrowUpFromLine, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, Shield, BookOpen, MessageSquare, Wallet, AlertCircle, DollarSign, Star, LogOut, Settings, User } from 'lucide-react';
+import { Bell, ChevronDown, ArrowDownToLine, ArrowUpFromLine, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign } from 'lucide-react';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
@@ -51,6 +51,8 @@ const NOTIF_COLORS: Record<string, string> = {
   system: '#ef4444',
 };
 
+const NOTIF_STORAGE_KEY = 'cv-client-notifs-read';
+
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -63,10 +65,10 @@ export default function TopNav() {
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load persisted read state
+    // Load persisted read state — once seen, never show as unread again
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('cv-client-notifs');
+        const saved = localStorage.getItem(NOTIF_STORAGE_KEY);
         if (saved) {
           const readIds: string[] = JSON.parse(saved);
           setNotifications(CLIENT_NOTIFICATIONS.map(n => ({ ...n, read: readIds.includes(n.id) ? true : n.read })));
@@ -75,10 +77,10 @@ export default function TopNav() {
     }
   }, []);
 
-  const persistClientReadState = (notifs: ClientNotification[]) => {
+  const persistReadState = (notifs: ClientNotification[]) => {
     if (typeof localStorage !== 'undefined') {
       const readIds = notifs.filter(n => n.read).map(n => n.id);
-      localStorage.setItem('cv-client-notifs', JSON.stringify(readIds));
+      localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(readIds));
     }
   };
 
@@ -111,28 +113,39 @@ export default function TopNav() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close drawer on route change
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
   const markAllRead = () => {
     setNotifications(prev => {
       const next = prev.map(n => ({ ...n, read: true }));
-      persistClientReadState(next);
+      persistReadState(next);
       return next;
     });
   };
+
   const markRead = (id: string) => {
     setNotifications(prev => {
       const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
-      persistClientReadState(next);
+      persistReadState(next);
       return next;
     });
+  };
+
+  // Mark all as read when panel opens
+  const handleNotifOpen = () => {
+    const next = !notifOpen;
+    setNotifOpen(next);
+    if (next && unreadCount > 0) {
+      // Mark all read when panel is opened
+      setTimeout(() => markAllRead(), 1500);
+    }
   };
 
   const handleLogout = () => {
     setProfileOpen(false);
-    router.push('/sign-up-login-screen');
+    router.push('/secure-login');
   };
 
   return (
@@ -183,7 +196,7 @@ export default function TopNav() {
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
-                onClick={() => setNotifOpen(!notifOpen)}
+                onClick={handleNotifOpen}
                 className="p-2 rounded hover:bg-muted transition-colors relative"
                 style={{ color: 'var(--muted-foreground)' }}
               >
@@ -267,10 +280,7 @@ export default function TopNav() {
                   </div>
                   <div className="py-1">
                     <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5" style={{ color: 'var(--foreground)' }}>
-                      <Settings size={13} /> Settings
-                    </Link>
-                    <Link href="/admin-dashboard" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5" style={{ color: 'var(--foreground)' }}>
-                      <Shield size={13} /> Admin Panel
+                      <Settings size={13} /> Profile Settings
                     </Link>
                     <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5" style={{ color: '#ef4444' }}>
                       <LogOut size={13} /> Logout
@@ -362,7 +372,7 @@ export default function TopNav() {
             {isDark ? 'Light Mode' : 'Dark Mode'}
           </button>
           <Link href="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-colors hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
-            <Settings size={15} /> Settings
+            <Settings size={15} /> Profile Settings
           </Link>
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-colors hover:bg-muted" style={{ color: '#ef4444' }}>
             <LogOut size={15} /> Logout

@@ -107,7 +107,7 @@ export default function StaffShell({
 
   const handleLogout = () => {
     if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('cv_session');
-    router.push('/sign-up-login-screen');
+    router.push('/secure-login');
   };
 
   const handlePresenceChange = async (status: PresenceStatus) => {

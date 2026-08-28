@@ -132,7 +132,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
 
   const handleLogout = () => {
     setProfileOpen(false);
-    router.push('/sign-up-login-screen');
+    router.push('/secure-login');
   };
 
   const NavList = ({ mobile = false }: { mobile?: boolean }) => (

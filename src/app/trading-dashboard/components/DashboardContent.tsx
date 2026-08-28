@@ -8,7 +8,7 @@ import PortfolioChart from './PortfolioChart';
 import TopMovers from './TopMovers';
 import RecentActivity from './RecentActivity';
 import MarketSummary from './MarketSummary';
-import { Bell, DollarSign, Shield, ArrowUpFromLine, X } from 'lucide-react';
+import { DollarSign, Shield, ArrowUpFromLine, X, TrendingUp, Bell, Zap, CheckCircle2 } from 'lucide-react';
 
 interface ClientNotification {
   id: string;
@@ -20,14 +20,20 @@ interface ClientNotification {
   priority: 'high' | 'normal';
 }
 
+const NOTIF_STORAGE_KEY = 'cv-dashboard-notifs-read';
+
 const DASHBOARD_NOTIFICATIONS: ClientNotification[] = [
-  { id: 'dn-001', type: 'deposit', title: '✅ Deposit Confirmed', message: '$2,500 USDC has been credited to your account', time: '2 min ago', read: false, priority: 'high' },
-  { id: 'dn-002', type: 'kyc', title: '⏳ KYC Verification Pending', message: 'Your documents are under review. Expected: 24-48 hours', time: '1 hr ago', read: false, priority: 'high' },
-  { id: 'dn-003', type: 'withdrawal', title: '🔄 Withdrawal Processing', message: '$500 USDC withdrawal is being processed', time: '3 hrs ago', read: false, priority: 'normal' },
+  { id: 'dn-001', type: 'deposit', title: 'Deposit Confirmed', message: '$2,500 USDC has been credited to your account', time: '2 min ago', read: false, priority: 'high' },
+  { id: 'dn-002', type: 'kyc', title: 'KYC Under Review', message: 'Your documents are under review. Expected: 24–48 hours', time: '1 hr ago', read: false, priority: 'high' },
+  { id: 'dn-003', type: 'withdrawal', title: 'Withdrawal Processing', message: '$500 USDC withdrawal is being processed', time: '3 hrs ago', read: false, priority: 'normal' },
 ];
 
-const NOTIF_COLORS: Record<string, string> = {
-  deposit: '#22c55e', withdrawal: '#f59e0b', kyc: '#3b82f6', trade: '#F5C400', system: '#6b7280'
+const NOTIF_META: Record<string, { icon: React.ElementType; color: string; bg: string; accent: string }> = {
+  deposit:    { icon: DollarSign,      color: '#22c55e', bg: 'rgba(34,197,94,0.08)',   accent: 'rgba(34,197,94,0.25)' },
+  withdrawal: { icon: ArrowUpFromLine, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  accent: 'rgba(245,158,11,0.25)' },
+  kyc:        { icon: Shield,          color: '#3b82f6', bg: 'rgba(59,130,246,0.08)',  accent: 'rgba(59,130,246,0.25)' },
+  trade:      { icon: TrendingUp,      color: '#F5C400', bg: 'rgba(245,196,0,0.08)',   accent: 'rgba(245,196,0,0.25)' },
+  system:     { icon: Zap,             color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', accent: 'rgba(167,139,250,0.25)' },
 };
 
 function buildPortfolioHistory(positions: Position[]): { date: string; value: number }[] {
@@ -52,8 +58,19 @@ export default function DashboardContent() {
   const [instruments, setInstruments] = useState<MarketInstrument[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<ClientNotification[]>(DASHBOARD_NOTIFICATIONS);
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<ClientNotification[]>(() => {
+    // Load persisted read state on init
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(NOTIF_STORAGE_KEY);
+        if (saved) {
+          const readIds: string[] = JSON.parse(saved);
+          return DASHBOARD_NOTIFICATIONS.map(n => ({ ...n, read: readIds.includes(n.id) ? true : n.read }));
+        }
+      } catch {}
+    }
+    return DASHBOARD_NOTIFICATIONS;
+  });
   const [lastUpdated, setLastUpdated] = useState('');
   const [syncing, setSyncing] = useState(false);
 
@@ -94,8 +111,30 @@ export default function DashboardContent() {
 
   const portfolioHistory = positions.length > 0 ? buildPortfolioHistory(positions) : overview?.portfolioHistory ?? [];
 
-  const visibleNotifs = notifications.filter(n => !dismissedIds.has(n.id));
-  const dismissNotif = (id: string) => setDismissedIds(prev => new Set([...prev, id]));
+  const visibleNotifs = notifications.filter(n => !n.read);
+
+  const dismissNotif = (id: string) => {
+    setNotifications(prev => {
+      const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      // Persist so it never shows again
+      if (typeof localStorage !== 'undefined') {
+        const readIds = next.filter(n => n.read).map(n => n.id);
+        localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(readIds));
+      }
+      return next;
+    });
+  };
+
+  const dismissAll = () => {
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      if (typeof localStorage !== 'undefined') {
+        const readIds = next.map(n => n.id);
+        localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(readIds));
+      }
+      return next;
+    });
+  };
 
   if (loading) return <DashboardSkeleton />;
 
@@ -105,7 +144,9 @@ export default function DashboardContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Dashboard</h1>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Welcome back, Alex · Last updated {lastUpdated || 'Aug 27, 14:45'} UTC{syncing ? ' · syncing…' : ''}</p>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            Welcome back, Alex · Last updated {lastUpdated || 'Aug 27, 14:45'} UTC{syncing ? ' · syncing…' : ''}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--positive)' }} />
@@ -113,34 +154,84 @@ export default function DashboardContent() {
         </div>
       </div>
 
-      {/* Notification banners */}
+      {/* Premium Notification Stack */}
       {visibleNotifs.length > 0 && (
-        <div className="space-y-2">
-          {visibleNotifs.map(n => (
-            <div
-              key={n.id}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl border animate-fade-in"
-              style={{
-                backgroundColor: `${NOTIF_COLORS[n.type]}0D`,
-                borderColor: `${NOTIF_COLORS[n.type]}30`,
-              }}
-            >
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${NOTIF_COLORS[n.type]}20` }}>
-                {n.type === 'deposit' ? <DollarSign size={13} style={{ color: NOTIF_COLORS[n.type] }} /> :
-                 n.type === 'kyc' ? <Shield size={13} style={{ color: NOTIF_COLORS[n.type] }} /> :
-                 n.type === 'withdrawal' ? <ArrowUpFromLine size={13} style={{ color: NOTIF_COLORS[n.type] }} /> :
-                 <Bell size={13} style={{ color: NOTIF_COLORS[n.type] }} />}
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          {/* Stack header */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Bell size={13} style={{ color: 'var(--primary)' }} />
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '7px' }}>
+                  {visibleNotifs.length}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{n.title}</p>
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{n.message}</p>
-              </div>
-              <span className="text-xs shrink-0" style={{ color: 'var(--muted-foreground)' }}>{n.time}</span>
-              <button onClick={() => dismissNotif(n.id)} className="p-1 rounded hover:bg-white/10 transition-colors shrink-0" style={{ color: 'var(--muted-foreground)' }}>
-                <X size={12} />
-              </button>
+              <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+                {visibleNotifs.length} new {visibleNotifs.length === 1 ? 'alert' : 'alerts'}
+              </span>
             </div>
-          ))}
+            <button
+              onClick={dismissAll}
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors hover:bg-white/5"
+              style={{ color: 'var(--muted-foreground)' }}
+            >
+              <CheckCircle2 size={11} />
+              Dismiss all
+            </button>
+          </div>
+
+          {/* Notification items */}
+          <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+            {visibleNotifs.map((n, idx) => {
+              const meta = NOTIF_META[n.type] || NOTIF_META.system;
+              const NIcon = meta.icon;
+              return (
+                <div
+                  key={n.id}
+                  className="flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-white/[0.02]"
+                  style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                >
+                  {/* Priority accent bar */}
+                  {n.priority === 'high' && (
+                    <div className="w-0.5 h-8 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
+                  )}
+
+                  {/* Icon */}
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: meta.bg, border: `1px solid ${meta.accent}` }}
+                  >
+                    <NIcon size={14} style={{ color: meta.color }} />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{n.title}</p>
+                      {n.priority === 'high' && (
+                        <span className="text-xs px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: meta.bg, color: meta.color, fontSize: '9px' }}>
+                          PRIORITY
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>{n.message}</p>
+                  </div>
+
+                  {/* Time + dismiss */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs hidden sm:block" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>{n.time}</span>
+                    <button
+                      onClick={() => dismissNotif(n.id)}
+                      className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-white/10"
+                      style={{ color: 'var(--muted-foreground)' }}
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
