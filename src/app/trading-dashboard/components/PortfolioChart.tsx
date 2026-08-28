@@ -5,10 +5,12 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { Position } from '@/services/portfolio.service';
+import { LiveQuote } from '@/hooks/useRealTimeMarket';
 
 interface Props {
   history: { date: string; value: number }[];
   positions?: Position[];
+  liveQuotes?: Record<string, LiveQuote>;
 }
 
 const TIMEFRAMES = ['1W', '1M', '3M', 'ALL'] as const;
@@ -26,15 +28,31 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function PortfolioChart({ history, positions = [] }: Props) {
+export default function PortfolioChart({ history, positions = [], liveQuotes = {} }: Props) {
   const [timeframe, setTimeframe] = useState<TF>('1M');
+
+  const btcLive = liveQuotes['BTC/USDC'];
+  const ethLive = liveQuotes['ETH/USDC'];
+  const isLive = !!(btcLive || ethLive);
 
   const totalValue = positions.length > 0
     ? positions.reduce((sum, p) => sum + p.value, 0) + 12480
     : history.length > 0 ? history[history.length - 1]?.value ?? 0 : 0;
 
+  // Apply live price adjustment to total value
+  const liveTotalValue = useMemo(() => {
+    if (!isLive || totalValue === 0) return totalValue;
+    const btcRatio = btcLive ? btcLive.changePct24h / 100 : 0;
+    const ethRatio = ethLive ? ethLive.changePct24h / 100 : 0;
+    const avgRatio = (btcRatio * 0.6 + ethRatio * 0.4);
+    return Math.round(totalValue * (1 + avgRatio * 0.4) * 100) / 100;
+  }, [totalValue, btcLive, ethLive, isLive]);
+
   const totalPnl = positions.reduce((sum, p) => sum + p.pnl, 0);
-  const pnlPct = totalValue > 0 ? (totalPnl / (totalValue - totalPnl)) * 100 : 0;
+  const livePnl = isLive
+    ? totalPnl + (liveTotalValue - totalValue)
+    : totalPnl;
+  const pnlPct = liveTotalValue > 0 ? (livePnl / (liveTotalValue - livePnl)) * 100 : 0;
 
   const filtered = useMemo(() => {
     const days = timeframe === '1W' ? 7 : timeframe === '1M' ? 30 : timeframe === '3M' ? 90 : history.length;
@@ -47,7 +65,7 @@ export default function PortfolioChart({ history, positions = [] }: Props) {
   }));
 
   const firstVal = formatted[0]?.value ?? 0;
-  const lastVal = formatted[formatted.length - 1]?.value ?? 0;
+  const lastVal = liveTotalValue > 0 ? liveTotalValue : (formatted[formatted.length - 1]?.value ?? 0);
   const periodChange = firstVal > 0 ? ((lastVal - firstVal) / firstVal) * 100 : 0;
   const isPositive = periodChange >= 0;
 
@@ -55,18 +73,26 @@ export default function PortfolioChart({ history, positions = [] }: Props) {
     <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Portfolio Performance</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Portfolio Performance</h3>
+            {isLive && (
+              <div className="flex items-center gap-1 text-xs" style={{ color: '#22c55e' }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span>Live P&L</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-baseline gap-2 mt-1">
             <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--foreground)' }}>
-              ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${liveTotalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             <span className="text-xs font-medium" style={{ color: isPositive ? '#22c55e' : '#ef4444' }}>
               {isPositive ? '+' : ''}{periodChange.toFixed(2)}%
             </span>
           </div>
-          {positions.length > 0 && (
-            <p className="text-xs mt-0.5" style={{ color: totalPnl >= 0 ? '#22c55e' : '#ef4444' }}>
-              Unrealized P&L: {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {(positions.length > 0 || isLive) && (
+            <p className="text-xs mt-0.5" style={{ color: livePnl >= 0 ? '#22c55e' : '#ef4444' }}>
+              Unrealized P&L: {livePnl >= 0 ? '+' : ''}${livePnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           )}
         </div>
@@ -109,14 +135,22 @@ export default function PortfolioChart({ history, positions = [] }: Props) {
       </ResponsiveContainer>
       {positions.length > 0 && (
         <div className="mt-3 pt-3 border-t grid grid-cols-2 md:grid-cols-4 gap-3" style={{ borderColor: 'var(--border)' }}>
-          {positions.map(p => (
-            <div key={p.id} className="text-xs">
-              <p className="font-medium" style={{ color: 'var(--foreground)' }}>{p.symbol}</p>
-              <p style={{ color: p.pnl >= 0 ? '#22c55e' : '#ef4444' }}>
-                {p.pnl >= 0 ? '+' : ''}${p.pnl.toFixed(2)} ({p.pnlPct >= 0 ? '+' : ''}{p.pnlPct.toFixed(2)}%)
-              </p>
-            </div>
-          ))}
+          {positions.map(p => {
+            // Apply live price adjustment per position
+            const liveQ = liveQuotes[p.symbol];
+            const livePnlPos = liveQ
+              ? p.pnl + (p.value * liveQ.changePct24h / 100 * 0.4)
+              : p.pnl;
+            const livePnlPctPos = p.value > 0 ? (livePnlPos / p.value) * 100 : p.pnlPct;
+            return (
+              <div key={p.id} className="text-xs">
+                <p className="font-medium" style={{ color: 'var(--foreground)' }}>{p.symbol}</p>
+                <p style={{ color: livePnlPos >= 0 ? '#22c55e' : '#ef4444' }}>
+                  {livePnlPos >= 0 ? '+' : ''}${livePnlPos.toFixed(2)} ({livePnlPctPos >= 0 ? '+' : ''}{livePnlPctPos.toFixed(2)}%)
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

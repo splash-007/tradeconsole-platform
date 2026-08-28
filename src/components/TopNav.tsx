@@ -10,12 +10,12 @@ const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
   { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
+  { label: 'Watchlist', href: '/watchlist', icon: Star },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Transactions', href: '/transactions', icon: History },
   { label: 'Messages', href: '/messages', icon: MessageSquare },
   { label: 'Funds', href: '/finance', icon: Wallet },
   { label: 'KYC', href: '/kyc', icon: Shield },
-  { label: 'Rewards', href: '#', icon: Star },
   { label: 'Academy', href: '#', icon: BookOpen },
 ];
 

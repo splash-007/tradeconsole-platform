@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell
 } from 'recharts';
 import { Camera, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
+import { useRealTimeMarket, CandleData } from '@/hooks/useRealTimeMarket';
 
 interface Props {
   symbol: string;
@@ -14,9 +15,20 @@ interface Props {
   isFullscreen?: boolean;
 }
 
-const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D', '1D'];
+const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D', '1W'];
 
-function generateCandles(count: number, basePrice: number) {
+// Map workspace symbols to hook symbols
+const SYMBOL_MAP: Record<string, string> = {
+  'BTC/USDC': 'BTC/USDC',
+  'ETH/USDC': 'ETH/USDC',
+  'BNB/USDC': 'BNB/USDC',
+  'SOL/USDC': 'SOL/USDC',
+  'ADA/USDC': 'ADA/USDC',
+  'AVAX/USDC': 'AVAX/USDC',
+  'DOT/USDC': 'DOT/USDC',
+};
+
+function generateFallbackCandles(count: number, basePrice: number) {
   const candles = [];
   let price = basePrice;
   const now = Date.now();
@@ -33,6 +45,26 @@ function generateCandles(count: number, basePrice: number) {
     price = close;
   }
   return candles;
+}
+
+function candleDataToChartFormat(candles: CandleData[]) {
+  return candles.map(c => {
+    const d = new Date(c.time * 1000);
+    const label = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:00`;
+    const isUp = c.close >= c.open;
+    return {
+      time: label,
+      open: c.open,
+      close: c.close,
+      high: c.high,
+      low: c.low,
+      volume: Math.random() * 800 + 100,
+      isUp,
+      bodyLow: Math.min(c.open, c.close),
+      bodyHigh: Math.max(c.open, c.close),
+      bodySize: Math.abs(c.close - c.open),
+    };
+  });
 }
 
 const CustomCandleTooltip = ({ active, payload, label }: any) => {
@@ -58,21 +90,39 @@ const CustomCandleTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+// All symbols the hook supports
+const ALL_LIVE_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'SOL/USDC', 'BNB/USDC', 'XRP/USDC', 'ADA/USDC', 'AVAX/USDC', 'DOT/USDC'];
+
 export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFullscreen, isFullscreen }: Props) {
+  const mappedSymbol = SYMBOL_MAP[symbol] ?? null;
+  const { quotes, candles } = useRealTimeMarket(ALL_LIVE_SYMBOLS);
+
+  const liveCandles = mappedSymbol ? candles[mappedSymbol] : undefined;
+  const liveQuote = mappedSymbol ? quotes[mappedSymbol] : undefined;
+  const isLive = !!liveQuote;
+
   const basePrice = symbol === 'BTC/USDC' ? 67842 : symbol === 'ETH/USDC' ? 3542 : 182;
-  const candles = useMemo(() => generateCandles(36, basePrice * 0.96), [symbol]);
 
-  const chartData = candles.map(c => ({
-    ...c,
-    bodyLow: Math.min(c.open, c.close),
-    bodyHigh: Math.max(c.open, c.close),
-    bodySize: Math.abs(c.close - c.open),
-  }));
+  const chartData = useMemo(() => {
+    if (liveCandles && liveCandles.length >= 2) {
+      return candleDataToChartFormat(liveCandles);
+    }
+    // Fallback to generated candles
+    const fallback = generateFallbackCandles(36, basePrice * 0.96);
+    return fallback.map(c => ({
+      ...c,
+      bodyLow: Math.min(c.open, c.close),
+      bodyHigh: Math.max(c.open, c.close),
+      bodySize: Math.abs(c.close - c.open),
+    }));
+  }, [liveCandles, basePrice]);
 
-  // OHLC label for header
   const last = chartData[chartData.length - 1];
-  const changeVal = last ? (last.close - last.open) : 0;
-  const changePct = last ? ((changeVal / last.open) * 100) : 0;
+  // Use live price for the last close if available
+  const liveClose = liveQuote?.price ?? last?.close;
+  const displayLast = last ? { ...last, close: liveClose } : last;
+  const changeVal = displayLast ? (displayLast.close - displayLast.open) : 0;
+  const changePct = displayLast ? ((changeVal / displayLast.open) * 100) : 0;
 
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ backgroundColor: 'var(--background)' }}>
@@ -85,10 +135,10 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
               key={`tf-${tf}-${idx}`}
               onClick={() => onTimeframeChange(tf)}
               className={`px-2 py-1 text-xs rounded transition-all duration-150 font-medium ${
-                timeframe === tf && idx === TIMEFRAMES.indexOf(tf)
+                timeframe === tf
                   ? 'text-gold font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
-              style={timeframe === tf && idx === TIMEFRAMES.indexOf(tf) ? { color: 'var(--primary)' } : {}}
+              style={timeframe === tf ? { color: 'var(--primary)' } : {}}
             >
               {tf}
             </button>
@@ -104,6 +154,15 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         </button>
 
         <div className="flex-1" />
+
+        {/* Live status badge */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded text-xs" style={{
+          backgroundColor: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(245,196,0,0.08)',
+          color: isLive ? '#22c55e' : 'var(--muted-foreground)',
+        }}>
+          <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'}`} />
+          <span className="hidden sm:inline">{isLive ? 'Live' : 'Connecting…'}</span>
+        </div>
 
         {/* Right icons */}
         <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
@@ -127,15 +186,20 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         <span className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
           {symbol} · {timeframe} · CRYPTO VAULT
         </span>
-        {last && (
+        {displayLast && (
           <>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>O <span className="font-mono" style={{ color: 'var(--foreground)' }}>{last.open.toFixed(2)}</span></span>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>H <span className="font-mono text-positive">{last.high.toFixed(2)}</span></span>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>L <span className="font-mono text-negative">{last.low.toFixed(2)}</span></span>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>C <span className={`font-mono ${changeVal >= 0 ? 'text-positive' : 'text-negative'}`}>{last.close.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>O <span className="font-mono" style={{ color: 'var(--foreground)' }}>{displayLast.open.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>H <span className="font-mono text-positive">{displayLast.high.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>L <span className="font-mono text-negative">{displayLast.low.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>C <span className={`font-mono ${changeVal >= 0 ? 'text-positive' : 'text-negative'}`}>{liveClose.toFixed(2)}</span></span>
             <span className={`text-xs font-semibold ${changeVal >= 0 ? 'text-positive' : 'text-negative'}`}>
               {changeVal >= 0 ? '+' : ''}{changeVal.toFixed(2)} ({changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%)
             </span>
+            {isLive && liveQuote && (
+              <span className="text-xs font-bold tabular-nums font-mono" style={{ color: 'var(--primary)' }}>
+                ${liveQuote.price >= 1000 ? liveQuote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : liveQuote.price.toFixed(4)}
+              </span>
+            )}
           </>
         )}
       </div>
