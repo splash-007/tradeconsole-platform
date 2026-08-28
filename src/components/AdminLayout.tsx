@@ -34,6 +34,20 @@ const SIDEBAR_ITEMS: NavItem[] = [
   },
 
   {
+    label: 'Compliance', href: '#', icon: ShieldCheck, group: 'compliance', children: [
+      { label: 'Verification', href: '/admin/compliance/verification', icon: Shield },
+      { label: 'Documents', href: '/admin/compliance/documents', icon: FileText },
+    ]
+  },
+
+  {
+    label: 'Support', href: '#', icon: HeadphonesIcon, group: 'support', children: [
+      { label: 'Conversations', href: '/admin/support/conversations', icon: MessageSquare },
+      { label: 'Tickets', href: '/admin/support/tickets', icon: Ticket },
+    ]
+  },
+
+  {
     label: 'Operations', href: '#', icon: Briefcase, group: 'operations', children: [
       { label: 'Assignments', href: '/admin/operations/assignments', icon: UserCheck },
       { label: 'Agents', href: '/admin/operations/agents', icon: Users2 },
@@ -57,20 +71,6 @@ const SIDEBAR_ITEMS: NavItem[] = [
       { label: 'Orders', href: '/admin/trading/orders', icon: BookOpen },
       { label: 'Positions', href: '/admin/trading/positions', icon: TrendingUp },
       { label: 'Trading Activity', href: '/admin/trading/activity', icon: Activity },
-    ]
-  },
-
-  {
-    label: 'Compliance', href: '#', icon: ShieldCheck, group: 'compliance', children: [
-      { label: 'Verification', href: '/admin/compliance/verification', icon: Shield },
-      { label: 'Documents', href: '/admin/compliance/documents', icon: FileText },
-    ]
-  },
-
-  {
-    label: 'Support', href: '#', icon: HeadphonesIcon, group: 'support', children: [
-      { label: 'Conversations', href: '/admin/support/conversations', icon: MessageSquare },
-      { label: 'Tickets', href: '/admin/support/tickets', icon: Ticket },
     ]
   },
 
@@ -226,7 +226,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const toggleGroup = (label: string) => {
-    setExpandedGroups(prev => prev.includes(label) ? prev.filter(g => g !== label) : [...prev, label]);
+    setExpandedGroups(prev =>
+      prev.includes(label)
+        ? prev.filter(g => g !== label)
+        : [label]
+    );
   };
 
   const groups = Array.from(new Set(SIDEBAR_ITEMS.map(i => i.group)));
