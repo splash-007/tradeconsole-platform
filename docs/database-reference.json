@@ -1,0 +1,2332 @@
+{
+    "meta": {
+        "product": "CryonFX",
+        "generated": "2026-08-28",
+        "version": "1.0.0",
+        "total_tables": 62,
+        "phase_1_tables": 38,
+        "phase_2_tables": 24
+    },
+    "tables": [
+        {
+            "name": "users",
+            "group": "authentication",
+            "phase": 1,
+            "description": "Core authentication identity for all platform users"
+        },
+        {
+            "name": "sessions",
+            "group": "authentication",
+            "phase": 1,
+            "description": "Active authenticated sessions"
+        },
+        {
+            "name": "password_resets",
+            "group": "authentication",
+            "phase": 1,
+            "description": "Password reset tokens"
+        },
+        {
+            "name": "email_verifications",
+            "group": "authentication",
+            "phase": 1,
+            "description": "Email verification tokens"
+        },
+        {
+            "name": "two_factor_auth",
+            "group": "authentication",
+            "phase": 2,
+            "description": "TOTP/2FA configuration"
+        },
+        {
+            "name": "recovery_codes",
+            "group": "authentication",
+            "phase": 2,
+            "description": "2FA backup recovery codes"
+        },
+        {
+            "name": "login_history",
+            "group": "authentication",
+            "phase": 1,
+            "description": "Immutable login attempt log"
+        },
+        {
+            "name": "security_events",
+            "group": "authentication",
+            "phase": 1,
+            "description": "Security-relevant events"
+        },
+        {
+            "name": "customer_profiles",
+            "group": "identity",
+            "phase": 1,
+            "description": "Customer profile information"
+        },
+        {
+            "name": "staff_profiles",
+            "group": "identity",
+            "phase": 1,
+            "description": "Staff profile information"
+        },
+        {
+            "name": "staff_manager_history",
+            "group": "identity",
+            "phase": 2,
+            "description": "Manager relationship history"
+        },
+        {
+            "name": "roles",
+            "group": "permissions",
+            "phase": 1,
+            "description": "Platform role definitions"
+        },
+        {
+            "name": "permissions",
+            "group": "permissions",
+            "phase": 1,
+            "description": "Granular permission definitions"
+        },
+        {
+            "name": "role_permissions",
+            "group": "permissions",
+            "phase": 1,
+            "description": "Default permissions per role"
+        },
+        {
+            "name": "staff_permission_overrides",
+            "group": "permissions",
+            "phase": 1,
+            "description": "Individual and assignment-specific permission overrides"
+        },
+        {
+            "name": "departments",
+            "group": "organization",
+            "phase": 2,
+            "description": "Organizational departments"
+        },
+        {
+            "name": "offices",
+            "group": "organization",
+            "phase": 2,
+            "description": "Office locations"
+        },
+        {
+            "name": "shifts",
+            "group": "organization",
+            "phase": 2,
+            "description": "Shift definitions"
+        },
+        {
+            "name": "marketing_sources",
+            "group": "marketing",
+            "phase": 1,
+            "description": "Traffic source definitions"
+        },
+        {
+            "name": "affiliates",
+            "group": "marketing",
+            "phase": 1,
+            "description": "Affiliate partner records"
+        },
+        {
+            "name": "campaigns",
+            "group": "marketing",
+            "phase": 1,
+            "description": "Marketing campaigns"
+        },
+        {
+            "name": "registrations",
+            "group": "marketing",
+            "phase": 1,
+            "description": "Raw registration records"
+        },
+        {
+            "name": "registration_attribution",
+            "group": "marketing",
+            "phase": 1,
+            "description": "Marketing attribution per registration"
+        },
+        {
+            "name": "utm_events",
+            "group": "marketing",
+            "phase": 2,
+            "description": "UTM click/visit events"
+        },
+        {
+            "name": "customer_assignments",
+            "group": "assignments",
+            "phase": 1,
+            "description": "Current customer-to-staff assignments"
+        },
+        {
+            "name": "assignment_history",
+            "group": "assignments",
+            "phase": 1,
+            "description": "Immutable assignment change history"
+        },
+        {
+            "name": "tasks",
+            "group": "assignments",
+            "phase": 1,
+            "description": "Staff tasks related to customers"
+        },
+        {
+            "name": "task_activity_log",
+            "group": "assignments",
+            "phase": 1,
+            "description": "Immutable task status change log"
+        },
+        {
+            "name": "accounts",
+            "group": "finance",
+            "phase": 1,
+            "description": "Customer financial accounts"
+        },
+        {
+            "name": "ledger_entries",
+            "group": "finance",
+            "phase": 1,
+            "description": "Immutable double-entry ledger"
+        },
+        {
+            "name": "deposit_requests",
+            "group": "finance",
+            "phase": 1,
+            "description": "Customer deposit requests"
+        },
+        {
+            "name": "withdrawal_requests",
+            "group": "finance",
+            "phase": 1,
+            "description": "Customer withdrawal requests"
+        },
+        {
+            "name": "transactions",
+            "group": "finance",
+            "phase": 1,
+            "description": "Completed financial transactions"
+        },
+        {
+            "name": "fees",
+            "group": "finance",
+            "phase": 2,
+            "description": "Fee records"
+        },
+        {
+            "name": "trading_accounts",
+            "group": "trading",
+            "phase": 1,
+            "description": "Customer trading accounts"
+        },
+        {
+            "name": "orders",
+            "group": "trading",
+            "phase": 1,
+            "description": "Trading orders"
+        },
+        {
+            "name": "positions",
+            "group": "trading",
+            "phase": 1,
+            "description": "Open trading positions"
+        },
+        {
+            "name": "trades",
+            "group": "trading",
+            "phase": 1,
+            "description": "Executed trade records"
+        },
+        {
+            "name": "watchlists",
+            "group": "trading",
+            "phase": 2,
+            "description": "Customer watchlists"
+        },
+        {
+            "name": "watchlist_items",
+            "group": "trading",
+            "phase": 2,
+            "description": "Instruments in watchlists"
+        },
+        {
+            "name": "verification_cases",
+            "group": "compliance",
+            "phase": 1,
+            "description": "KYC verification cases"
+        },
+        {
+            "name": "verification_documents",
+            "group": "compliance",
+            "phase": 1,
+            "description": "KYC document uploads"
+        },
+        {
+            "name": "compliance_notes",
+            "group": "compliance",
+            "phase": 2,
+            "description": "Internal compliance notes"
+        },
+        {
+            "name": "compliance_reviews",
+            "group": "compliance",
+            "phase": 2,
+            "description": "Verification review decisions"
+        },
+        {
+            "name": "document_storage",
+            "group": "compliance",
+            "phase": 2,
+            "description": "File storage metadata"
+        },
+        {
+            "name": "conversations",
+            "group": "messaging",
+            "phase": 1,
+            "description": "Chat conversation threads"
+        },
+        {
+            "name": "conversation_members",
+            "group": "messaging",
+            "phase": 1,
+            "description": "Conversation participants"
+        },
+        {
+            "name": "messages",
+            "group": "messaging",
+            "phase": 1,
+            "description": "Chat messages"
+        },
+        {
+            "name": "message_reads",
+            "group": "messaging",
+            "phase": 1,
+            "description": "Message read receipts"
+        },
+        {
+            "name": "calls",
+            "group": "calls",
+            "phase": 1,
+            "description": "Call session records"
+        },
+        {
+            "name": "call_outcomes",
+            "group": "calls",
+            "phase": 2,
+            "description": "Detailed call outcome notes"
+        },
+        {
+            "name": "notifications",
+            "group": "platform",
+            "phase": 1,
+            "description": "In-app notifications"
+        },
+        {
+            "name": "customer_activities",
+            "group": "platform",
+            "phase": 1,
+            "description": "Customer activity timeline"
+        },
+        {
+            "name": "audit_logs",
+            "group": "platform",
+            "phase": 1,
+            "description": "Immutable platform audit log"
+        },
+        {
+            "name": "customer_notes",
+            "group": "platform",
+            "phase": 1,
+            "description": "Internal staff notes on customers"
+        },
+        {
+            "name": "customer_tags",
+            "group": "platform",
+            "phase": 2,
+            "description": "Customer tag definitions"
+        },
+        {
+            "name": "customer_tag_assignments",
+            "group": "platform",
+            "phase": 2,
+            "description": "Customer tag junction table"
+        },
+        {
+            "name": "staff_presence_log",
+            "group": "platform",
+            "phase": 2,
+            "description": "Historical presence log"
+        },
+        {
+            "name": "platform_settings",
+            "group": "platform",
+            "phase": 2,
+            "description": "Key-value platform configuration"
+        },
+        {
+            "name": "email_templates",
+            "group": "platform",
+            "phase": 2,
+            "description": "Email notification templates"
+        },
+        {
+            "name": "escalations",
+            "group": "platform",
+            "phase": 1,
+            "description": "Escalation records"
+        },
+        {
+            "name": "simulation_runs",
+            "group": "platform",
+            "phase": 2,
+            "description": "Admin simulation lab records"
+        }
+    ],
+    "foreign_keys": [
+        {
+            "from_table": "sessions",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "password_resets",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "email_verifications",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "two_factor_auth",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "recovery_codes",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "login_history",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "security_events",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "customer_profiles",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "staff_profiles",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "staff_profiles",
+            "from_column": "manager_id",
+            "to_table": "staff_profiles",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "staff_manager_history",
+            "from_column": "staff_id",
+            "to_table": "staff_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "staff_manager_history",
+            "from_column": "manager_id",
+            "to_table": "staff_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "role_permissions",
+            "from_column": "role_id",
+            "to_table": "roles",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "role_permissions",
+            "from_column": "permission_id",
+            "to_table": "permissions",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "staff_permission_overrides",
+            "from_column": "staff_user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "staff_permission_overrides",
+            "from_column": "permission_id",
+            "to_table": "permissions",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "staff_permission_overrides",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "staff_permission_overrides",
+            "from_column": "assignment_id",
+            "to_table": "customer_assignments",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "affiliates",
+            "from_column": "owner_user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "affiliates",
+            "from_column": "manager_user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "campaigns",
+            "from_column": "affiliate_id",
+            "to_table": "affiliates",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "campaigns",
+            "from_column": "source_id",
+            "to_table": "marketing_sources",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "registrations",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "registration_attribution",
+            "from_column": "registration_id",
+            "to_table": "registrations",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "registration_attribution",
+            "from_column": "affiliate_id",
+            "to_table": "affiliates",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "registration_attribution",
+            "from_column": "campaign_id",
+            "to_table": "campaigns",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "customer_assignments",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "customer_assignments",
+            "from_column": "staff_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "assignment_history",
+            "from_column": "assignment_id",
+            "to_table": "customer_assignments",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "tasks",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "tasks",
+            "from_column": "assigned_to_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "tasks",
+            "from_column": "assignment_id",
+            "to_table": "customer_assignments",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "task_activity_log",
+            "from_column": "task_id",
+            "to_table": "tasks",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "accounts",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "ledger_entries",
+            "from_column": "account_id",
+            "to_table": "accounts",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "deposit_requests",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "withdrawal_requests",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "transactions",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "trading_accounts",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "orders",
+            "from_column": "trading_account_id",
+            "to_table": "trading_accounts",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "positions",
+            "from_column": "trading_account_id",
+            "to_table": "trading_accounts",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "trades",
+            "from_column": "order_id",
+            "to_table": "orders",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "watchlists",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "watchlist_items",
+            "from_column": "watchlist_id",
+            "to_table": "watchlists",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "verification_cases",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "verification_documents",
+            "from_column": "case_id",
+            "to_table": "verification_cases",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "conversations",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "SET NULL"
+        },
+        {
+            "from_table": "conversation_members",
+            "from_column": "conversation_id",
+            "to_table": "conversations",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "conversation_members",
+            "from_column": "user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "messages",
+            "from_column": "conversation_id",
+            "to_table": "conversations",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "messages",
+            "from_column": "sender_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "message_reads",
+            "from_column": "message_id",
+            "to_table": "messages",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "calls",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "calls",
+            "from_column": "staff_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "notifications",
+            "from_column": "recipient_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "customer_activities",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "audit_logs",
+            "from_column": "actor_user_id",
+            "to_table": "users",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "customer_notes",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "RESTRICT"
+        },
+        {
+            "from_table": "customer_tag_assignments",
+            "from_column": "customer_id",
+            "to_table": "customer_profiles",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        },
+        {
+            "from_table": "customer_tag_assignments",
+            "from_column": "tag_id",
+            "to_table": "customer_tags",
+            "to_column": "id",
+            "on_delete": "CASCADE"
+        }
+    ],
+    "indexes": [
+        {
+            "table": "users",
+            "columns": [
+                "email"
+            ],
+            "unique": true
+        },
+        {
+            "table": "users",
+            "columns": [
+                "role"
+            ],
+            "unique": false
+        },
+        {
+            "table": "users",
+            "columns": [
+                "status"
+            ],
+            "unique": false
+        },
+        {
+            "table": "sessions",
+            "columns": [
+                "token_hash"
+            ],
+            "unique": true
+        },
+        {
+            "table": "sessions",
+            "columns": [
+                "user_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "sessions",
+            "columns": [
+                "expires_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "login_history",
+            "columns": [
+                "user_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "login_history",
+            "columns": [
+                "ip_address"
+            ],
+            "unique": false
+        },
+        {
+            "table": "customer_profiles",
+            "columns": [
+                "user_id"
+            ],
+            "unique": true
+        },
+        {
+            "table": "staff_profiles",
+            "columns": [
+                "user_id"
+            ],
+            "unique": true
+        },
+        {
+            "table": "staff_profiles",
+            "columns": [
+                "manager_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "roles",
+            "columns": [
+                "key"
+            ],
+            "unique": true
+        },
+        {
+            "table": "permissions",
+            "columns": [
+                "key"
+            ],
+            "unique": true
+        },
+        {
+            "table": "role_permissions",
+            "columns": [
+                "role_id",
+                "permission_id"
+            ],
+            "unique": true
+        },
+        {
+            "table": "staff_permission_overrides",
+            "columns": [
+                "staff_user_id",
+                "permission_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "staff_permission_overrides",
+            "columns": [
+                "staff_user_id",
+                "customer_id",
+                "permission_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "affiliates",
+            "columns": [
+                "affiliate_code"
+            ],
+            "unique": true
+        },
+        {
+            "table": "campaigns",
+            "columns": [
+                "slug"
+            ],
+            "unique": true
+        },
+        {
+            "table": "registrations",
+            "columns": [
+                "email"
+            ],
+            "unique": false
+        },
+        {
+            "table": "registrations",
+            "columns": [
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "registration_attribution",
+            "columns": [
+                "registration_id"
+            ],
+            "unique": true
+        },
+        {
+            "table": "registration_attribution",
+            "columns": [
+                "affiliate_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "customer_assignments",
+            "columns": [
+                "customer_id",
+                "status"
+            ],
+            "unique": false
+        },
+        {
+            "table": "customer_assignments",
+            "columns": [
+                "staff_id",
+                "status"
+            ],
+            "unique": false
+        },
+        {
+            "table": "assignment_history",
+            "columns": [
+                "assignment_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "assignment_history",
+            "columns": [
+                "customer_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "tasks",
+            "columns": [
+                "assigned_to_id",
+                "status",
+                "due_date"
+            ],
+            "unique": false
+        },
+        {
+            "table": "tasks",
+            "columns": [
+                "customer_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "tasks",
+            "columns": [
+                "manager_id"
+            ],
+            "unique": false
+        },
+        {
+            "table": "accounts",
+            "columns": [
+                "customer_id",
+                "currency"
+            ],
+            "unique": true
+        },
+        {
+            "table": "ledger_entries",
+            "columns": [
+                "account_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "deposit_requests",
+            "columns": [
+                "reference"
+            ],
+            "unique": true
+        },
+        {
+            "table": "deposit_requests",
+            "columns": [
+                "customer_id",
+                "status"
+            ],
+            "unique": false
+        },
+        {
+            "table": "withdrawal_requests",
+            "columns": [
+                "reference"
+            ],
+            "unique": true
+        },
+        {
+            "table": "withdrawal_requests",
+            "columns": [
+                "customer_id",
+                "status"
+            ],
+            "unique": false
+        },
+        {
+            "table": "transactions",
+            "columns": [
+                "reference"
+            ],
+            "unique": true
+        },
+        {
+            "table": "transactions",
+            "columns": [
+                "customer_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "orders",
+            "columns": [
+                "customer_id",
+                "status"
+            ],
+            "unique": false
+        },
+        {
+            "table": "orders",
+            "columns": [
+                "symbol",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "positions",
+            "columns": [
+                "customer_id",
+                "symbol"
+            ],
+            "unique": false
+        },
+        {
+            "table": "trades",
+            "columns": [
+                "customer_id",
+                "executed_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "watchlist_items",
+            "columns": [
+                "watchlist_id",
+                "symbol"
+            ],
+            "unique": true
+        },
+        {
+            "table": "verification_cases",
+            "columns": [
+                "customer_id"
+            ],
+            "unique": true
+        },
+        {
+            "table": "conversations",
+            "columns": [
+                "customer_id",
+                "type"
+            ],
+            "unique": false
+        },
+        {
+            "table": "conversation_members",
+            "columns": [
+                "conversation_id",
+                "user_id"
+            ],
+            "unique": true
+        },
+        {
+            "table": "messages",
+            "columns": [
+                "conversation_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "message_reads",
+            "columns": [
+                "message_id",
+                "user_id"
+            ],
+            "unique": true
+        },
+        {
+            "table": "calls",
+            "columns": [
+                "customer_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "calls",
+            "columns": [
+                "staff_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "notifications",
+            "columns": [
+                "recipient_id",
+                "read"
+            ],
+            "unique": false
+        },
+        {
+            "table": "notifications",
+            "columns": [
+                "recipient_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "customer_activities",
+            "columns": [
+                "customer_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "audit_logs",
+            "columns": [
+                "actor_user_id",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "audit_logs",
+            "columns": [
+                "action",
+                "created_at"
+            ],
+            "unique": false
+        },
+        {
+            "table": "audit_logs",
+            "columns": [
+                "customer_id",
+                "created_at"
+            ],
+            "unique": false
+        }
+    ],
+    "roles": [
+        {
+            "key": "super_admin",
+            "display_name": "Super Admin",
+            "default_route": "/admin-dashboard",
+            "is_staff": true,
+            "is_admin": true
+        },
+        {
+            "key": "admin",
+            "display_name": "Admin",
+            "default_route": "/admin-dashboard",
+            "is_staff": true,
+            "is_admin": true
+        },
+        {
+            "key": "customer",
+            "display_name": "Customer",
+            "default_route": "/trading-dashboard",
+            "is_staff": false,
+            "is_admin": false
+        },
+        {
+            "key": "affiliate",
+            "display_name": "Affiliate",
+            "default_route": "/affiliate",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "operator",
+            "display_name": "Operator",
+            "default_route": "/operator",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "broker",
+            "display_name": "Broker",
+            "default_route": "/broker",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "ftd_broker",
+            "display_name": "FTD Broker",
+            "default_route": "/ftd-broker",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "retention_broker",
+            "display_name": "Retention Broker",
+            "default_route": "/retention-broker",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "compliance_broker",
+            "display_name": "Compliance Broker",
+            "default_route": "/compliance-broker",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "new_affiliate_manager",
+            "display_name": "New Affiliate Manager",
+            "default_route": "/new-affiliate-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "affiliate_manager",
+            "display_name": "Affiliate Manager",
+            "default_route": "/affiliate-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "broker_manager",
+            "display_name": "Broker Manager",
+            "default_route": "/broker-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "desk_manager",
+            "display_name": "Desk Manager",
+            "default_route": "/desk-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "shift_manager",
+            "display_name": "Shift Manager",
+            "default_route": "/shift-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "desk_broker",
+            "display_name": "Desk Broker",
+            "default_route": "/desk-broker",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "marketer_manager",
+            "display_name": "Marketer Manager",
+            "default_route": "/marketer-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "compliance_manager",
+            "display_name": "Compliance Manager",
+            "default_route": "/compliance-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "team_leader",
+            "display_name": "Team Leader",
+            "default_route": "/team-leader",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "office",
+            "display_name": "Office",
+            "default_route": "/office",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "vp_sales",
+            "display_name": "VP Sales",
+            "default_route": "/vp-sales",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "finance",
+            "display_name": "Finance",
+            "default_route": "/finance-workspace",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "conversion_manager",
+            "display_name": "Conversion Manager",
+            "default_route": "/conversion-manager",
+            "is_staff": true,
+            "is_admin": false
+        },
+        {
+            "key": "retention_manager",
+            "display_name": "Retention Manager",
+            "default_route": "/retention-manager",
+            "is_staff": true,
+            "is_admin": false
+        }
+    ],
+    "permissions": [
+        {
+            "key": "view_customer_email",
+            "category": "pii",
+            "description": "View customer email address"
+        },
+        {
+            "key": "view_customer_phone",
+            "category": "sensitive_pii",
+            "description": "View customer phone number"
+        },
+        {
+            "key": "view_customer_country",
+            "category": "pii",
+            "description": "View customer country"
+        },
+        {
+            "key": "view_account_data",
+            "category": "financial",
+            "description": "View account balance and data"
+        },
+        {
+            "key": "view_transactions",
+            "category": "financial",
+            "description": "View transaction history"
+        },
+        {
+            "key": "view_verification",
+            "category": "compliance",
+            "description": "View KYC/verification data"
+        },
+        {
+            "key": "call_customer",
+            "category": "operational",
+            "description": "Initiate calls to customer"
+        },
+        {
+            "key": "chat_with_customer",
+            "category": "operational",
+            "description": "Send messages to customer"
+        },
+        {
+            "key": "add_internal_notes",
+            "category": "operational",
+            "description": "Add internal staff notes"
+        },
+        {
+            "key": "assign_customer",
+            "category": "admin",
+            "description": "Assign customers to staff"
+        },
+        {
+            "key": "review_deposit",
+            "category": "financial",
+            "description": "Approve or reject deposits"
+        },
+        {
+            "key": "review_withdrawal",
+            "category": "financial",
+            "description": "Approve or reject withdrawals"
+        },
+        {
+            "key": "review_kyc",
+            "category": "compliance",
+            "description": "Approve or reject KYC"
+        },
+        {
+            "key": "change_customer_status",
+            "category": "admin",
+            "description": "Change customer status"
+        },
+        {
+            "key": "change_staff_role",
+            "category": "admin",
+            "description": "Change staff role"
+        },
+        {
+            "key": "view_audit_logs",
+            "category": "security",
+            "description": "View audit logs"
+        },
+        {
+            "key": "manage_staff",
+            "category": "admin",
+            "description": "Create and disable staff accounts"
+        }
+    ],
+    "enums": {
+        "user_status": [
+            "active",
+            "suspended",
+            "disabled"
+        ],
+        "customer_status": [
+            "pending",
+            "verified",
+            "active",
+            "suspended",
+            "rejected"
+        ],
+        "kyc_status": [
+            "not_started",
+            "in_progress",
+            "submitted",
+            "under_review",
+            "verified",
+            "rejected"
+        ],
+        "task_status": [
+            "pending",
+            "in_progress",
+            "completed",
+            "unable_to_complete",
+            "cancelled",
+            "overdue"
+        ],
+        "task_type": [
+            "call_customer",
+            "follow_up",
+            "review_registration",
+            "contact_customer",
+            "request_information",
+            "verify_information",
+            "custom"
+        ],
+        "priority": [
+            "low",
+            "medium",
+            "high",
+            "urgent"
+        ],
+        "assignment_status": [
+            "active",
+            "completed",
+            "cancelled"
+        ],
+        "presence_status": [
+            "online",
+            "away",
+            "busy",
+            "offline"
+        ],
+        "call_status": [
+            "connecting",
+            "ringing",
+            "connected",
+            "ended",
+            "failed",
+            "unavailable",
+            "missed"
+        ],
+        "call_outcome": [
+            "connected",
+            "no_answer",
+            "busy",
+            "call_back",
+            "interested",
+            "not_interested",
+            "follow_up_required"
+        ],
+        "deposit_status": [
+            "pending",
+            "processing",
+            "approved",
+            "rejected",
+            "completed",
+            "failed",
+            "cancelled"
+        ],
+        "withdrawal_status": [
+            "pending",
+            "processing",
+            "approved",
+            "rejected",
+            "completed",
+            "failed",
+            "cancelled"
+        ],
+        "transaction_type": [
+            "deposit",
+            "withdrawal",
+            "trade",
+            "fee",
+            "transfer"
+        ],
+        "transaction_status": [
+            "pending",
+            "completed",
+            "failed",
+            "cancelled"
+        ],
+        "order_status": [
+            "pending",
+            "filled",
+            "partially_filled",
+            "cancelled"
+        ],
+        "order_side": [
+            "buy",
+            "sell"
+        ],
+        "order_type": [
+            "market",
+            "limit",
+            "stop_limit"
+        ],
+        "position_side": [
+            "long",
+            "short"
+        ],
+        "deposit_method": [
+            "bank_transfer",
+            "credit_card",
+            "crypto",
+            "wire"
+        ],
+        "withdrawal_method": [
+            "bank_transfer",
+            "crypto",
+            "wire"
+        ],
+        "conversation_type": [
+            "customer_support",
+            "internal_direct",
+            "internal_team",
+            "internal_department"
+        ],
+        "notification_type": [
+            "assignment",
+            "task",
+            "message",
+            "escalation",
+            "system",
+            "finance",
+            "compliance"
+        ],
+        "document_type": [
+            "passport",
+            "national_id",
+            "drivers_license"
+        ],
+        "document_upload_type": [
+            "passport_front",
+            "passport_back",
+            "national_id_front",
+            "national_id_back",
+            "selfie",
+            "proof_of_address"
+        ]
+    },
+    "api_endpoints": [
+        {
+            "method": "POST",
+            "path": "/api/v1/auth/login",
+            "description": "Login",
+            "roles": [
+                "public"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/auth/register",
+            "description": "Register",
+            "roles": [
+                "public"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/auth/logout",
+            "description": "Logout",
+            "roles": [
+                "authenticated"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/auth/me",
+            "description": "Get current user",
+            "roles": [
+                "authenticated"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/dashboard/overview",
+            "description": "Customer dashboard",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/orders",
+            "description": "Place order",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/orders",
+            "description": "Get orders",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/positions",
+            "description": "Get positions",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/portfolio/positions",
+            "description": "Portfolio positions",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/portfolio/trades",
+            "description": "Trade history",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/markets",
+            "description": "Market instruments",
+            "roles": [
+                "customer",
+                "staff"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/markets/:symbol/orderbook",
+            "description": "Order book",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/markets/:symbol/candles",
+            "description": "OHLC candles",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/finance/balance",
+            "description": "Account balance",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/finance/deposits",
+            "description": "Deposit history",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/finance/deposits",
+            "description": "Submit deposit",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/finance/withdrawals",
+            "description": "Withdrawal history",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/finance/withdrawals",
+            "description": "Submit withdrawal",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/kyc/status",
+            "description": "KYC status",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/kyc/documents",
+            "description": "Upload KYC document",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/kyc/submit",
+            "description": "Submit KYC",
+            "roles": [
+                "customer"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/conversations",
+            "description": "Get conversations",
+            "roles": [
+                "customer",
+                "staff"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/conversations/:id/messages",
+            "description": "Send message",
+            "roles": [
+                "customer",
+                "staff"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/notifications",
+            "description": "Get notifications",
+            "roles": [
+                "authenticated"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/calls/initiate",
+            "description": "Initiate call",
+            "roles": [
+                "staff"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/agents/:id/customers",
+            "description": "Assigned customers",
+            "roles": [
+                "staff"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/tasks",
+            "description": "Get tasks",
+            "roles": [
+                "staff",
+                "admin"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/tasks",
+            "description": "Create task",
+            "roles": [
+                "admin",
+                "manager",
+                "staff"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/assignments",
+            "description": "Get assignments",
+            "roles": [
+                "admin",
+                "manager"
+            ]
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/assignments",
+            "description": "Create assignment",
+            "roles": [
+                "admin",
+                "manager"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/customers",
+            "description": "List customers",
+            "roles": [
+                "admin"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/staff",
+            "description": "List staff",
+            "roles": [
+                "admin"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/roles",
+            "description": "List roles",
+            "roles": [
+                "admin"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/finance/deposits",
+            "description": "List deposits",
+            "roles": [
+                "admin",
+                "finance"
+            ]
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/admin/finance/deposits/:id",
+            "description": "Review deposit",
+            "roles": [
+                "admin",
+                "finance"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/finance/withdrawals",
+            "description": "List withdrawals",
+            "roles": [
+                "admin",
+                "finance"
+            ]
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/admin/finance/withdrawals/:id",
+            "description": "Review withdrawal",
+            "roles": [
+                "admin",
+                "finance"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/compliance/verification",
+            "description": "Verification queue",
+            "roles": [
+                "admin",
+                "compliance_manager",
+                "compliance_broker"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/marketing/overview",
+            "description": "Marketing KPIs",
+            "roles": [
+                "admin",
+                "marketer_manager"
+            ]
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/admin/audit",
+            "description": "Audit logs",
+            "roles": [
+                "admin",
+                "super_admin"
+            ]
+        }
+    ],
+    "services": [
+        {
+            "name": "authService",
+            "file": "src/services/auth.service.ts",
+            "methods": [
+                "login",
+                "register",
+                "logout",
+                "forgotPassword"
+            ],
+            "pages": [
+                "/secure-login",
+                "/sign-up-login-screen"
+            ]
+        },
+        {
+            "name": "dashboardService",
+            "file": "src/services/dashboard.service.ts",
+            "methods": [
+                "getOverview"
+            ],
+            "pages": [
+                "/trading-dashboard"
+            ]
+        },
+        {
+            "name": "tradingService",
+            "file": "src/services/trading.service.ts",
+            "methods": [
+                "placeOrder",
+                "getOpenOrders"
+            ],
+            "pages": [
+                "/trade-trading-workspace"
+            ]
+        },
+        {
+            "name": "marketsService",
+            "file": "src/services/markets.service.ts",
+            "methods": [
+                "getInstruments",
+                "getOrderBook",
+                "getRecentTrades"
+            ],
+            "pages": [
+                "/markets",
+                "/trade-trading-workspace"
+            ]
+        },
+        {
+            "name": "marketDataService",
+            "file": "src/services/market-data.service.ts",
+            "methods": [
+                "getQuotes",
+                "getQuote",
+                "getCandles",
+                "getMovers",
+                "subscribe"
+            ],
+            "pages": [
+                "/trading-dashboard",
+                "/trade-trading-workspace",
+                "/markets",
+                "/watchlist"
+            ]
+        },
+        {
+            "name": "portfolioService",
+            "file": "src/services/portfolio.service.ts",
+            "methods": [
+                "getPositions",
+                "getAllocation",
+                "getTradeHistory"
+            ],
+            "pages": [
+                "/portfolio"
+            ]
+        },
+        {
+            "name": "financeService",
+            "file": "src/services/finance.service.ts",
+            "methods": [
+                "getBalance",
+                "getDeposits",
+                "getWithdrawals",
+                "submitDeposit",
+                "submitWithdrawal",
+                "cancelWithdrawal"
+            ],
+            "pages": [
+                "/finance",
+                "/transactions"
+            ]
+        },
+        {
+            "name": "kycService",
+            "file": "src/services/kyc.service.ts",
+            "methods": [
+                "getKYCStatus",
+                "savePersonalInfo",
+                "uploadDocument",
+                "submitKYC"
+            ],
+            "pages": [
+                "/kyc"
+            ]
+        },
+        {
+            "name": "chatService",
+            "file": "src/services/chat.service.ts",
+            "methods": [
+                "getConversations",
+                "getMessages",
+                "sendMessage",
+                "markAsRead"
+            ],
+            "pages": [
+                "/messages",
+                "/agent/messages",
+                "/admin/support/conversations"
+            ]
+        },
+        {
+            "name": "staffChatService",
+            "file": "src/services/staff-chat.service.ts",
+            "methods": [
+                "getConversations",
+                "getMessages",
+                "sendMessage",
+                "markAsRead",
+                "getPresence",
+                "updatePresence",
+                "startTyping",
+                "stopTyping"
+            ],
+            "pages": [
+                "/staff/chat"
+            ]
+        },
+        {
+            "name": "callingService",
+            "file": "src/services/calling.service.ts",
+            "methods": [
+                "initiateCall",
+                "endCall",
+                "muteCall",
+                "holdCall"
+            ],
+            "pages": [
+                "/agent/calls",
+                "/broker/calls",
+                "/ftd-broker/calls"
+            ]
+        },
+        {
+            "name": "agentService",
+            "file": "src/services/agent.service.ts",
+            "methods": [
+                "getAgents",
+                "getAgent",
+                "getOverviewStats",
+                "getAssignedCustomers",
+                "getCustomerDetail",
+                "getTasks",
+                "updateTaskStatus",
+                "getCalls",
+                "updateAgentPermissions"
+            ],
+            "pages": [
+                "/agent",
+                "/broker",
+                "/ftd-broker",
+                "/retention-broker",
+                "/admin/operations/agents"
+            ]
+        },
+        {
+            "name": "adminService",
+            "file": "src/services/admin.service.ts",
+            "methods": [
+                "getCustomers",
+                "getCustomer",
+                "assignCustomer",
+                "getAuditLogs",
+                "getAccounts",
+                "getTransactions",
+                "getDeposits",
+                "getWithdrawals",
+                "getStaff",
+                "getRoles"
+            ],
+            "pages": [
+                "/admin/customers",
+                "/admin/finance/*",
+                "/admin/system/*"
+            ]
+        },
+        {
+            "name": "marketingService",
+            "file": "src/services/marketing.service.ts",
+            "methods": [
+                "getOverview",
+                "getRegistrations",
+                "getRegistrationTimeline",
+                "getSourcePerformance"
+            ],
+            "pages": [
+                "/admin/marketing/*",
+                "/admin/registrations",
+                "/admin-dashboard"
+            ]
+        },
+        {
+            "name": "notificationService",
+            "file": "src/services/notification.service.ts",
+            "methods": [
+                "sendEmail",
+                "createInAppNotification",
+                "notifyDepositConfirmed",
+                "notifyWithdrawalStatus",
+                "notifyProfileUpdated",
+                "notifyKYCApproved",
+                "notifyKYCRejected"
+            ],
+            "pages": [
+                "/admin/customers/[id]",
+                "/admin/finance/*"
+            ]
+        },
+        {
+            "name": "platformService",
+            "file": "src/services/platform.service.ts",
+            "methods": [
+                "getAuditRecords",
+                "createAuditRecord",
+                "getAssignments",
+                "createAssignment",
+                "reassignCustomer",
+                "getTasks",
+                "createTask",
+                "updateTaskStatus",
+                "getNotifications",
+                "createNotification",
+                "markNotificationRead",
+                "getUnreadCount",
+                "getPresence",
+                "getAllPresence",
+                "updatePresence",
+                "subscribe"
+            ],
+            "pages": [
+                "/admin/*",
+                "/agent/*",
+                "/broker/*",
+                "/shift-manager",
+                "/broker-manager"
+            ]
+        }
+    ],
+    "realtime_events": [
+        {
+            "event": "message:new",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "New chat message"
+        },
+        {
+            "event": "message:read",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "Message read receipt"
+        },
+        {
+            "event": "typing:start",
+            "direction": "server_to_client",
+            "storage": "valkey",
+            "description": "User started typing"
+        },
+        {
+            "event": "typing:stop",
+            "direction": "server_to_client",
+            "storage": "valkey",
+            "description": "User stopped typing"
+        },
+        {
+            "event": "conversation:new",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "New conversation created"
+        },
+        {
+            "event": "presence:update",
+            "direction": "server_to_client",
+            "storage": "valkey",
+            "description": "Staff presence change"
+        },
+        {
+            "event": "notification:new",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "New notification"
+        },
+        {
+            "event": "assignment:new",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "New customer assignment"
+        },
+        {
+            "event": "assignment:updated",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "Assignment changed"
+        },
+        {
+            "event": "task:new",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "New task assigned"
+        },
+        {
+            "event": "task:updated",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "Task status changed"
+        },
+        {
+            "event": "quote:update",
+            "direction": "server_to_client",
+            "storage": "valkey",
+            "description": "Market price tick"
+        },
+        {
+            "event": "candle:update",
+            "direction": "server_to_client",
+            "storage": "valkey",
+            "description": "New OHLC candle"
+        },
+        {
+            "event": "trade:update",
+            "direction": "server_to_client",
+            "storage": "valkey",
+            "description": "Market trade executed"
+        },
+        {
+            "event": "market:status",
+            "direction": "server_to_client",
+            "storage": "valkey",
+            "description": "Market open/close status"
+        },
+        {
+            "event": "call:status",
+            "direction": "server_to_client",
+            "storage": "postgresql",
+            "description": "Call state change"
+        }
+    ]
+}

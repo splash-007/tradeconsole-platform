@@ -1,0 +1,1106 @@
+# CryonFX — Complete PostgreSQL Table & Field Definitions
+
+> **Origin Legend**:  
+> `EXISTING` = field already used by current application  
+> `IMPLIED` = required by current UI/workflows but not explicitly named  
+> `RECOMMENDED` = needed for proper production architecture
+
+---
+
+## GROUP 1: AUTHENTICATION & SECURITY
+
+---
+
+### `users`
+Core authentication identity for all platform users (customers and staff).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Primary identifier (public-safe) |
+| email | text | no | — | yes | yes | — | EXISTING | Login email address |
+| password_hash | text | no | — | no | no | — | RECOMMENDED | Argon2id hash |
+| role | text | no | — | no | yes | roles.key | EXISTING | Current role key |
+| status | text | no | 'active' | no | yes | — | EXISTING | active / suspended / disabled |
+| email_verified | boolean | no | false | no | no | — | RECOMMENDED | Email verification flag |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Account creation time |
+| updated_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last update time |
+| last_login_at | timestamptz | yes | null | no | no | — | IMPLIED | Last successful login |
+| archived_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Soft delete timestamp |
+
+**Relationships**: One-to-one with `customer_profiles` or `staff_profiles` depending on role.
+
+---
+
+### `sessions`
+Active authenticated sessions. Valkey stores the session token; PostgreSQL stores session metadata.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Session identifier |
+| user_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Owning user |
+| token_hash | text | no | — | yes | yes | — | RECOMMENDED | SHA-256 of session token |
+| ip_address | text | yes | null | no | no | — | EXISTING | Client IP |
+| user_agent | text | yes | null | no | no | — | EXISTING | Browser/device string |
+| device_info | jsonb | yes | null | no | no | — | RECOMMENDED | Parsed device metadata |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Session start |
+| expires_at | timestamptz | no | — | no | yes | — | RECOMMENDED | Session expiry |
+| revoked_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Manual revocation time |
+| last_active_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last activity heartbeat |
+
+---
+
+### `password_resets`
+Password reset tokens (short-lived, single-use).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Record ID |
+| user_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Target user |
+| token_hash | text | no | — | yes | yes | — | RECOMMENDED | SHA-256 of reset token |
+| expires_at | timestamptz | no | — | no | yes | — | RECOMMENDED | Token expiry |
+| used_at | timestamptz | yes | null | no | no | — | RECOMMENDED | When token was consumed |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Request time |
+| ip_address | text | yes | null | no | no | — | RECOMMENDED | Requester IP |
+
+---
+
+### `email_verifications`
+Email verification tokens for new registrations.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Record ID |
+| user_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Target user |
+| token_hash | text | no | — | yes | yes | — | RECOMMENDED | SHA-256 of verification token |
+| expires_at | timestamptz | no | — | no | yes | — | RECOMMENDED | Token expiry |
+| verified_at | timestamptz | yes | null | no | no | — | RECOMMENDED | When verified |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Request time |
+
+---
+
+### `two_factor_auth`
+TOTP / 2FA configuration per user.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Record ID |
+| user_id | uuid | no | — | yes | yes | users.id | RECOMMENDED | Owning user |
+| method | text | no | 'totp' | no | no | — | RECOMMENDED | totp / sms |
+| secret_encrypted | text | no | — | no | no | — | RECOMMENDED | Encrypted TOTP secret |
+| enabled | boolean | no | false | no | no | — | RECOMMENDED | 2FA active flag |
+| enabled_at | timestamptz | yes | null | no | no | — | RECOMMENDED | When enabled |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `recovery_codes`
+Backup recovery codes for 2FA.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Record ID |
+| user_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Owning user |
+| code_hash | text | no | — | no | no | — | RECOMMENDED | Hashed recovery code |
+| used_at | timestamptz | yes | null | no | no | — | RECOMMENDED | When used |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `login_history`
+Immutable record of all login attempts.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Record ID |
+| user_id | uuid | yes | null | no | yes | users.id | EXISTING | User (null for unknown email) |
+| email_attempted | text | no | — | no | no | — | RECOMMENDED | Email used in attempt |
+| ip_address | text | no | — | no | yes | — | EXISTING | Client IP |
+| user_agent | text | yes | null | no | no | — | EXISTING | Browser/device string |
+| location | text | yes | null | no | no | — | EXISTING | Geo-resolved location |
+| success | boolean | no | — | no | yes | — | EXISTING | Login outcome |
+| failure_reason | text | yes | null | no | no | — | RECOMMENDED | invalid_password / suspended / etc. |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Attempt time |
+
+---
+
+### `security_events`
+Security-relevant events (brute force, suspicious login, etc.).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Record ID |
+| user_id | uuid | yes | null | no | yes | users.id | RECOMMENDED | Affected user |
+| event_type | text | no | — | no | yes | — | RECOMMENDED | brute_force / suspicious_ip / etc. |
+| ip_address | text | yes | null | no | no | — | RECOMMENDED | Source IP |
+| details | jsonb | yes | null | no | no | — | RECOMMENDED | Event-specific metadata |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Event time |
+
+---
+
+## GROUP 2: IDENTITY & PROFILES
+
+---
+
+### `customer_profiles`
+Customer-specific profile information. Separate from `users` to keep auth clean.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Profile ID (public-safe) |
+| user_id | uuid | no | — | yes | yes | users.id | EXISTING | Owning user |
+| first_name | text | no | — | no | no | — | EXISTING | First name (PII) |
+| last_name | text | no | — | no | no | — | EXISTING | Last name (PII) |
+| phone | text | yes | null | no | no | — | EXISTING | Phone number (SENSITIVE PII — never sent to browser without permission) |
+| country | text | yes | null | no | yes | — | EXISTING | Country of residence |
+| date_of_birth | date | yes | null | no | no | — | EXISTING | Date of birth (PII) |
+| nationality | text | yes | null | no | no | — | EXISTING | Nationality (PII) |
+| address | text | yes | null | no | no | — | EXISTING | Street address (PII) |
+| city | text | yes | null | no | no | — | EXISTING | City (PII) |
+| postal_code | text | yes | null | no | no | — | EXISTING | Postal code (PII) |
+| occupation | text | yes | null | no | no | — | EXISTING | Occupation |
+| employer_name | text | yes | null | no | no | — | EXISTING | Employer name |
+| annual_income | text | yes | null | no | no | — | EXISTING | Annual income range |
+| online_status | text | no | 'offline' | no | no | — | EXISTING | online / away / offline (Valkey is source of truth) |
+| tags | text[] | no | '{}' | no | no | — | IMPLIED | Customer tags array (use tag tables for normalized version) |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Profile creation |
+| updated_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last update |
+
+---
+
+### `staff_profiles`
+Staff-specific profile information.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Profile ID |
+| user_id | uuid | no | — | yes | yes | users.id | EXISTING | Owning user |
+| first_name | text | no | — | no | no | — | EXISTING | First name |
+| last_name | text | no | — | no | no | — | EXISTING | Last name |
+| department | text | yes | null | no | yes | — | EXISTING | Department name |
+| office | text | yes | null | no | yes | — | EXISTING | Office location |
+| shift | text | yes | null | no | yes | — | EXISTING | Shift assignment |
+| manager_id | uuid | yes | null | no | yes | staff_profiles.id | EXISTING | Current direct manager |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Profile creation |
+| updated_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last update |
+| disabled_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Soft disable timestamp |
+
+---
+
+### `staff_manager_history`
+Immutable history of manager relationships.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Record ID |
+| staff_id | uuid | no | — | no | yes | staff_profiles.id | RECOMMENDED | Staff member |
+| manager_id | uuid | no | — | no | yes | staff_profiles.id | RECOMMENDED | Manager at this time |
+| assigned_by_id | uuid | no | — | no | no | users.id | RECOMMENDED | Who made the change |
+| started_at | timestamptz | no | — | no | yes | — | RECOMMENDED | Relationship start |
+| ended_at | timestamptz | yes | null | no | yes | — | RECOMMENDED | Relationship end (null = current) |
+| reason | text | yes | null | no | no | — | RECOMMENDED | Reason for change |
+
+---
+
+## GROUP 3: ROLES & PERMISSIONS
+
+---
+
+### `roles`
+Platform role definitions.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Role ID |
+| key | text | no | — | yes | yes | — | EXISTING | Internal key (e.g. `broker`, `ftd_broker`) |
+| display_name | text | no | — | no | no | — | EXISTING | Human-readable name |
+| description | text | yes | null | no | no | — | EXISTING | Role description |
+| default_route | text | no | — | no | no | — | EXISTING | Default workspace route |
+| is_staff | boolean | no | true | no | no | — | RECOMMENDED | Staff vs customer flag |
+| is_admin | boolean | no | false | no | no | — | RECOMMENDED | Admin-level flag |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `permissions`
+Granular permission definitions.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Permission ID |
+| key | text | no | — | yes | yes | — | EXISTING | Permission key (e.g. `view_customer_phone`) |
+| display_name | text | no | — | no | no | — | RECOMMENDED | Human-readable name |
+| description | text | yes | null | no | no | — | RECOMMENDED | What this permission grants |
+| category | text | yes | null | no | yes | — | RECOMMENDED | customer / finance / compliance / etc. |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+**Known permissions from application**:
+- `view_customer_email`
+- `view_customer_phone`
+- `view_customer_country`
+- `view_account_data`
+- `view_transactions`
+- `view_verification`
+- `call_customer`
+- `chat_with_customer`
+- `add_internal_notes`
+
+---
+
+### `role_permissions`
+Default permissions granted to a role.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Record ID |
+| role_id | uuid | no | — | no | yes | roles.id | RECOMMENDED | Role |
+| permission_id | uuid | no | — | no | yes | permissions.id | RECOMMENDED | Permission |
+| granted | boolean | no | true | no | no | — | RECOMMENDED | Grant or deny |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+**Unique constraint**: `(role_id, permission_id)`
+
+---
+
+### `staff_permission_overrides`
+Individual staff permission overrides and assignment-specific overrides.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Record ID |
+| staff_user_id | uuid | no | — | no | yes | users.id | EXISTING | Staff member receiving override |
+| permission_id | uuid | no | — | no | yes | permissions.id | EXISTING | Permission being overridden |
+| customer_id | uuid | yes | null | no | yes | customer_profiles.id | EXISTING | Null = global override; set = customer-specific |
+| assignment_id | uuid | yes | null | no | yes | customer_assignments.id | EXISTING | Null = not assignment-specific |
+| granted | boolean | no | — | no | no | — | EXISTING | true = grant, false = deny |
+| granted_by_id | uuid | no | — | no | no | users.id | EXISTING | Admin who set this |
+| reason | text | yes | null | no | no | — | RECOMMENDED | Reason for override |
+| expires_at | timestamptz | yes | null | no | yes | — | RECOMMENDED | Optional expiry |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | When set |
+| revoked_at | timestamptz | yes | null | no | no | — | RECOMMENDED | When revoked |
+
+---
+
+## GROUP 4: ORGANIZATION
+
+---
+
+### `departments`
+Organizational departments.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | IMPLIED | Department ID |
+| name | text | no | — | yes | no | — | EXISTING | Department name (Sales, Compliance, Finance, etc.) |
+| description | text | yes | null | no | no | — | RECOMMENDED | Description |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `offices`
+Physical or virtual office locations.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | IMPLIED | Office ID |
+| name | text | no | — | yes | no | — | EXISTING | Office name |
+| country | text | yes | null | no | no | — | RECOMMENDED | Country |
+| timezone | text | yes | null | no | no | — | RECOMMENDED | Timezone string |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `shifts`
+Shift definitions for shift managers.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | IMPLIED | Shift ID |
+| name | text | no | — | yes | no | — | EXISTING | Shift name (Morning, Evening, Night) |
+| start_time | time | no | — | no | no | — | RECOMMENDED | Shift start time |
+| end_time | time | no | — | no | no | — | RECOMMENDED | Shift end time |
+| timezone | text | no | 'UTC' | no | no | — | RECOMMENDED | Timezone |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+## GROUP 5: MARKETING & ATTRIBUTION
+
+---
+
+### `marketing_sources`
+Traffic source definitions.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Source ID |
+| name | text | no | — | yes | no | — | EXISTING | Source name (Google Ads, Facebook, Organic, etc.) |
+| type | text | yes | null | no | yes | — | RECOMMENDED | paid / organic / affiliate / email / social |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `affiliates`
+Affiliate partner records.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Affiliate ID (internal) |
+| affiliate_code | text | no | — | yes | yes | — | EXISTING | Human-readable code (AFF-0042) |
+| name | text | no | — | no | no | — | EXISTING | Company/person name |
+| country | text | yes | null | no | yes | — | EXISTING | Country |
+| owner_user_id | uuid | yes | null | no | yes | users.id | RECOMMENDED | Affiliate's platform user account |
+| manager_user_id | uuid | yes | null | no | yes | users.id | RECOMMENDED | Assigned affiliate manager |
+| status | text | no | 'active' | no | yes | — | EXISTING | active / paused / terminated |
+| commission_rate | numeric(5,2) | yes | null | no | no | — | RECOMMENDED | Default commission % |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Created time |
+| archived_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Soft archive |
+
+---
+
+### `campaigns`
+Marketing campaigns.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Campaign ID |
+| name | text | no | — | no | no | — | EXISTING | Campaign name |
+| slug | text | no | — | yes | yes | — | EXISTING | URL-safe identifier (summer-2026) |
+| affiliate_id | uuid | yes | null | no | yes | affiliates.id | EXISTING | Owning affiliate (null = internal) |
+| source_id | uuid | yes | null | no | yes | marketing_sources.id | RECOMMENDED | Traffic source |
+| status | text | no | 'active' | no | yes | — | RECOMMENDED | active / paused / ended |
+| started_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Campaign start |
+| ended_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Campaign end |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Created time |
+
+---
+
+### `registrations`
+Raw registration records — one per signup attempt.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Registration ID |
+| user_id | uuid | yes | null | yes | yes | users.id | EXISTING | Created user (null if rejected before user creation) |
+| first_name | text | no | — | no | no | — | EXISTING | First name at registration |
+| last_name | text | no | — | no | no | — | EXISTING | Last name at registration |
+| email | text | no | — | no | yes | — | EXISTING | Email at registration |
+| phone | text | yes | null | no | no | — | EXISTING | Phone at registration (SENSITIVE PII) |
+| country | text | yes | null | no | yes | — | EXISTING | Country at registration |
+| status | text | no | 'pending' | no | yes | — | EXISTING | pending / verified / active / rejected / suspended |
+| assigned_staff_id | uuid | yes | null | no | yes | users.id | EXISTING | Assigned staff member |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Registration time |
+| updated_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last update |
+
+---
+
+### `registration_attribution`
+Marketing attribution data for each registration.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Attribution ID |
+| registration_id | uuid | no | — | yes | yes | registrations.id | EXISTING | Owning registration |
+| source_site | text | yes | null | no | no | — | EXISTING | Source website domain |
+| source_id | uuid | yes | null | no | yes | marketing_sources.id | EXISTING | Traffic source |
+| affiliate_id | uuid | yes | null | no | yes | affiliates.id | EXISTING | Referring affiliate |
+| campaign_id | uuid | yes | null | no | yes | campaigns.id | EXISTING | Campaign |
+| utm_source | text | yes | null | no | no | — | EXISTING | UTM source |
+| utm_medium | text | yes | null | no | no | — | EXISTING | UTM medium |
+| utm_campaign | text | yes | null | no | no | — | EXISTING | UTM campaign |
+| utm_term | text | yes | null | no | no | — | EXISTING | UTM term |
+| utm_content | text | yes | null | no | no | — | EXISTING | UTM content |
+| landing_page | text | yes | null | no | no | — | EXISTING | Landing page URL |
+| referrer | text | yes | null | no | no | — | EXISTING | HTTP referrer |
+| click_id | text | yes | null | no | no | — | EXISTING | Provider click ID |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Attribution capture time |
+
+---
+
+### `utm_events`
+Granular UTM click/visit events for analytics.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | IMPLIED | Event ID |
+| registration_id | uuid | yes | null | no | yes | registrations.id | IMPLIED | Associated registration |
+| utm_source | text | yes | null | no | yes | — | IMPLIED | UTM source |
+| utm_medium | text | yes | null | no | no | — | IMPLIED | UTM medium |
+| utm_campaign | text | yes | null | no | yes | — | IMPLIED | UTM campaign |
+| utm_term | text | yes | null | no | no | — | IMPLIED | UTM term |
+| utm_content | text | yes | null | no | no | — | IMPLIED | UTM content |
+| ip_address | text | yes | null | no | no | — | RECOMMENDED | Visitor IP |
+| created_at | timestamptz | no | now() | no | yes | — | IMPLIED | Event time |
+
+---
+
+## GROUP 6: ASSIGNMENTS & TASKS
+
+---
+
+### `customer_assignments`
+Current active assignment of a customer to a staff member.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Assignment ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Assigned customer |
+| staff_id | uuid | no | — | no | yes | users.id | EXISTING | Assigned staff member |
+| staff_role | text | no | — | no | yes | — | EXISTING | Role context at assignment time |
+| assigned_by_id | uuid | no | — | no | yes | users.id | EXISTING | Who made the assignment |
+| status | text | no | 'active' | no | yes | — | EXISTING | active / completed / cancelled |
+| priority | text | no | 'medium' | no | yes | — | EXISTING | low / medium / high / urgent |
+| notes | text | yes | null | no | no | — | EXISTING | Assignment notes |
+| assigned_at | timestamptz | no | now() | no | yes | — | EXISTING | Assignment time |
+| ended_at | timestamptz | yes | null | no | yes | — | RECOMMENDED | When assignment ended |
+
+---
+
+### `assignment_history`
+Immutable history of all assignment changes.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | History record ID |
+| assignment_id | uuid | no | — | no | yes | customer_assignments.id | EXISTING | Parent assignment |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| from_staff_id | uuid | yes | null | no | yes | users.id | EXISTING | Previous staff (null = initial) |
+| to_staff_id | uuid | no | — | no | yes | users.id | EXISTING | New staff |
+| to_staff_role | text | no | — | no | no | — | EXISTING | Role at time of assignment |
+| changed_by_id | uuid | no | — | no | yes | users.id | EXISTING | Who made the change |
+| reason | text | yes | null | no | no | — | EXISTING | Reason for reassignment |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Change time |
+
+---
+
+### `tasks`
+Tasks assigned to staff members related to customers.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Task ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Related customer |
+| assigned_to_id | uuid | no | — | no | yes | users.id | EXISTING | Assigned staff |
+| assigned_to_role | text | no | — | no | no | — | EXISTING | Role at assignment time |
+| manager_id | uuid | yes | null | no | yes | users.id | EXISTING | Supervising manager |
+| created_by_id | uuid | no | — | no | yes | users.id | EXISTING | Task creator |
+| assignment_id | uuid | yes | null | no | yes | customer_assignments.id | EXISTING | Related assignment |
+| type | text | no | — | no | yes | — | EXISTING | call_customer / follow_up / review_registration / contact_customer / request_information / verify_information / custom |
+| status | text | no | 'pending' | no | yes | — | EXISTING | pending / in_progress / completed / unable_to_complete / cancelled / overdue |
+| priority | text | no | 'medium' | no | yes | — | EXISTING | low / medium / high / urgent |
+| due_date | date | no | — | no | yes | — | EXISTING | Due date |
+| notes | text | yes | null | no | no | — | EXISTING | Task notes |
+| outcome | text | yes | null | no | no | — | EXISTING | Task outcome/result |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Created time |
+| updated_at | timestamptz | no | now() | no | no | — | EXISTING | Last update |
+| completed_at | timestamptz | yes | null | no | no | — | EXISTING | Completion time |
+
+---
+
+### `task_activity_log`
+Immutable log of all task status changes and notes.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Log entry ID |
+| task_id | uuid | no | — | no | yes | tasks.id | EXISTING | Parent task |
+| actor_id | uuid | no | — | no | yes | users.id | EXISTING | Who made the change |
+| action | text | no | — | no | no | — | EXISTING | Task created / Status updated / Note added |
+| previous_status | text | yes | null | no | no | — | EXISTING | Previous status |
+| new_status | text | yes | null | no | no | — | EXISTING | New status |
+| note | text | yes | null | no | no | — | EXISTING | Optional note |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Change time |
+
+---
+
+## GROUP 7: FINANCE
+
+---
+
+### `accounts`
+Customer financial accounts (one per customer per currency).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Account ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Owning customer |
+| currency | text | no | 'USD' | no | yes | — | EXISTING | Account currency |
+| status | text | no | 'active' | no | yes | — | EXISTING | active / suspended / closed |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Created time |
+| closed_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Soft close timestamp |
+
+**Note**: `available_balance`, `reserved_balance`, `total_balance` are **computed** from `ledger_entries` — NOT stored columns.
+
+**Unique constraint**: `(customer_id, currency)`
+
+---
+
+### `ledger_entries`
+Immutable double-entry ledger. Source of truth for all balances.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Entry ID |
+| account_id | uuid | no | — | no | yes | accounts.id | RECOMMENDED | Account |
+| entry_type | text | no | — | no | yes | — | RECOMMENDED | credit / debit |
+| amount | numeric(18,2) | no | — | no | no | — | RECOMMENDED | Entry amount (always positive) |
+| currency | text | no | — | no | no | — | RECOMMENDED | Currency |
+| reference_type | text | no | — | no | yes | — | RECOMMENDED | deposit / withdrawal / trade / fee / transfer |
+| reference_id | uuid | no | — | no | yes | — | RECOMMENDED | ID of source record |
+| description | text | yes | null | no | no | — | RECOMMENDED | Human-readable description |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Entry time |
+
+---
+
+### `deposit_requests`
+Customer deposit requests.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Deposit ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| account_id | uuid | no | — | no | yes | accounts.id | EXISTING | Target account |
+| amount | numeric(18,2) | no | — | no | no | — | EXISTING | Requested amount |
+| currency | text | no | 'USD' | no | no | — | EXISTING | Currency |
+| method | text | no | — | no | yes | — | EXISTING | bank_transfer / credit_card / crypto / wire |
+| status | text | no | 'pending' | no | yes | — | EXISTING | pending / processing / approved / rejected / completed / failed / cancelled |
+| reference | text | no | — | yes | yes | — | EXISTING | Unique reference code |
+| notes | text | yes | null | no | no | — | EXISTING | Staff notes |
+| reviewed_by_id | uuid | yes | null | no | yes | users.id | EXISTING | Reviewing staff |
+| submitted_at | timestamptz | no | now() | no | yes | — | EXISTING | Submission time |
+| reviewed_at | timestamptz | yes | null | no | no | — | EXISTING | Review time |
+| confirmed_at | timestamptz | yes | null | no | no | — | EXISTING | Confirmation time |
+| estimated_arrival | date | yes | null | no | no | — | EXISTING | Expected arrival date |
+
+---
+
+### `withdrawal_requests`
+Customer withdrawal requests.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Withdrawal ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| account_id | uuid | no | — | no | yes | accounts.id | EXISTING | Source account |
+| amount | numeric(18,2) | no | — | no | no | — | EXISTING | Requested amount |
+| currency | text | no | 'USD' | no | no | — | EXISTING | Currency |
+| method | text | no | — | no | yes | — | EXISTING | bank_transfer / crypto / wire |
+| destination | text | no | — | no | no | — | EXISTING | Destination (IBAN / wallet address) |
+| status | text | no | 'pending' | no | yes | — | EXISTING | pending / processing / approved / rejected / completed / failed / cancelled |
+| reference | text | no | — | yes | yes | — | EXISTING | Unique reference code |
+| fee | numeric(18,2) | no | 0 | no | no | — | EXISTING | Processing fee |
+| notes | text | yes | null | no | no | — | EXISTING | Staff notes |
+| reviewed_by_id | uuid | yes | null | no | yes | users.id | EXISTING | Reviewing staff |
+| submitted_at | timestamptz | no | now() | no | yes | — | EXISTING | Submission time |
+| reviewed_at | timestamptz | yes | null | no | no | — | EXISTING | Review time |
+| processed_at | timestamptz | yes | null | no | no | — | EXISTING | Processing time |
+| estimated_arrival | date | yes | null | no | no | — | EXISTING | Expected arrival date |
+
+---
+
+### `transactions`
+Completed financial transactions (ledger-linked).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Transaction ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| account_id | uuid | no | — | no | yes | accounts.id | EXISTING | Account |
+| type | text | no | — | no | yes | — | EXISTING | deposit / withdrawal / trade / fee / transfer |
+| amount | numeric(18,2) | no | — | no | no | — | EXISTING | Transaction amount |
+| currency | text | no | — | no | no | — | EXISTING | Currency |
+| status | text | no | — | no | yes | — | EXISTING | pending / completed / failed / cancelled |
+| reference | text | no | — | yes | yes | — | EXISTING | Unique reference |
+| source_id | uuid | yes | null | no | yes | — | EXISTING | Source record ID (deposit_id / withdrawal_id / order_id) |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Transaction time |
+
+---
+
+### `fees`
+Fee records associated with transactions.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Fee ID |
+| transaction_id | uuid | no | — | no | yes | transactions.id | RECOMMENDED | Parent transaction |
+| fee_type | text | no | — | no | no | — | RECOMMENDED | trading / withdrawal / deposit / platform |
+| amount | numeric(18,2) | no | — | no | no | — | RECOMMENDED | Fee amount |
+| currency | text | no | — | no | no | — | RECOMMENDED | Currency |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+## GROUP 8: TRADING
+
+---
+
+### `trading_accounts`
+Customer trading accounts (separate from finance accounts).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Trading account ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Owning customer |
+| account_number | text | no | — | yes | yes | — | RECOMMENDED | Human-readable account number |
+| status | text | no | 'active' | no | yes | — | EXISTING | active / suspended / closed |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Created time |
+
+---
+
+### `orders`
+Customer trading orders.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Order ID |
+| trading_account_id | uuid | no | — | no | yes | trading_accounts.id | EXISTING | Trading account |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| symbol | text | no | — | no | yes | — | EXISTING | Instrument symbol (BTC/USDC) |
+| side | text | no | — | no | yes | — | EXISTING | buy / sell |
+| type | text | no | — | no | yes | — | EXISTING | market / limit / stop_limit |
+| price | numeric(20,8) | yes | null | no | no | — | EXISTING | Limit price (null for market) |
+| amount | numeric(20,8) | no | — | no | no | — | EXISTING | Order quantity |
+| filled | numeric(20,8) | no | 0 | no | no | — | EXISTING | Filled quantity |
+| take_profit_price | numeric(20,8) | yes | null | no | no | — | EXISTING | Take profit price |
+| stop_loss_price | numeric(20,8) | yes | null | no | no | — | EXISTING | Stop loss price |
+| post_only | boolean | no | false | no | no | — | EXISTING | Post-only flag |
+| status | text | no | 'pending' | no | yes | — | EXISTING | pending / filled / partially_filled / cancelled |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Order time |
+| updated_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last update |
+| filled_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Fill time |
+| cancelled_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Cancellation time |
+
+---
+
+### `positions`
+Open trading positions.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Position ID |
+| trading_account_id | uuid | no | — | no | yes | trading_accounts.id | EXISTING | Trading account |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| symbol | text | no | — | no | yes | — | EXISTING | Instrument symbol |
+| side | text | no | — | no | no | — | EXISTING | long / short |
+| entry_price | numeric(20,8) | no | — | no | no | — | EXISTING | Average entry price |
+| size | numeric(20,8) | no | — | no | no | — | EXISTING | Position size |
+| opened_at | timestamptz | no | — | no | yes | — | EXISTING | Position open time |
+| closed_at | timestamptz | yes | null | no | yes | — | RECOMMENDED | Position close time |
+| close_price | numeric(20,8) | yes | null | no | no | — | RECOMMENDED | Close price |
+| realized_pnl | numeric(18,2) | yes | null | no | no | — | RECOMMENDED | Realized P&L on close |
+
+---
+
+### `trades`
+Executed trade records (fills).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Trade ID |
+| order_id | uuid | no | — | no | yes | orders.id | EXISTING | Parent order |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| symbol | text | no | — | no | yes | — | EXISTING | Instrument symbol |
+| side | text | no | — | no | no | — | EXISTING | buy / sell |
+| price | numeric(20,8) | no | — | no | no | — | EXISTING | Execution price |
+| amount | numeric(20,8) | no | — | no | no | — | EXISTING | Executed quantity |
+| total | numeric(18,2) | no | — | no | no | — | EXISTING | Total value |
+| fee | numeric(18,2) | no | 0 | no | no | — | EXISTING | Trading fee |
+| status | text | no | 'filled' | no | yes | — | EXISTING | filled |
+| executed_at | timestamptz | no | now() | no | yes | — | EXISTING | Execution time |
+
+---
+
+### `watchlists`
+Customer watchlists.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Watchlist ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Owning customer |
+| name | text | no | 'My Watchlist' | no | no | — | EXISTING | Watchlist name |
+| is_default | boolean | no | false | no | no | — | RECOMMENDED | Default watchlist flag |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `watchlist_items`
+Instruments in a watchlist.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Item ID |
+| watchlist_id | uuid | no | — | no | yes | watchlists.id | EXISTING | Parent watchlist |
+| symbol | text | no | — | no | yes | — | EXISTING | Instrument symbol |
+| added_at | timestamptz | no | now() | no | no | — | RECOMMENDED | When added |
+
+**Unique constraint**: `(watchlist_id, symbol)`
+
+---
+
+## GROUP 9: COMPLIANCE & KYC
+
+---
+
+### `verification_cases`
+KYC verification case per customer.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Case ID |
+| customer_id | uuid | no | — | yes | yes | customer_profiles.id | EXISTING | Customer |
+| status | text | no | 'not_started' | no | yes | — | EXISTING | not_started / in_progress / submitted / under_review / verified / rejected |
+| first_name | text | yes | null | no | no | — | EXISTING | KYC first name |
+| last_name | text | yes | null | no | no | — | EXISTING | KYC last name |
+| date_of_birth | date | yes | null | no | no | — | EXISTING | Date of birth |
+| nationality | text | yes | null | no | no | — | EXISTING | Nationality |
+| address | text | yes | null | no | no | — | EXISTING | Address |
+| city | text | yes | null | no | no | — | EXISTING | City |
+| postal_code | text | yes | null | no | no | — | EXISTING | Postal code |
+| country | text | yes | null | no | no | — | EXISTING | Country |
+| document_type | text | yes | null | no | no | — | EXISTING | passport / national_id / drivers_license |
+| document_number | text | yes | null | no | no | — | EXISTING | Document number (SENSITIVE PII) |
+| document_expiry | date | yes | null | no | no | — | EXISTING | Document expiry |
+| steps | jsonb | yes | null | no | no | — | EXISTING | Step-by-step progress |
+| rejection_reason | text | yes | null | no | no | — | EXISTING | Rejection reason |
+| reviewed_by_id | uuid | yes | null | no | yes | users.id | EXISTING | Reviewing staff |
+| submitted_at | timestamptz | yes | null | no | no | — | EXISTING | Submission time |
+| reviewed_at | timestamptz | yes | null | no | no | — | EXISTING | Review time |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Created time |
+
+---
+
+### `verification_documents`
+Documents uploaded for KYC verification.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Document ID |
+| case_id | uuid | no | — | no | yes | verification_cases.id | EXISTING | Parent case |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| document_type | text | no | — | no | yes | — | EXISTING | passport_front / passport_back / national_id_front / national_id_back / selfie / proof_of_address |
+| storage_key | text | no | — | no | no | — | RECOMMENDED | S3/storage object key (NOT binary data) |
+| storage_provider | text | no | 'local' | no | no | — | RECOMMENDED | s3 / r2 / minio |
+| file_name | text | yes | null | no | no | — | RECOMMENDED | Original filename |
+| file_size | integer | yes | null | no | no | — | RECOMMENDED | File size in bytes |
+| mime_type | text | yes | null | no | no | — | RECOMMENDED | MIME type |
+| status | text | no | 'uploaded' | no | yes | — | RECOMMENDED | uploaded / approved / rejected |
+| uploaded_at | timestamptz | no | now() | no | yes | — | EXISTING | Upload time |
+
+---
+
+### `compliance_notes`
+Internal compliance notes on customers.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Note ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | RECOMMENDED | Customer |
+| case_id | uuid | yes | null | no | yes | verification_cases.id | RECOMMENDED | Related case |
+| author_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Note author |
+| content | text | no | — | no | no | — | RECOMMENDED | Note content |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Created time |
+
+---
+
+### `compliance_reviews`
+Review decisions on verification cases.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Review ID |
+| case_id | uuid | no | — | no | yes | verification_cases.id | RECOMMENDED | Case |
+| reviewer_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Reviewer |
+| decision | text | no | — | no | no | — | RECOMMENDED | approved / rejected / escalated |
+| reason | text | yes | null | no | no | — | RECOMMENDED | Decision reason |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Review time |
+
+---
+
+### `document_storage`
+(Phase 2) Metadata for all platform-stored files.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Storage record ID |
+| storage_key | text | no | — | yes | yes | — | RECOMMENDED | Object storage key |
+| bucket | text | no | — | no | no | — | RECOMMENDED | Storage bucket |
+| provider | text | no | — | no | no | — | RECOMMENDED | Storage provider |
+| uploaded_by_id | uuid | yes | null | no | yes | users.id | RECOMMENDED | Uploader |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Upload time |
+
+---
+
+## GROUP 10: MESSAGING & CHAT
+
+---
+
+### `conversations`
+Conversation threads (customer support AND internal staff).
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Conversation ID |
+| type | text | no | — | no | yes | — | EXISTING | customer_support / internal_direct / internal_team / internal_department |
+| name | text | yes | null | no | no | — | EXISTING | Group name (for team/department chats) |
+| customer_id | uuid | yes | null | no | yes | customer_profiles.id | EXISTING | Customer (null for internal) |
+| status | text | no | 'active' | no | yes | — | EXISTING | active / closed / pending |
+| last_message_at | timestamptz | yes | null | no | yes | — | EXISTING | Last message time |
+| created_at | timestamptz | no | now() | no | yes | — | RECOMMENDED | Created time |
+| closed_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Close time |
+
+---
+
+### `conversation_members`
+Members of each conversation.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Member record ID |
+| conversation_id | uuid | no | — | no | yes | conversations.id | EXISTING | Conversation |
+| user_id | uuid | no | — | no | yes | users.id | EXISTING | Member user |
+| role_in_conversation | text | yes | null | no | no | — | RECOMMENDED | customer / agent / admin / observer |
+| joined_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Join time |
+| left_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Leave time |
+
+**Unique constraint**: `(conversation_id, user_id)`
+
+---
+
+### `messages`
+Chat messages.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Message ID |
+| conversation_id | uuid | no | — | no | yes | conversations.id | EXISTING | Parent conversation |
+| sender_id | uuid | no | — | no | yes | users.id | EXISTING | Sender |
+| content | text | no | — | no | no | — | EXISTING | Message text |
+| type | text | no | 'text' | no | no | — | EXISTING | text / system |
+| is_internal | boolean | no | false | no | yes | — | EXISTING | Internal note (never visible to customer) |
+| delivered | boolean | no | false | no | no | — | EXISTING | Delivery flag |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Send time |
+| deleted_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Soft delete |
+
+---
+
+### `message_reads`
+Read receipts per message per user.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Read record ID |
+| message_id | uuid | no | — | no | yes | messages.id | EXISTING | Message |
+| user_id | uuid | no | — | no | yes | users.id | EXISTING | Reader |
+| read_at | timestamptz | no | now() | no | no | — | EXISTING | Read time |
+
+**Unique constraint**: `(message_id, user_id)`
+
+---
+
+## GROUP 11: CALLS
+
+---
+
+### `calls`
+Call session records.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Call ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| staff_id | uuid | no | — | no | yes | users.id | EXISTING | Staff member |
+| provider_session_id | text | yes | null | no | yes | — | EXISTING | Squaretalk session ID |
+| direction | text | no | — | no | yes | — | EXISTING | inbound / outbound |
+| status | text | no | 'connecting' | no | yes | — | EXISTING | connecting / ringing / connected / ended / failed / unavailable / missed |
+| outcome | text | yes | null | no | yes | — | EXISTING | connected / no_answer / busy / call_back / interested / not_interested / follow_up_required |
+| duration_seconds | integer | yes | null | no | no | — | EXISTING | Call duration |
+| follow_up_date | date | yes | null | no | no | — | EXISTING | Follow-up date |
+| provider | text | no | 'mock' | no | no | — | EXISTING | mock / squaretalk |
+| provider_metadata | jsonb | yes | null | no | no | — | RECOMMENDED | Provider-specific call data |
+| started_at | timestamptz | yes | null | no | yes | — | EXISTING | Call start |
+| answered_at | timestamptz | yes | null | no | no | — | EXISTING | Call answered |
+| ended_at | timestamptz | yes | null | no | yes | — | EXISTING | Call end |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Record created |
+
+**Security note**: Customer phone number is NEVER stored in this table. It is retrieved server-side and passed directly to Squaretalk. The browser never receives the raw phone number.
+
+---
+
+### `call_outcomes`
+(Phase 2) Detailed call outcome notes.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Outcome ID |
+| call_id | uuid | no | — | yes | yes | calls.id | RECOMMENDED | Parent call |
+| notes | text | yes | null | no | no | — | RECOMMENDED | Detailed outcome notes |
+| next_action | text | yes | null | no | no | — | RECOMMENDED | Recommended next action |
+| created_by_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Staff member |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+## GROUP 12: PLATFORM OPERATIONS
+
+---
+
+### `notifications`
+In-app notifications for staff and customers.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Notification ID |
+| recipient_id | uuid | no | — | no | yes | users.id | EXISTING | Recipient user |
+| recipient_role | text | no | — | no | yes | — | EXISTING | Role at notification time |
+| type | text | no | — | no | yes | — | EXISTING | assignment / task / message / escalation / system / finance / compliance |
+| title | text | no | — | no | no | — | EXISTING | Notification title |
+| message | text | no | — | no | no | — | EXISTING | Notification body |
+| resource_type | text | yes | null | no | no | — | EXISTING | Resource type |
+| resource_id | uuid | yes | null | no | yes | — | EXISTING | Resource ID |
+| customer_id | uuid | yes | null | no | yes | customer_profiles.id | EXISTING | Related customer |
+| link_href | text | yes | null | no | no | — | EXISTING | Navigation link |
+| read | boolean | no | false | no | yes | — | EXISTING | Read flag |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Created time |
+| read_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Read time |
+
+---
+
+### `customer_activities`
+Customer operational activity timeline.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Activity ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| actor_id | uuid | yes | null | no | yes | users.id | EXISTING | Actor (null = system/customer) |
+| type | text | no | — | no | yes | — | EXISTING | registration / assignment / call / message / task / deposit / withdrawal / verification / note |
+| description | text | no | — | no | no | — | EXISTING | Human-readable description |
+| metadata | jsonb | yes | null | no | no | — | RECOMMENDED | Event-specific data |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Activity time |
+
+---
+
+### `audit_logs`
+Immutable platform audit log.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Audit record ID |
+| actor_user_id | uuid | no | — | no | yes | users.id | EXISTING | Actor |
+| actor_name | text | no | — | no | no | — | EXISTING | Actor name at time |
+| actor_role | text | no | — | no | yes | — | EXISTING | Actor role at time |
+| action | text | no | — | no | yes | — | EXISTING | Audit action key |
+| resource_type | text | no | — | no | yes | — | EXISTING | Resource type |
+| resource_id | text | no | — | no | yes | — | EXISTING | Resource ID |
+| customer_id | uuid | yes | null | no | yes | customer_profiles.id | EXISTING | Related customer |
+| customer_name | text | yes | null | no | no | — | EXISTING | Customer name at time |
+| previous_value | text | yes | null | no | no | — | EXISTING | Before value |
+| new_value | text | yes | null | no | no | — | EXISTING | After value |
+| reason | text | yes | null | no | no | — | EXISTING | Reason for action |
+| result | text | no | 'success' | no | yes | — | EXISTING | success / failure |
+| session_id | text | no | — | no | yes | — | EXISTING | Session reference |
+| ip_address | text | yes | null | no | no | — | EXISTING | Actor IP |
+| details | text | yes | null | no | no | — | EXISTING | Human-readable details |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Immutable timestamp |
+
+**IMPORTANT**: This table must have NO UPDATE or DELETE permissions. Append-only.
+
+---
+
+### `customer_notes`
+Internal staff notes on customers.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Note ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| author_id | uuid | no | — | no | yes | users.id | EXISTING | Note author |
+| content | text | no | — | no | no | — | EXISTING | Note content |
+| is_pinned | boolean | no | false | no | no | — | RECOMMENDED | Pinned note flag |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Created time |
+| updated_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last edit time |
+
+---
+
+### `customer_tags`
+Tag definitions.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Tag ID |
+| name | text | no | — | yes | yes | — | EXISTING | Tag name (VIP, High Value, etc.) |
+| color | text | yes | null | no | no | — | RECOMMENDED | Display color |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+---
+
+### `customer_tag_assignments`
+Junction table for customer tags.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Assignment ID |
+| customer_id | uuid | no | — | no | yes | customer_profiles.id | EXISTING | Customer |
+| tag_id | uuid | no | — | no | yes | customer_tags.id | EXISTING | Tag |
+| assigned_by_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Who assigned |
+| created_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Created time |
+
+**Unique constraint**: `(customer_id, tag_id)`
+
+---
+
+### `staff_presence_log`
+(Phase 2) Historical presence log for reporting.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Log ID |
+| user_id | uuid | no | — | no | yes | users.id | RECOMMENDED | Staff member |
+| status | text | no | — | no | no | — | RECOMMENDED | online / away / busy / offline |
+| started_at | timestamptz | no | — | no | yes | — | RECOMMENDED | Status start |
+| ended_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Status end |
+
+---
+
+### `platform_settings`
+(Phase 2) Key-value platform configuration.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | RECOMMENDED | Setting ID |
+| key | text | no | — | yes | yes | — | RECOMMENDED | Setting key |
+| value | jsonb | no | — | no | no | — | RECOMMENDED | Setting value |
+| updated_by_id | uuid | yes | null | no | no | users.id | RECOMMENDED | Last editor |
+| updated_at | timestamptz | no | now() | no | no | — | RECOMMENDED | Last update |
+
+---
+
+### `escalations`
+Escalation records from shift managers / team leaders.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Escalation ID |
+| customer_id | uuid | yes | null | no | yes | customer_profiles.id | EXISTING | Related customer |
+| raised_by_id | uuid | no | — | no | yes | users.id | EXISTING | Who raised |
+| assigned_to_id | uuid | yes | null | no | yes | users.id | EXISTING | Assigned to |
+| type | text | no | — | no | yes | — | EXISTING | customer / compliance / finance / technical |
+| priority | text | no | 'medium' | no | yes | — | EXISTING | low / medium / high / urgent |
+| status | text | no | 'open' | no | yes | — | EXISTING | open / in_progress / resolved / closed |
+| description | text | no | — | no | no | — | EXISTING | Escalation description |
+| resolution | text | yes | null | no | no | — | RECOMMENDED | Resolution notes |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Created time |
+| resolved_at | timestamptz | yes | null | no | no | — | RECOMMENDED | Resolution time |
+
+---
+
+### `simulation_runs`
+(Phase 2) Admin simulation lab records.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Origin | Description |
+|--------|------|------|---------|--------|---------|-----|--------|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | EXISTING | Simulation ID |
+| created_by_id | uuid | no | — | no | yes | users.id | EXISTING | Admin who ran it |
+| scenario | text | no | — | no | no | — | EXISTING | Scenario name |
+| parameters | jsonb | yes | null | no | no | — | EXISTING | Simulation parameters |
+| result | jsonb | yes | null | no | no | — | EXISTING | Simulation result |
+| created_at | timestamptz | no | now() | no | yes | — | EXISTING | Run time |
