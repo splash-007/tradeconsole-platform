@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle, GitBranch, LineChart } from 'lucide-react';
+import { useAdminAuthGuard, performLogout } from '@/lib/auth-guard';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -109,6 +110,7 @@ const GROUP_LABELS: Record<string, string> = {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { status: authStatus } = useAdminAuthGuard();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['marketing', 'operations', 'finance', 'trading', 'compliance', 'support', 'system']);
@@ -227,9 +229,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Close mobile drawer on route change
   useEffect(() => { setMobileDrawerOpen(false); }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    router.push('/secure-login');
+    await performLogout(router);
   };
 
   const toggleGroup = (label: string) => {
@@ -336,6 +338,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       )}
     </>
   );
+
+  // Show nothing while auth is being validated (prevents flash of protected content)
+  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>

@@ -6,6 +6,7 @@ import { apiClient, DATA_MODE } from '@/lib/api-client';
 import type { RoleId } from '@/lib/rbac';
 import { ROLE_DEFAULT_ROUTES } from '@/lib/rbac';
 import { setSession, buildMockSession } from '@/lib/session';
+import { setSessionCookieMarker, clearSessionCookies } from '@/lib/auth-guard';
 
 export interface LoginDTO {
   email: string;
@@ -84,7 +85,10 @@ export const authService = {
       });
       setSession(session);
 
-      const redirectTo = ROLE_DEFAULT_ROUTES[match.user.role] || '/sign-up-login-screen';
+      // Set cookie markers so middleware can detect auth state
+      setSessionCookieMarker(match.user.role);
+
+      const redirectTo = ROLE_DEFAULT_ROUTES[match.user.role] || '/secure-login';
       return { user: match.user, error: null, redirectTo };
     }
 
@@ -107,6 +111,9 @@ export const authService = {
     });
     setSession(session);
 
+    // Set cookie markers so middleware can detect auth state
+    setSessionCookieMarker(user.role);
+
     const redirectTo = ROLE_DEFAULT_ROUTES[user.role] || '/trading-dashboard';
     return { user, error: null, redirectTo };
   },
@@ -123,7 +130,24 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
+    // Clear sessionStorage
     if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('cv_session');
+
+    // Clear all session cookies
+    clearSessionCookies();
+
+    // Clear all private cached data
+    if (typeof localStorage !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('cv-') || key.startsWith('cv_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+    }
+
     if (DATA_MODE === 'mock') return;
     await apiClient.post('/api/v1/auth/logout', {});
     // Backend should invalidate the HTTP-only session cookie

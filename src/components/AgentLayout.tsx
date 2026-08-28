@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import { LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare, Bell, Activity, User, ChevronRight, ChevronDown, LogOut, Sun, Moon, UserPlus, Menu, X } from 'lucide-react';
+import { useAuthGuard, performLogout } from '@/lib/auth-guard';
 
 interface AgentLayoutProps { children: React.ReactNode; }
 
@@ -62,6 +63,10 @@ const loadAgentNotifs = (): AgentNotification[] => {
 export default function AgentLayout({ children }: AgentLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  // ── Auth Guard: deny-by-default, any authenticated user ───────────────────
+  const { status: authStatus } = useAuthGuard({ anyAuthenticated: true });
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -130,9 +135,9 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
 
   useEffect(() => { setMobileDrawerOpen(false); }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    router.push('/secure-login');
+    await performLogout(router);
   };
 
   const NavList = ({ mobile = false }: { mobile?: boolean }) => (
@@ -156,6 +161,15 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
       })}
     </nav>
   );
+
+  // Show nothing while auth is being validated (prevents flash of protected content)
+  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
