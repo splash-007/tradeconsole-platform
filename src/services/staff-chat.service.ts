@@ -41,6 +41,21 @@ export interface Conversation {
   presenceStatus?: PresenceStatus;
 }
 
+// WebSocket event types — BACKEND INTEGRATION
+export interface WSEvent {
+  type:
+    | 'message:new' |'message:read' |'presence:update' |'typing:start' |'typing:stop' |'conversation:new';
+  payload: unknown;
+}
+
+// Typing state tracker
+export interface TypingState {
+  conversationId: string;
+  staffId: string;
+  staffName: string;
+  isTyping: boolean;
+}
+
 // Mock data for development
 const MOCK_CONVERSATIONS: Conversation[] = [
   {
@@ -135,6 +150,44 @@ const MOCK_PRESENCE: StaffPresence[] = [
   { staffId: 'staff-005', name: 'Lisa Wang', role: 'Compliance Manager', status: 'offline' },
 ];
 
+// Typing state store (in-memory for mock; Redis pub/sub in production)
+const TYPING_STATES: Map<string, TypingState> = new Map();
+
+// WebSocket connection manager (mock — replace with real WS in production)
+class WebSocketManager {
+  private listeners: Map<string, ((event: WSEvent) => void)[]> = new Map();
+  private connected = false;
+
+  // BACKEND INTEGRATION: Replace with actual WebSocket connection
+  // connect(url: string, token: string): void {
+  //   this.ws = new WebSocket(url);
+  //   this.ws.onmessage = (e) => this.dispatch(JSON.parse(e.data));
+  // }
+
+  subscribe(eventType: string, handler: (event: WSEvent) => void): () => void {
+    if (!this.listeners.has(eventType)) this.listeners.set(eventType, []);
+    this.listeners.get(eventType)!.push(handler);
+    return () => {
+      const handlers = this.listeners.get(eventType) || [];
+      this.listeners.set(eventType, handlers.filter(h => h !== handler));
+    };
+  }
+
+  dispatch(event: WSEvent): void {
+    const handlers = this.listeners.get(event.type) || [];
+    handlers.forEach(h => h(event));
+    // Also dispatch to wildcard listeners
+    const wildcardHandlers = this.listeners.get('*') || [];
+    wildcardHandlers.forEach(h => h(event));
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+}
+
+export const wsManager = new WebSocketManager();
+
 export const staffChatService = {
   async getConversations(): Promise<Conversation[]> {
     // BACKEND INTEGRATION: GET /api/v1/internal/conversations
@@ -166,6 +219,8 @@ export const staffChatService = {
     } else {
       MOCK_MESSAGES[conversationId] = [msg];
     }
+    // Dispatch WS event for real-time sync
+    wsManager.dispatch({ type: 'message:new', payload: msg });
     return msg;
   },
 
@@ -174,6 +229,7 @@ export const staffChatService = {
     // WebSocket: emit 'message:read' event
     const conv = MOCK_CONVERSATIONS.find(c => c.id === conversationId);
     if (conv) conv.unreadCount = 0;
+    wsManager.dispatch({ type: 'message:read', payload: { conversationId, readBy: 'current-user' } });
   },
 
   async getPresence(): Promise<StaffPresence[]> {
@@ -186,6 +242,32 @@ export const staffChatService = {
     // BACKEND INTEGRATION: POST /api/v1/internal/presence
     // WebSocket: emit 'presence:update' event
     // Redis/Valkey stores ephemeral presence state
+    wsManager.dispatch({ type: 'presence:update', payload: { staffId: 'current-user', status } });
+  },
+
+  async startTyping(conversationId: string): Promise<void> {
+    // BACKEND INTEGRATION: WebSocket emit 'typing:start'
+    // Debounce on client; auto-clear after 3s on server
+    TYPING_STATES.set(`current-user:${conversationId}`, {
+      conversationId,
+      staffId: 'current-user',
+      staffName: 'You',
+      isTyping: true,
+    });
+    wsManager.dispatch({ type: 'typing:start', payload: { conversationId, staffId: 'current-user', staffName: 'You' } });
+  },
+
+  async stopTyping(conversationId: string): Promise<void> {
+    // BACKEND INTEGRATION: WebSocket emit 'typing:stop'
+    TYPING_STATES.delete(`current-user:${conversationId}`);
+    wsManager.dispatch({ type: 'typing:stop', payload: { conversationId, staffId: 'current-user' } });
+  },
+
+  getTypingUsers(conversationId: string): TypingState[] {
+    // Returns who is currently typing in a conversation (excluding self)
+    return Array.from(TYPING_STATES.values()).filter(
+      t => t.conversationId === conversationId && t.staffId !== 'current-user' && t.isTyping
+    );
   },
 
   async createDirectConversation(staffId: string, staffName: string): Promise<Conversation> {
@@ -202,10 +284,26 @@ export const staffChatService = {
       presenceStatus: 'offline',
     };
     MOCK_CONVERSATIONS.unshift(conv);
+    wsManager.dispatch({ type: 'conversation:new', payload: conv });
     return conv;
   },
 
   getTotalUnread(): number {
     return MOCK_CONVERSATIONS.reduce((sum, c) => sum + c.unreadCount, 0);
+  },
+
+  // Subscribe to real-time events
+  onNewMessage(handler: (msg: ChatMessage) => void): () => void {
+    return wsManager.subscribe('message:new', (e) => handler(e.payload as ChatMessage));
+  },
+
+  onPresenceUpdate(handler: (update: { staffId: string; status: PresenceStatus }) => void): () => void {
+    return wsManager.subscribe('presence:update', (e) => handler(e.payload as { staffId: string; status: PresenceStatus }));
+  },
+
+  onTypingChange(handler: (state: { conversationId: string; staffId: string; staffName: string; isTyping: boolean }) => void): () => void {
+    const unsubStart = wsManager.subscribe('typing:start', (e) => handler({ ...(e.payload as { conversationId: string; staffId: string; staffName: string }), isTyping: true }));
+    const unsubStop = wsManager.subscribe('typing:stop', (e) => handler({ ...(e.payload as { conversationId: string; staffId: string; staffName: string }), isTyping: false }));
+    return () => { unsubStart(); unsubStop(); };
   },
 };
