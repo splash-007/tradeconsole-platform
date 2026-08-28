@@ -1,4 +1,4 @@
-// Internal Staff Chat Service — CryptoVault
+// Internal Staff Chat Service — CryonFX
 // IMPORTANT: This is SEPARATE from customer support chat.
 // conversation_type: 'internal' | 'customer'
 // BACKEND INTEGRATION: WebSocket + PostgreSQL + Redis/Valkey for presence & pub/sub

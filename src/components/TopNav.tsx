@@ -157,7 +157,7 @@ export default function TopNav() {
           <Link href="/trading-dashboard" className="flex items-center gap-2 shrink-0">
             <AppLogo size={28} />
             <span className="font-semibold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--primary)' }}>
-              CryptoVault
+              CryonFX
             </span>
           </Link>
 
@@ -321,7 +321,7 @@ export default function TopNav() {
         <div className="flex items-center justify-between px-4 h-12 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
-            <span className="text-sm font-bold" style={{ color: 'var(--primary)' }}>CryptoVault</span>
+            <span className="text-sm font-bold" style={{ color: 'var(--primary)' }}>CryonFX</span>
           </div>
           <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
             <X size={16} />

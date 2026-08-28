@@ -1,12 +1,12 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, IBM_Plex_Mono } from 'next/font/google';
+import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import '../styles/tailwind.css';
 
-const dmSans = DM_Sans({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-dm-sans',
+  variable: '--font-ibm-plex-sans',
   display: 'swap',
 });
 
@@ -23,8 +23,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'CryptoVault — Institutional-Grade Crypto Trading',
-  description: 'CryptoVault gives active traders a professional terminal for spot trading, portfolio management, and real-time market analysis.',
+  title: 'CryonFX — Institutional-Grade Crypto Trading',
+  description: 'CryonFX gives active traders a professional terminal for spot trading, portfolio management, and real-time market analysis.',
   icons: {
     icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
   },
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${ibmPlexMono.variable}`}>
-      <body className={dmSans.className}>
+    <html lang="en" className={`${ibmPlexSans.variable} ${ibmPlexMono.variable}`}>
+      <body className={ibmPlexSans.className}>
         {children}
 
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fc3rypxtovaul5814back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.20" />

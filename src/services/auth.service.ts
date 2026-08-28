@@ -49,14 +49,14 @@ export interface AuthUser {
 
 // Mock users for development — NOT exposed in production UI
 const MOCK_USERS: { email: string; password: string; user: AuthUser }[] = [
-  { email: 'trader@cryptovault.app', password: 'Vault2026!', user: { id: 'user-001', email: 'trader@cryptovault.app', firstName: 'Alex', lastName: 'Mercer', role: 'customer', status: 'active' } },
-  { email: 'admin@cryptovault.app', password: 'Admin2026!', user: { id: 'admin-001', email: 'admin@cryptovault.app', firstName: 'Sarah', lastName: 'Chen', role: 'admin', status: 'active' } },
-  { email: 'broker@cryptovault.app', password: 'Broker2026!', user: { id: 'broker-001', email: 'broker@cryptovault.app', firstName: 'James', lastName: 'Park', role: 'broker', status: 'active', managerId: 'staff-001', managerName: 'Sarah Chen' } },
-  { email: 'affiliate@cryptovault.app', password: 'Affiliate2026!', user: { id: 'aff-001', email: 'affiliate@cryptovault.app', firstName: 'Marco', lastName: 'Rossi', role: 'affiliate', status: 'active', managerId: 'staff-010', managerName: 'Elena Vasquez' } },
-  { email: 'finance@cryptovault.app', password: 'Finance2026!', user: { id: 'fin-001', email: 'finance@cryptovault.app', firstName: 'David', lastName: 'Kim', role: 'finance', status: 'active' } },
-  { email: 'vpsales@cryptovault.app', password: 'VPSales2026!', user: { id: 'vp-001', email: 'vpsales@cryptovault.app', firstName: 'Robert', lastName: 'Chen', role: 'vp_sales', status: 'active' } },
-  { email: 'compliance@cryptovault.app', password: 'Compliance2026!', user: { id: 'cm-001', email: 'compliance@cryptovault.app', firstName: 'Lisa', lastName: 'Wang', role: 'compliance_manager', status: 'active' } },
-  { email: 'shift@cryptovault.app', password: 'Shift2026!', user: { id: 'sm-001', email: 'shift@cryptovault.app', firstName: 'Alex', lastName: 'Torres', role: 'shift_manager', status: 'active' } },
+  { email: 'trader@cryonfx.app', password: 'Vault2026!', user: { id: 'user-001', email: 'trader@cryonfx.app', firstName: 'Alex', lastName: 'Mercer', role: 'customer', status: 'active' } },
+  { email: 'admin@cryonfx.app', password: 'Admin2026!', user: { id: 'admin-001', email: 'admin@cryonfx.app', firstName: 'Sarah', lastName: 'Chen', role: 'admin', status: 'active' } },
+  { email: 'broker@cryonfx.app', password: 'Broker2026!', user: { id: 'broker-001', email: 'broker@cryonfx.app', firstName: 'James', lastName: 'Park', role: 'broker', status: 'active', managerId: 'staff-001', managerName: 'Sarah Chen' } },
+  { email: 'affiliate@cryonfx.app', password: 'Affiliate2026!', user: { id: 'aff-001', email: 'affiliate@cryonfx.app', firstName: 'Marco', lastName: 'Rossi', role: 'affiliate', status: 'active', managerId: 'staff-010', managerName: 'Elena Vasquez' } },
+  { email: 'finance@cryonfx.app', password: 'Finance2026!', user: { id: 'fin-001', email: 'finance@cryonfx.app', firstName: 'David', lastName: 'Kim', role: 'finance', status: 'active' } },
+  { email: 'vpsales@cryonfx.app', password: 'VPSales2026!', user: { id: 'vp-001', email: 'vpsales@cryonfx.app', firstName: 'Robert', lastName: 'Chen', role: 'vp_sales', status: 'active' } },
+  { email: 'compliance@cryonfx.app', password: 'Compliance2026!', user: { id: 'cm-001', email: 'compliance@cryonfx.app', firstName: 'Lisa', lastName: 'Wang', role: 'compliance_manager', status: 'active' } },
+  { email: 'shift@cryonfx.app', password: 'Shift2026!', user: { id: 'sm-001', email: 'shift@cryonfx.app', firstName: 'Alex', lastName: 'Torres', role: 'shift_manager', status: 'active' } },
 ];
 
 export const authService = {

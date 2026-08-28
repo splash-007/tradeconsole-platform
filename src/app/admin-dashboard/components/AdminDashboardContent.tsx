@@ -233,7 +233,7 @@ export default function AdminDashboardContent() {
                     type="email"
                     value={agentForm.email}
                     onChange={e => setAgentForm(p => ({ ...p, email: e.target.value }))}
-                    placeholder="agent@cryptovault.app"
+                    placeholder="agent@cryonfx.app"
                     className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none"
                     style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                   />

@@ -36,7 +36,7 @@ export default function DeskBrokerWorkspace() {
     <StaffShell
       role="desk_broker"
       staffName="Alex Rivera"
-      staffEmail="alex.rivera@cryptovault.app"
+      staffEmail="alex.rivera@cryonfx.app"
       managerName="Michael Torres"
       managerRole="Desk Manager"
       managerStatus="online"
