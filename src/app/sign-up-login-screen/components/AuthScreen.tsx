@@ -149,7 +149,6 @@ function AuthScreenInner() {
             </svg>
           </div>
           <span className="text-lg font-bold tracking-tight" style={{ color: '#111827', letterSpacing: '-0.02em' }}>CryonFX</span>
-          <span className="text-xs mt-0.5" style={{ color: '#6B7280' }}>Institutional-Grade Trading</span>
         </div>
 
         {/* Heading */}
