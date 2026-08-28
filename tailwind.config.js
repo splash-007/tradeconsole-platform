@@ -44,7 +44,7 @@ module.exports = {
         xl: 'calc(var(--radius) + 4px)',
       },
       fontFamily: {
-        sans: ['var(--font-dm-sans)', 'sans-serif'],
+        sans: ['var(--font-ibm-plex-sans)', 'sans-serif'],
         mono: ['var(--font-ibm-plex-mono)', 'monospace'],
       },
     },

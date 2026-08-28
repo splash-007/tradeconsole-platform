@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import { Bell, ChevronDown, ArrowDownToLine, ArrowUpFromLine, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History } from 'lucide-react';
+import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
@@ -57,6 +58,7 @@ const NOTIF_STORAGE_KEY = 'cv-client-notifs-read';
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const { status: authStatus } = useCustomerAuthGuard();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -144,10 +146,15 @@ export default function TopNav() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    router.push('/secure-login');
+    await performLogout(router);
   };
+
+  // Show nothing while auth is being validated (prevents flash of protected content)
+  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended') {
+    return null;
+  }
 
   return (
     <>
@@ -157,7 +164,7 @@ export default function TopNav() {
           <Link href="/trading-dashboard" className="flex items-center gap-2 shrink-0">
             <AppLogo size={28} />
             <span className="font-semibold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--primary)' }}>
-              CryptoVault
+              CryonFX
             </span>
           </Link>
 
@@ -321,7 +328,7 @@ export default function TopNav() {
         <div className="flex items-center justify-between px-4 h-12 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
-            <span className="text-sm font-bold" style={{ color: 'var(--primary)' }}>CryptoVault</span>
+            <span className="text-sm font-bold" style={{ color: 'var(--primary)' }}>CryonFX</span>
           </div>
           <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
             <X size={16} />

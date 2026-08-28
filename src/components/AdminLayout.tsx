@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import { LayoutDashboard, Users, Megaphone, Wallet, ArrowUpDown, ShieldCheck, HeadphonesIcon, Bell, UserCog, KeyRound, ScrollText, Settings, ChevronDown, ChevronRight, TrendingUp, Globe, Tag, BarChart2, Filter, ClipboardList, UserCheck, MessageSquare, Ticket, BarChart, Activity, BookOpen, Briefcase, FileText, DollarSign, CreditCard, Shield, Cpu, Users2, Beaker, LogOut, User, Sun, Moon, UserPlus, Menu, X, AlertTriangle, GitBranch, LineChart } from 'lucide-react';
+import { useAdminAuthGuard, performLogout } from '@/lib/auth-guard';
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
@@ -109,6 +110,7 @@ const GROUP_LABELS: Record<string, string> = {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { status: authStatus } = useAdminAuthGuard();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['marketing', 'operations', 'finance', 'trading', 'compliance', 'support', 'system']);
@@ -227,9 +229,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Close mobile drawer on route change
   useEffect(() => { setMobileDrawerOpen(false); }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    router.push('/secure-login');
+    await performLogout(router);
   };
 
   const toggleGroup = (label: string) => {
@@ -337,6 +339,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     </>
   );
 
+  // Show nothing while auth is being validated (prevents flash of protected content)
+  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
       {/* Desktop Sidebar */}
@@ -348,7 +359,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <AppLogo size={26} />
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Admin Panel</p>
             </div>
           )}
@@ -370,7 +381,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Admin Panel</p>
             </div>
           </div>
@@ -489,7 +500,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryptovault.app</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryonfx.app</p>
                   </div>
                   <div className="py-1">
                     <Link href="/admin/system/settings" onClick={() => setProfileOpen(false)}

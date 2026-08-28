@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import { LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare, Bell, Activity, User, ChevronRight, ChevronDown, LogOut, Sun, Moon, UserPlus, Menu, X } from 'lucide-react';
+import { useAuthGuard, performLogout } from '@/lib/auth-guard';
 
 interface AgentLayoutProps { children: React.ReactNode; }
 
@@ -62,6 +63,10 @@ const loadAgentNotifs = (): AgentNotification[] => {
 export default function AgentLayout({ children }: AgentLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  // ── Auth Guard: deny-by-default, any authenticated user ───────────────────
+  const { status: authStatus } = useAuthGuard({ anyAuthenticated: true });
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -130,9 +135,9 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
 
   useEffect(() => { setMobileDrawerOpen(false); }, [pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    router.push('/secure-login');
+    await performLogout(router);
   };
 
   const NavList = ({ mobile = false }: { mobile?: boolean }) => (
@@ -157,6 +162,15 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     </nav>
   );
 
+  // Show nothing while auth is being validated (prevents flash of protected content)
+  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
       {/* Desktop Sidebar */}
@@ -168,7 +182,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
           <AppLogo size={24} />
           {!collapsed && (
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Agent Portal</p>
             </div>
           )}
@@ -212,7 +226,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Agent Portal</p>
             </div>
           </div>
@@ -341,7 +355,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                 <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryptovault.app</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryonfx.app</p>
                   </div>
                   <div className="py-1">
                     <Link href="/agent/profile" onClick={() => setProfileOpen(false)}

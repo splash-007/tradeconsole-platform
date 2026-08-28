@@ -15,6 +15,7 @@ import { ROLE_NAV_ITEMS, ROLE_DISPLAY_NAMES, ROLE_DEFAULT_ROUTES } from '@/lib/r
 import { staffChatService } from '@/services/staff-chat.service';
 import type { PresenceStatus } from '@/services/staff-chat.service';
 import StaffChatPanel from '@/components/StaffChatPanel';
+import { useAuthGuard, performLogout } from '@/lib/auth-guard';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   LayoutDashboard, Users, ClipboardList, PhoneCall, MessageSquare, Bell,
@@ -60,6 +61,10 @@ export default function StaffShell({
 }: StaffShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  // ── Auth Guard: deny-by-default, any authenticated staff ──────────────────
+  const { status: authStatus } = useAuthGuard({ anyAuthenticated: true });
+
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -107,9 +112,8 @@ export default function StaffShell({
 
   useEffect(() => { setMobileDrawerOpen(false); }, [pathname]);
 
-  const handleLogout = () => {
-    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('cv_session');
-    router.push('/secure-login');
+  const handleLogout = async () => {
+    await performLogout(router);
   };
 
   const handlePresenceChange = async (status: PresenceStatus) => {
@@ -239,6 +243,15 @@ export default function StaffShell({
     </div>
   );
 
+  // Show nothing while auth is being validated (prevents flash of protected content)
+  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended') {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
       {/* Desktop Sidebar */}
@@ -250,7 +263,7 @@ export default function StaffShell({
           <AppLogo size={24} />
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight truncate" style={{ color: 'var(--muted-foreground)' }}>{displayName}</p>
             </div>
           )}
@@ -280,7 +293,7 @@ export default function StaffShell({
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryptoVault</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>{displayName}</p>
             </div>
           </div>

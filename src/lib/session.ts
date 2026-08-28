@@ -42,9 +42,9 @@ export function getRoleRedirect(role: RoleId): string {
 export function buildMockSession(role: RoleId, overrides?: Partial<StaffSession>): StaffSession {
   const base: StaffSession = {
     id: `mock-${role}-001`,
-    email: `${role.replace('_', '.')}@cryptovault.app`,
-    firstName: 'Demo',
-    lastName: role.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' '),
+    email: `${role.replace('_', '.')}@cryonfx.app`,
+    firstName: overrides?.firstName || role.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' '),
+    lastName: overrides?.lastName || 'User',
     role,
     permissions: getMockPermissions(role),
     status: 'active',

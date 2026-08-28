@@ -42,7 +42,7 @@ export default function RetentionBrokerWorkspace() {
     <StaffShell
       role="retention_broker"
       staffName="Maria Santos"
-      staffEmail="maria.santos@cryptovault.app"
+      staffEmail="maria.santos@cryonfx.app"
       managerName="Diana Reyes"
       managerRole="Retention Manager"
       managerStatus="online"

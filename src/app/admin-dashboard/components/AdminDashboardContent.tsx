@@ -132,7 +132,7 @@ export default function AdminDashboardContent() {
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--positive)' }} />
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Live data{refreshing ? ' · syncing…' : ''}</span>
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Platform{refreshing ? ' · syncing…' : ''}</span>
         </div>
       </div>
 
@@ -233,7 +233,7 @@ export default function AdminDashboardContent() {
                     type="email"
                     value={agentForm.email}
                     onChange={e => setAgentForm(p => ({ ...p, email: e.target.value }))}
-                    placeholder="agent@cryptovault.app"
+                    placeholder="agent@cryonfx.app"
                     className="w-full px-3 py-2 rounded-lg text-sm border focus:outline-none"
                     style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                   />

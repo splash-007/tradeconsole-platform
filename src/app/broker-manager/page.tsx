@@ -41,7 +41,7 @@ export default function BrokerManagerWorkspace() {
     <StaffShell
       role="broker_manager"
       staffName="Sarah Chen"
-      staffEmail="sarah.chen@cryptovault.app"
+      staffEmail="sarah.chen@cryonfx.app"
       managerName="Robert Chen"
       managerRole="VP Sales"
       managerStatus="online"

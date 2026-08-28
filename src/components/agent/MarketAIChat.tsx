@@ -75,7 +75,7 @@ export default function MarketAIChat({ collapsed = false, onToggle }: MarketAICh
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Market AI Assistant</p>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Powered by mock provider · OpenAI/Claude ready</p>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>AI-powered market analysis assistant</p>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
