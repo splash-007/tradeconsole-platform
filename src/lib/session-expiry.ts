@@ -1,3 +1,4 @@
-// This file is intentionally left as a no-op stub.
-// All session expiry logic and exports live in session-expiry.tsx.
-// Import directly from '@/lib/session-expiry.tsx' or '@/lib/session-expiry' (Next.js resolves .tsx first).
+// session-expiry.ts — intentional empty module.
+// All session expiry logic lives in session-expiry.tsx (React hook + overlay component).
+// Import from '@/lib/session-expiry.tsx' directly when needed.
+export {};
