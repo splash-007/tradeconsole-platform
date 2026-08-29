@@ -1,13 +1,17 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { marketsService, MarketInstrument } from '@/services/markets.service';
-import { Search, TrendingUp, TrendingDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, TrendingUp, TrendingDown, ArrowUpDown, ArrowUp, ArrowDown, Wifi } from 'lucide-react';
 import Link from 'next/link';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { useRealTimeMarket } from '@/hooks/useRealTimeMarket';
+import MiniCandleChart from '@/components/trading/MiniCandleChart';
 
 const CATEGORIES = ['All', 'Crypto', 'Forex', 'Indices', 'Commodities'] as const;
 type SortField = 'symbol' | 'lastPrice' | 'changePct24h' | 'volume24h' | 'marketCap';
 type SortDir = 'asc' | 'desc';
+
+// Symbols that have Binance live feed
+const LIVE_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'SOL/USDC', 'BNB/USDC', 'XRP/USDC', 'ADA/USDC', 'AVAX/USDC', 'DOT/USDC'];
 
 export default function MarketsContent() {
   const [instruments, setInstruments] = useState<MarketInstrument[]>([]);
@@ -17,6 +21,10 @@ export default function MarketsContent() {
   const [sortField, setSortField] = useState<SortField>('volume24h');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+  // Real-time market feed
+  const { quotes, candles } = useRealTimeMarket(LIVE_SYMBOLS);
+  const isLive = Object.keys(quotes).length > 0;
+
   useEffect(() => {
     marketsService.getInstruments().then(data => {
       setInstruments(data);
@@ -24,8 +32,25 @@ export default function MarketsContent() {
     });
   }, []);
 
+  // Merge live quotes into instruments
+  const mergedInstruments = useMemo(() => {
+    return instruments.map(inst => {
+      const live = quotes[inst.symbol];
+      if (!live) return inst;
+      return {
+        ...inst,
+        lastPrice: live.price,
+        change24h: live.change24h,
+        changePct24h: live.changePct24h,
+        high24h: live.high24h,
+        low24h: live.low24h,
+        volume24h: live.volume24h,
+      };
+    });
+  }, [instruments, quotes]);
+
   const filtered = useMemo(() => {
-    let data = [...instruments];
+    let data = [...mergedInstruments];
     if (category !== 'All') data = data.filter(i => i.category === category.toLowerCase());
     if (search) data = data.filter(i => i.symbol.toLowerCase().includes(search.toLowerCase()));
     data.sort((a, b) => {
@@ -35,7 +60,7 @@ export default function MarketsContent() {
       return sortDir === 'asc' ? (av as number) - (bv as number) : (bv as number) - (av as number);
     });
     return data;
-  }, [instruments, category, search, sortField, sortDir]);
+  }, [mergedInstruments, category, search, sortField, sortDir]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -54,6 +79,17 @@ export default function MarketsContent() {
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Markets</h1>
           <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{instruments.length} instruments · Updated live</p>
+        </div>
+        {/* Live feed indicator */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+          style={{
+            backgroundColor: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${isLive ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
+            color: isLive ? '#22c55e' : 'var(--muted-foreground)',
+          }}>
+          <Wifi size={11} />
+          <span>{isLive ? 'Live Feed' : 'Connecting…'}</span>
+          {isLive && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
         </div>
       </div>
 
@@ -100,7 +136,7 @@ export default function MarketsContent() {
                   { label: '24h Low', field: null, align: 'right' },
                   { label: '24h Volume', field: 'volume24h' as SortField, align: 'right' },
                   { label: 'Market Cap', field: 'marketCap' as SortField, align: 'right' },
-                  { label: '7D', field: null, align: 'center' },
+                  { label: 'Live Chart', field: null, align: 'center' },
                   { label: 'Action', field: null, align: 'center' },
                 ].map(({ label, field, align }) => (
                   <th
@@ -139,7 +175,9 @@ export default function MarketsContent() {
               ) : (
                 filtered.map((inst, idx) => {
                   const isPos = inst.changePct24h >= 0;
-                  const sparkData = inst.sparkline.map((v, i) => ({ i, v }));
+                  const liveCandles = candles[inst.symbol];
+                  const hasLiveFeed = LIVE_SYMBOLS.includes(inst.symbol);
+
                   return (
                     <tr
                       key={`mkt-row-${inst.id}`}
@@ -154,7 +192,13 @@ export default function MarketsContent() {
                             {inst.baseCurrency.slice(0, 2)}
                           </div>
                           <div>
-                            <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</p>
+                            <div className="flex items-center gap-1">
+                              <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</p>
+                              {hasLiveFeed && (
+                                <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: isLive ? '#22c55e' : 'var(--muted-foreground)', opacity: isLive ? 1 : 0.4 }} />
+                              )}
+                            </div>
                             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{inst.baseCurrency}</p>
                           </div>
                         </div>
@@ -190,13 +234,51 @@ export default function MarketsContent() {
                           {inst.marketCap > 0 ? (inst.marketCap >= 1e12 ? `$${(inst.marketCap / 1e12).toFixed(2)}T` : inst.marketCap >= 1e9 ? `$${(inst.marketCap / 1e9).toFixed(1)}B` : '—') : '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="w-20 h-8 mx-auto">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={sparkData}>
-                              <Line type="monotone" dataKey="v" stroke={isPos ? 'var(--positive)' : 'var(--negative)'} strokeWidth={1.5} dot={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
+                      {/* Live Candlestick Chart Column */}
+                      <td className="px-2 py-2">
+                        <div className="flex items-center justify-center" style={{ width: 88, height: 40 }}>
+                          {hasLiveFeed && liveCandles && liveCandles.length >= 2 ? (
+                            <MiniCandleChart
+                              candles={liveCandles}
+                              width={88}
+                              height={40}
+                              showTooltip
+                            />
+                          ) : hasLiveFeed ? (
+                            // Loading skeleton for live symbols
+                            <div className="flex items-end gap-px w-full h-full px-1">
+                              {Array.from({ length: 10 }, (_, i) => (
+                                <div
+                                  key={`ld-${inst.id}-${i}`}
+                                  className="flex-1 rounded-sm animate-pulse"
+                                  style={{
+                                    height: `${40 + Math.sin(i * 1.3) * 30}%`,
+                                    backgroundColor: isPos ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            // Non-crypto instruments: static sparkline fallback
+                            <div className="flex items-end gap-px w-full h-full px-1">
+                              {inst.sparkline.map((v, i, arr) => {
+                                const min = Math.min(...arr);
+                                const max = Math.max(...arr);
+                                const pct = max === min ? 50 : ((v - min) / (max - min)) * 80 + 10;
+                                const barIsUp = i > 0 ? v >= arr[i - 1] : true;
+                                return (
+                                  <div
+                                    key={`sp-${inst.id}-${i}`}
+                                    className="flex-1 rounded-sm"
+                                    style={{
+                                      height: `${pct}%`,
+                                      backgroundColor: barIsUp ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)',
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">

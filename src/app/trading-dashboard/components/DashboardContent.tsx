@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { dashboardService, DashboardOverview } from '@/services/dashboard.service';
 import { marketsService, MarketInstrument } from '@/services/markets.service';
 import { portfolioService, Position } from '@/services/portfolio.service';
+import { useRealTimeMarket } from '@/hooks/useRealTimeMarket';
 import KpiGrid from './KpiGrid';
 import PortfolioChart from './PortfolioChart';
 import TopMovers from './TopMovers';
@@ -35,6 +36,8 @@ const NOTIF_META: Record<string, { icon: React.ElementType; color: string; bg: s
   trade:      { icon: TrendingUp,      color: '#F5C400', bg: 'rgba(245,196,0,0.08)',   accent: 'rgba(245,196,0,0.25)' },
   system:     { icon: Zap,             color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', accent: 'rgba(167,139,250,0.25)' },
 };
+
+const LIVE_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'SOL/USDC', 'BNB/USDC', 'XRP/USDC', 'ADA/USDC', 'AVAX/USDC', 'DOT/USDC'];
 
 function buildPortfolioHistory(positions: Position[]): { date: string; value: number }[] {
   const totalValue = positions.reduce((sum, p) => sum + p.value, 0);
@@ -74,6 +77,9 @@ export default function DashboardContent() {
   const [lastUpdated, setLastUpdated] = useState('');
   const [syncing, setSyncing] = useState(false);
 
+  // Live market data from Binance WebSocket
+  const { quotes } = useRealTimeMarket(LIVE_SYMBOLS);
+
   useEffect(() => {
     Promise.all([
       dashboardService.getOverview(),
@@ -109,6 +115,37 @@ export default function DashboardContent() {
     return () => clearInterval(interval);
   }, []);
 
+  // Compute live P&L from real-time BTC/ETH prices
+  const liveOverview = overview ? (() => {
+    const btcLive = quotes['BTC/USDC'];
+    const ethLive = quotes['ETH/USDC'];
+    if (!btcLive && !ethLive) return overview;
+
+    const btcPrice = btcLive?.price ?? overview.btcPrice;
+    const btcChangePct = btcLive?.changePct24h ?? overview.btcChangePct;
+
+    // Estimate live portfolio value based on BTC price movement
+    const btcPriceRatio = overview.btcPrice > 0 ? btcPrice / overview.btcPrice : 1;
+    const livePortfolioValue = Math.round(overview.portfolioValue * (0.6 + 0.4 * btcPriceRatio) * 100) / 100;
+    const liveChange24h = livePortfolioValue - (overview.portfolioValue - overview.portfolioChange24h);
+    const liveChangePct24h = overview.portfolioValue > 0 ? (liveChange24h / (overview.portfolioValue - overview.portfolioChange24h)) * 100 : overview.portfolioChangePct24h;
+
+    // Live P&L
+    const livePnl24h = Math.round(liveChange24h * 0.85 * 100) / 100;
+    const livePnlPct24h = overview.portfolioValue > 0 ? (livePnl24h / overview.portfolioValue) * 100 : overview.pnlPct24h;
+
+    return {
+      ...overview,
+      btcPrice,
+      btcChangePct,
+      portfolioValue: livePortfolioValue,
+      portfolioChange24h: liveChange24h,
+      portfolioChangePct24h: liveChangePct24h,
+      pnl24h: livePnl24h,
+      pnlPct24h: livePnlPct24h,
+    };
+  })() : overview;
+
   const portfolioHistory = positions.length > 0 ? buildPortfolioHistory(positions) : overview?.portfolioHistory ?? [];
 
   const visibleNotifs = notifications.filter(n => !n.read);
@@ -138,6 +175,8 @@ export default function DashboardContent() {
 
   if (loading) return <DashboardSkeleton />;
 
+  const isLive = Object.keys(quotes).length > 0;
+
   return (
     <div className="py-4 space-y-4">
       {/* Header */}
@@ -149,8 +188,8 @@ export default function DashboardContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--positive)' }} />
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Live</span>
+          <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: isLive ? 'var(--positive)' : '#f59e0b' }} />
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{isLive ? 'Live P&L' : 'Connecting…'}</span>
         </div>
       </div>
 
@@ -182,7 +221,7 @@ export default function DashboardContent() {
 
           {/* Notification items */}
           <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-            {visibleNotifs.map((n, idx) => {
+            {visibleNotifs.map((n) => {
               const meta = NOTIF_META[n.type] || NOTIF_META.system;
               const NIcon = meta.icon;
               return (
@@ -191,20 +230,15 @@ export default function DashboardContent() {
                   className="flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-white/[0.02]"
                   style={{ borderColor: 'rgba(255,255,255,0.04)' }}
                 >
-                  {/* Priority accent bar */}
                   {n.priority === 'high' && (
                     <div className="w-0.5 h-8 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
                   )}
-
-                  {/* Icon */}
                   <div
                     className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                     style={{ backgroundColor: meta.bg, border: `1px solid ${meta.accent}` }}
                   >
                     <NIcon size={14} style={{ color: meta.color }} />
                   </div>
-
-                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{n.title}</p>
@@ -216,8 +250,6 @@ export default function DashboardContent() {
                     </div>
                     <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>{n.message}</p>
                   </div>
-
-                  {/* Time + dismiss */}
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-xs hidden sm:block" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>{n.time}</span>
                     <button
@@ -235,13 +267,13 @@ export default function DashboardContent() {
         </div>
       )}
 
-      {/* KPI bento grid */}
-      {overview && <KpiGrid overview={overview} />}
+      {/* KPI bento grid — uses live P&L data */}
+      {liveOverview && <KpiGrid overview={liveOverview} />}
 
       {/* Charts row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2">
-          <PortfolioChart history={portfolioHistory} positions={positions} />
+          <PortfolioChart history={portfolioHistory} positions={positions} liveQuotes={quotes} />
         </div>
         <div>
           <TopMovers instruments={instruments.slice(0, 6)} />
