@@ -1,8 +1,7 @@
 {
-  "name": "cryonfx-platform",
+  "name": "@cryonfx/web",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.15.0",
   "rocketCritical": {
     "dependencies": [
       "next",
@@ -47,10 +46,7 @@
     "lint:fix": "next lint --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md,json}\"",
     "serve": "next start",
-    "type-check": "tsc --noEmit",
-    "dev:web": "next dev -p 4028",
-    "build:web": "next build",
-    "start:web": "next dev -p 4028"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@dhiwise/component-tagger": "^1.0.16",

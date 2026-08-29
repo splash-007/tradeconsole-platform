@@ -1,37 +1,59 @@
-# Node modules
+# ============================================================
+# CryonFX Platform — Root .gitignore
+# ============================================================
+
+# Dependencies
 node_modules/
-package-lock.json
+.pnp
+.pnp.js
 
 # Next.js build output
 .next/
 out/
+dist/
 
-# Production build
-build/
+# Test coverage
+coverage/
+
+# Environment files — NEVER commit real secrets
+.env
+.env.*
+!.env.example
 
 # Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# OS-specific files
+# OS files
 .DS_Store
 Thumbs.db
 
-# Vercel deployment
-.vercel/
-
-# Optional: if using TypeScript
-*.tsbuildinfo
-
-# Optional: if using testing tools
-coverage/
-jest-test-results.json
-
-# Optional: if using IDEs
-.vscode/
+# Editor directories
 .idea/
+.vscode/
+*.swp
+*.swo
 
-# Optional: if using TurboRepo or monorepo
-turbo/
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts
+
+# Database backups — NEVER commit
+backups/
+*.sql
+*.dump
+*.backup
+
+# Secrets — NEVER commit
+*.pem
+*.key
+*.cert
+*.p12
+
+# Build artifacts
+apps/web/.next/
+apps/api/dist/
+packages/shared/dist/
