@@ -1,3 +1,4 @@
-// Re-export from session-expiry.tsx — this file exists only for backwards compatibility.
-// All implementation lives in session-expiry.tsx (required for JSX support).
-export { useSessionExpiryHandler, SessionExpiryOverlay } from '@/lib/session-expiry';
+// session-expiry.ts — intentional empty module.
+// All session expiry logic lives in session-expiry.tsx (React hook + overlay component).
+// Import from '@/lib/session-expiry.tsx' directly when needed.
+export {};
