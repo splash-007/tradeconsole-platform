@@ -1,3 +1,3 @@
-// Re-export from session-expiry.tsx — this file exists only for backwards compatibility.
-// All implementation lives in session-expiry.tsx (required for JSX support).
-export { useSessionExpiryHandler, SessionExpiryOverlay } from '@/lib/session-expiry';
+// This file is intentionally left as a no-op stub.
+// All session expiry logic and exports live in session-expiry.tsx.
+// Import directly from '@/lib/session-expiry.tsx' or '@/lib/session-expiry' (Next.js resolves .tsx first).
