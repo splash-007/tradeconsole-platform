@@ -1,4 +1,4 @@
-// session-expiry.ts — intentional empty module.
+// session-expiry.ts — NOT a TypeScript module.
+// This file is intentionally excluded from tsconfig.json compilation.
 // All session expiry logic lives in session-expiry.tsx (React hook + overlay component).
-// Import from '@/lib/session-expiry.tsx' directly when needed.
-export {};
+// Do NOT add exports or imports here.

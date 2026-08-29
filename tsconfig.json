@@ -41,6 +41,7 @@
     "apps",
     "packages",
     "infra",
-    "docs"
+    "docs",
+    "src/lib/session-expiry.ts"
   ]
 }
