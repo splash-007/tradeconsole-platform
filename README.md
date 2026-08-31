@@ -1,6 +1,6 @@
-# CryonFX Platform
+# Trade Console Platform
 
-CryonFX is a full-stack trading and CRM platform for forex/crypto brokerages.
+Trade Console is a full-stack trading and CRM platform for forex/crypto brokerages.
 
 This repository is structured as a **pnpm monorepo**.
 
@@ -9,11 +9,11 @@ This repository is structured as a **pnpm monorepo**.
 ## Repository Structure
 
 ```
-cryonfx-platform/
+tradeconsole-platform/
 │
 ├── apps/
-│   ├── web/                  # CryonFX frontend (Next.js 15 / React 19)
-│   └── api/                  # CryonFX backend API (imported separately)
+│   ├── web/                  # Trade Console frontend (Next.js 15 / React 19)
+│   └── api/                  # Trade Console backend API (imported separately)
 │
 ├── packages/
 │   └── shared/               # Shared contracts, DTOs, schemas, enums
@@ -45,7 +45,7 @@ cryonfx-platform/
 
 ## Applications
 
-### `apps/web` — CryonFX Web Application
+### `apps/web` — Trade Console Web Application
 
 Rocket-built customer, staff and admin web application.
 
@@ -60,9 +60,9 @@ Includes:
 - KYC / verification flows
 - Role-based access control (23 roles)
 
-### `apps/api` — CryonFX Backend API
+### `apps/api` — Trade Console Backend API
 
-CryonFX Node.js / TypeScript backend — imported separately.
+Trade Console Node.js / TypeScript backend — imported separately.
 
 See `apps/api/README.md`.
 
@@ -124,7 +124,7 @@ pnpm install
 pnpm dev
 ```
 
-This starts the CryonFX web application at [http://localhost:4028](http://localhost:4028).
+This starts the Trade Console web application at [http://localhost:4028](http://localhost:4028).
 
 ### Build the frontend
 
@@ -156,7 +156,7 @@ Key variables:
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | CryonFX backend API URL |
+| `NEXT_PUBLIC_API_BASE_URL` | Trade Console backend API URL |
 | `NEXT_PUBLIC_APP_BASE_URL` | Frontend application URL |
 | `NEXT_PUBLIC_DATA_MODE` | `mock` for development, `api` for production |
 

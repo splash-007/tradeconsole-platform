@@ -359,7 +359,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <AppLogo size={26} />
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Admin Panel</p>
             </div>
           )}
@@ -381,7 +381,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Admin Panel</p>
             </div>
           </div>
@@ -500,7 +500,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryonfx.app</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@tradeconsole.net</p>
                   </div>
                   <div className="py-1">
                     <Link href="/admin/system/settings" onClick={() => setProfileOpen(false)}

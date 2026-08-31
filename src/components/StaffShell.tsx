@@ -263,7 +263,7 @@ export default function StaffShell({
           <AppLogo size={24} />
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
               <p className="text-xs leading-tight truncate" style={{ color: 'var(--muted-foreground)' }}>{displayName}</p>
             </div>
           )}
@@ -293,7 +293,7 @@ export default function StaffShell({
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>{displayName}</p>
             </div>
           </div>
