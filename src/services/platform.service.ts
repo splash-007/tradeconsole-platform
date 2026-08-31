@@ -1,4 +1,4 @@
-// Central Platform Service — Trade Console
+// Central Platform Service — CryonFX
 // Single source of truth for assignments, tasks, notifications, audit events, and presence.
 // All dashboards (admin, manager, staff) read from and write to this service.
 // BACKEND INTEGRATION: Replace in-memory state with API calls to /api/v1/platform/*

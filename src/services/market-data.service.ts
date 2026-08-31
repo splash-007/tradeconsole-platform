@@ -1,6 +1,6 @@
 // CENTRALIZED MARKET DATA SERVICE
 // ALL prices throughout the platform must derive from this service
-// Architecture: External Provider → Trade Console Backend → Market Data Service → WebSocket → Browser
+// Architecture: External Provider → Crypto Vault Backend → Market Data Service → WebSocket → Browser
 // NEVER expose provider API secrets in frontend code
 
 export interface MarketQuote {

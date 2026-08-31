@@ -1,8 +1,7 @@
 {
-  "name": "tradeconsole-platform",
+  "name": "cryptovault",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@9.15.0",
   "rocketCritical": {
     "dependencies": [
       "next",
@@ -47,14 +46,7 @@
     "lint:fix": "next lint --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md,json}\"",
     "serve": "next start",
-    "type-check": "tsc --noEmit",
-    "dev:web": "pnpm --filter @tradeconsole/web dev",
-    "build:web": "pnpm --filter @tradeconsole/web build",
-    "start:web": "pnpm --filter @tradeconsole/web start",
-    "lint:web": "pnpm --filter @tradeconsole/web lint",
-    "lint:fix:web": "pnpm --filter @tradeconsole/web lint:fix",
-    "type-check:web": "pnpm --filter @tradeconsole/web type-check",
-    "format:web": "pnpm --filter @tradeconsole/web format"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@dhiwise/component-tagger": "^1.0.16",

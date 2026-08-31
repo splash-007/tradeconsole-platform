@@ -182,7 +182,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
           <AppLogo size={24} />
           {!collapsed && (
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Agent Portal</p>
             </div>
           )}
@@ -226,7 +226,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>Agent Portal</p>
             </div>
           </div>
@@ -355,7 +355,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                 <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Sarah Chen</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@tradeconsole.net</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>sarah.chen@cryonfx.app</p>
                   </div>
                   <div className="py-1">
                     <Link href="/agent/profile" onClick={() => setProfileOpen(false)}
