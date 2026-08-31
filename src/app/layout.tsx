@@ -23,8 +23,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'CryonFX — Crypto Trading',
-  description: 'CryonFX gives active traders a professional terminal for spot trading, portfolio management, and real-time market analysis.',
+  title: 'Trade Console — Trading Platform',
+  description: 'Trade Console gives active traders a professional terminal for spot trading, portfolio management, and real-time market analysis.',
   icons: {
     icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
   },

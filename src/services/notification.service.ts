@@ -31,40 +31,40 @@ export interface InAppNotification {
 
 const EMAIL_TEMPLATES: Record<EmailNotificationType, { subject: string; body: (data: Record<string, string | number>, name: string) => string }> = {
   deposit_confirmed: {
-    subject: '✅ Deposit Confirmed — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour deposit of ${data.amount} ${data.currency || 'USDC'} has been confirmed and credited to your account.\n\nTransaction ID: ${data.txId || 'N/A'}\n\nYou can now use these funds for trading.\n\nBest regards,\nCryonFX Team`,
+    subject: '✅ Deposit Confirmed — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nYour deposit of ${data.amount} ${data.currency || 'USDC'} has been confirmed and credited to your account.\n\nTransaction ID: ${data.txId || 'N/A'}\n\nYou can now use these funds for trading.\n\nBest regards,\nTrade Console Team`,
   },
   withdrawal_pending: {
-    subject: '🔄 Withdrawal Pending — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour withdrawal request of ${data.amount} ${data.currency || 'USDC'} is currently pending review.\n\nExpected processing time: 1–3 business days.\n\nWe will notify you once it has been processed.\n\nBest regards,\nCryonFX Team`,
+    subject: '🔄 Withdrawal Pending — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nYour withdrawal request of ${data.amount} ${data.currency || 'USDC'} is currently pending review.\n\nExpected processing time: 1–3 business days.\n\nWe will notify you once it has been processed.\n\nBest regards,\nTrade Console Team`,
   },
   withdrawal_approved: {
-    subject: '✅ Withdrawal Approved — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour withdrawal of ${data.amount} ${data.currency || 'USDC'} has been approved and is being processed.\n\nExpected arrival: 1–2 business days.\n\nBest regards,\nCryonFX Team`,
+    subject: '✅ Withdrawal Approved — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nYour withdrawal of ${data.amount} ${data.currency || 'USDC'} has been approved and is being processed.\n\nExpected arrival: 1–2 business days.\n\nBest regards,\nTrade Console Team`,
   },
   withdrawal_rejected: {
-    subject: '❌ Withdrawal Rejected — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nUnfortunately your withdrawal request of ${data.amount} ${data.currency || 'USDC'} has been rejected.\n\nReason: ${data.reason || 'Please contact support for details.'}\n\nPlease contact our support team if you have any questions.\n\nBest regards,\nCryonFX Team`,
+    subject: '❌ Withdrawal Rejected — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nUnfortunately your withdrawal request of ${data.amount} ${data.currency || 'USDC'} has been rejected.\n\nReason: ${data.reason || 'Please contact support for details.'}\n\nPlease contact our support team if you have any questions.\n\nBest regards,\nTrade Console Team`,
   },
   profile_updated: {
-    subject: '📝 Profile Updated — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour account profile has been updated by our team.\n\nUpdated fields: ${data.fields || 'Account information'}\n\nIf you did not request this change, please contact support immediately.\n\nBest regards,\nCryonFX Team`,
+    subject: '📝 Profile Updated — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nYour account profile has been updated by our team.\n\nUpdated fields: ${data.fields || 'Account information'}\n\nIf you did not request this change, please contact support immediately.\n\nBest regards,\nTrade Console Team`,
   },
   kyc_approved: {
     subject: '🎉 KYC Approved — Account Fully Activated',
-    body: (data, name) => `Hi ${name},\n\nCongratulations! Your identity verification (KYC) has been approved by our compliance team.\n\nYour CryonFX account is now fully activated with complete trading access.\n\nYou can now:\n• Trade all available instruments\n• Make deposits and withdrawals\n• Access all platform features\n\nWelcome to CryonFX!\n\nBest regards,\nCryonFX Compliance Team`,
+    body: (data, name) => `Hi ${name},\n\nCongratulations! Your identity verification (KYC) has been approved by our compliance team.\n\nYour Trade Console account is now fully activated with complete trading access.\n\nYou can now:\n• Trade all available instruments\n• Make deposits and withdrawals\n• Access all platform features\n\nWelcome to Trade Console!\n\nBest regards,\nTrade Console Compliance Team`,
   },
   kyc_rejected: {
-    subject: '⚠️ KYC Requires Attention — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nWe were unable to verify your identity documents.\n\nReason: ${data.reason || 'Documents could not be verified.'}\n\nPlease re-submit your KYC with clear, valid documents. If you need assistance, contact our support team.\n\nBest regards,\nCryonFX Compliance Team`,
+    subject: '⚠️ KYC Requires Attention — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nWe were unable to verify your identity documents.\n\nReason: ${data.reason || 'Documents could not be verified.'}\n\nPlease re-submit your KYC with clear, valid documents. If you need assistance, contact our support team.\n\nBest regards,\nTrade Console Compliance Team`,
   },
   account_activated: {
-    subject: '✅ Account Activated — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour CryonFX account has been activated. You now have full access to the platform.\n\nBest regards,\nCryonFX Team`,
+    subject: '✅ Account Activated — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nYour Trade Console account has been activated. You now have full access to the platform.\n\nBest regards,\nTrade Console Team`,
   },
   account_suspended: {
-    subject: '⚠️ Account Suspended — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour CryonFX account has been temporarily suspended.\n\nReason: ${data.reason || 'Please contact support for details.'}\n\nPlease contact our support team to resolve this.\n\nBest regards,\nCryonFX Team`,
+    subject: '⚠️ Account Suspended — Trade Console',
+    body: (data, name) => `Hi ${name},\n\nYour Trade Console account has been temporarily suspended.\n\nReason: ${data.reason || 'Please contact support for details.'}\n\nPlease contact our support team to resolve this.\n\nBest regards,\nTrade Console Team`,
   },
 };
 
