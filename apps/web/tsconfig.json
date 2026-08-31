@@ -24,24 +24,23 @@
     ],
     "paths": {
       "@/*": [
-        "./src/*"
+        "../../src/*"
       ]
     }
   },
   "include": [
-    ".next/types/**/*.ts",
-    "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "types/**/*.d.ts",
-    ".next/next-build/types/**/*.ts"
+    "../../src/**/*.ts",
+    "../../src/**/*.tsx",
+    ".next/types/**/*.ts",
+    "next-env.d.ts"
   ],
   "exclude": [
     "node_modules",
-    "apps",
-    "packages",
-    "infra",
-    "docs",
-    "src/lib/session-expiry.ts"
+    "../../src/lib/session-expiry.ts",
+    "../../packages",
+    "../../infra",
+    "../../docs"
   ]
 }
