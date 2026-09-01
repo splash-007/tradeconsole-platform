@@ -1104,3 +1104,108 @@ Escalation records from shift managers / team leaders.
 | parameters | jsonb | yes | null | no | no | — | EXISTING | Simulation parameters |
 | result | jsonb | yes | null | no | no | — | EXISTING | Simulation result |
 | created_at | timestamptz | no | now() | no | yes | — | EXISTING | Run time |
+
+---
+
+## ACCOUNT PROVISIONING — Database Impact Analysis
+
+---
+
+### Existing Tables That Already Support This Workflow
+
+| Table | How It Supports the Workflow |
+|-------|------------------------------|
+| `users` | Customer identity record — provisioning creates/activates this |
+| `customer_profiles` | Customer profile — provisioning creates/populates this |
+| `registrations` | Lead/registration record — account request is linked to this |
+| `registration_attribution` | Attribution data (source_site, affiliate_id, campaign_id, UTM fields) — preserved on provisioning |
+| `customer_assignments` | Manager-customer assignment — preserved and associated with provisioned account |
+| `roles` | `Customer` role assigned on provisioning |
+| `audit_logs` | All provisioning events recorded here |
+| `notifications` | Account status notifications to manager/admin |
+| `sessions` | Trade Console session created after handoff redemption |
+| `password_resets` | Can be reused for activation link flow (Option B) |
+
+---
+
+### Existing Tables Requiring New Columns
+
+| Table | New Columns Required | Reason |
+|-------|---------------------|--------|
+| `users` | `username text UNIQUE`, `must_change_password boolean DEFAULT true`, `account_activated boolean DEFAULT false`, `activation_token_hash text`, `activation_token_expires_at timestamptz`, `password_expires_at timestamptz` | Account provisioning fields |
+| `customer_profiles` | `activation_status text`, `marketing_site_id uuid FK marketing_sites.id`, `provisioned_at timestamptz`, `activated_at timestamptz`, `invited_at timestamptz` | Account lifecycle tracking |
+| `marketing_sources` | No changes required — `marketing_sites` is a separate table (see below) | Attribution sources ≠ login entry points |
+
+---
+
+### New Tables Genuinely Required
+
+#### `marketing_sites`
+Centrally managed marketing website / login entry point configuration.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Description |
+|--------|------|------|---------|--------|---------|-----|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | Primary key |
+| name | text | no | — | no | no | — | Display name (e.g. "CryonFX") |
+| domain | text | no | — | yes | yes | — | Domain (e.g. "cryonfx.com") |
+| login_url | text | no | — | no | no | — | Approved login URL (e.g. "https://cryonfx.com/login") |
+| status | text | no | 'active' | no | yes | — | active / inactive |
+| brand_config | jsonb | yes | null | no | no | — | Brand logo, colors, name for email templates |
+| created_at | timestamptz | no | now() | no | no | — | Created time |
+| updated_at | timestamptz | no | now() | no | no | — | Last updated |
+
+> Backend must enforce an approved-domain allowlist for `login_url`. Frontend must never accept arbitrary redirect URLs.
+
+---
+
+#### `account_requests`
+Customer account provisioning requests submitted by managers, reviewed by admins.
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Description |
+|--------|------|------|---------|--------|---------|-----|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | Primary key |
+| customer_id | uuid | no | — | no | yes | users.id / registrations.id | Target customer/lead |
+| requesting_manager_id | uuid | no | — | no | yes | users.id | Manager who submitted request |
+| assigned_manager_id | uuid | yes | null | no | yes | users.id | Assigned manager (may differ) |
+| marketing_site_id | uuid | no | — | no | yes | marketing_sites.id | Selected login/source site |
+| request_reason | text | no | — | no | no | — | Manager's justification |
+| status | text | no | 'pending_approval' | no | yes | — | See Account Request Status enum |
+| reviewed_by | uuid | yes | null | no | no | users.id | Admin who approved/rejected |
+| reviewed_at | timestamptz | yes | null | no | no | — | Review timestamp |
+| review_note | text | yes | null | no | no | — | Admin note on approval/rejection |
+| provisioned_at | timestamptz | yes | null | no | no | — | When provisioning completed |
+| invited_at | timestamptz | yes | null | no | no | — | When invitation email sent |
+| activated_at | timestamptz | yes | null | no | no | — | When customer first logged in |
+| created_at | timestamptz | no | now() | no | yes | — | Request submission time |
+| updated_at | timestamptz | no | now() | no | no | — | Last status change |
+
+---
+
+#### `login_handoff_tokens`
+> **Recommended storage: Valkey (Redis) with TTL** — not PostgreSQL.  
+> Audit records of creation/redemption events go to `audit_logs`.
+
+If PostgreSQL storage is chosen instead:
+
+| Column | Type | Null | Default | Unique | Indexed | FK | Description |
+|--------|------|------|---------|--------|---------|-----|-------------|
+| id | uuid | no | gen_random_uuid() | yes | yes | — | Primary key |
+| user_id | uuid | no | — | no | yes | users.id | Authenticated user |
+| token_hash | text | no | — | yes | yes | — | SHA-256 of handoff token |
+| source_site | text | no | — | no | no | — | Marketing site domain |
+| expires_at | timestamptz | no | — | no | yes | — | Token expiry (~30–60s) |
+| redeemed_at | timestamptz | yes | null | no | no | — | When redeemed (null = not yet) |
+| created_at | timestamptz | no | now() | no | no | — | Token creation time |
+| ip_address | text | yes | null | no | no | — | Client IP at creation |
+
+> Token is invalidated immediately on redemption. Replay protection: check `redeemed_at IS NULL` before accepting.
+
+---
+
+### Tables That Would Duplicate Existing Concepts (Do NOT Create)
+
+| Proposed Table | Existing Table | Reason |
+|---------------|---------------|--------|
+| `customer_login_sources` | `marketing_sites` + `registration_attribution` | Attribution already in `registration_attribution`; login entry points in `marketing_sites` |
+| `customer_roles` (per-site) | `roles` | Customer role is canonical — site is attribution data, not authorization |
+| `account_approval_log` | `audit_logs` | All approval events go to existing `audit_logs` table |

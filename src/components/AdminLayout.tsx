@@ -22,6 +22,7 @@ const SIDEBAR_ITEMS: NavItem[] = [
 
   { label: 'Registrations', href: '/admin/registrations', icon: Users, group: 'customers', badge: '84' },
   { label: 'Customers', href: '/admin/customers', icon: UserCog, group: 'customers' },
+  { label: 'Account Requests', href: '/admin/account-requests', icon: UserPlus, group: 'customers', badge: '1' },
 
   {
     label: 'Performance', href: '#', icon: LineChart, group: 'performance', children: [
