@@ -1,9 +1,9 @@
-# CryonFX — API Requirements
+# Trade Console — API Requirements
 
 > Base URL: `/api/v1`  
 > Production host: configurable via environment variable (e.g. `API_BASE_URL`)  
-> Current test host: `https://api.kraken.tube` (WILL CHANGE — never hardcode)  
-> Authentication: HTTP-only session cookie (`cv_session_token`)
+> Current test host: configurable — never hardcode  
+> Authentication: HTTP-only session cookie (`tc_session_token`)
 
 ---
 
@@ -11,22 +11,77 @@
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
-| POST | `/auth/login` | Login with email + password | Public |
-| POST | `/auth/register` | Customer registration | Public |
+| POST | `/auth/login` | Login with identifier + password (supports direct and marketing-site login) | Public |
+| POST | `/auth/register` | Customer registration (lead capture) | Public |
 | POST | `/auth/logout` | Invalidate session | Authenticated |
 | POST | `/auth/forgot-password` | Request password reset | Public |
 | POST | `/auth/reset-password` | Reset password with token | Public |
 | POST | `/auth/verify-email` | Verify email with token | Public |
+| POST | `/auth/activate` | Complete account activation (set password via activation link) | Public (token-gated) |
 | GET | `/auth/me` | Get current session user | Authenticated |
 | POST | `/auth/refresh` | Refresh session | Authenticated |
 
 ### Login Request
 ```json
 {
-  "email": "string",
-  "password": "string"
+  "identifier": "username-or-email",
+  "password": "string",
+  "sourceSite": "optional-approved-marketing-domain"
 }
 ```
+
+> One authentication system supports both direct Trade Console login and marketing-site login.  
+> `sourceSite` is optional. When provided, it must match a configured `marketing_sites.domain`.  
+> Backend does NOT trust an arbitrary redirect URL from the request body.  
+> Backend validates `sourceSite` against the `marketing_sites` approved-domain allowlist.
+
+**Login Success Response (direct Trade Console login):**
+```json
+{
+  "data": {
+    "user": { "id": "string", "email": "string", "role": "string" },
+    "sessionCreated": true
+  }
+}
+```
+
+**Login Success Response (marketing-site login — cross-domain handoff):**
+```json
+{
+  "data": {
+    "handoffUrl": "https://app.tradeconsole.com/auth/handoff?token=<short_lived_token>"
+  }
+}
+```
+
+> The `handoffUrl` is constructed server-side from the approved domain configuration.  
+> The token is cryptographically random, single-use, short-lived (~60 seconds), stored hashed in Valkey.
+
+**Login Error Codes:**
+| Code | Meaning |
+|------|---------|
+| `invalid_credentials` | Identifier or password incorrect |
+| `account_pending` | Account not yet activated |
+| `account_disabled` | Account has been disabled |
+| `activation_required` | Customer must complete activation |
+| `password_change_required` | Password change required |
+| `rate_limited` | Too many attempts |
+
+> Do NOT reveal whether a username/email exists.
+
+### Account Activation Request
+```json
+{
+  "token": "string",
+  "password": "string",
+  "confirmPassword": "string"
+}
+```
+
+> Customer uses the activation link to set their own password.  
+> `users.password_hash` may be NULL only before activation.  
+> Once `account_activated = true`, a valid Argon2id hash is required.  
+> Do NOT email permanent or temporary plaintext passwords.
 
 ### Register Request (from RegisterDTO)
 ```json
@@ -52,6 +107,65 @@
   "click_id": "string?"
 }
 ```
+
+> Registration creates a `registrations` record. A `users` record is NOT created at registration time.  
+> The full lifecycle is: registration → account request → Admin approval → async provisioning → users record created → activation email → customer sets password → activated.
+
+---
+
+## Cross-Domain Login Handoff
+
+> Marketing websites authenticate against the Trade Console API — they do NOT maintain their own auth database.  
+> One central authentication system supports both direct Trade Console login and marketing-site login.
+
+### Step 1 — Marketing Site Login
+```
+POST /api/v1/auth/login
+```
+**Request:**
+```json
+{
+  "identifier": "username-or-email",
+  "password": "string",
+  "sourceSite": "cryonfx.com"
+}
+```
+
+**Success Response:**
+```json
+{
+  "data": {
+    "handoffUrl": "https://app.tradeconsole.com/auth/handoff?token=<short_lived_token>"
+  }
+}
+```
+
+**Handoff Token Security Requirements:**
+- Cryptographically random (minimum 32 bytes)
+- Short-lived: ~60 seconds TTL
+- Single-use: deleted from Valkey immediately on redemption
+- Stored as hashed/derived token data in Valkey (not plaintext)
+- Bound to authenticated user/session attempt
+- Protected against replay attacks
+- Auditable (creation and redemption recorded in `audit_logs`)
+- **No PostgreSQL `login_handoff_tokens` table** — Valkey only
+
+---
+
+### Step 2 — Handoff Token Redemption (Trade Console)
+```
+GET /auth/handoff?token=<token>
+```
+> This is a Trade Console frontend route that calls the backend to redeem the token.
+
+**Backend behavior:**
+1. Validate token exists in Valkey, is not expired, is not already redeemed
+2. Delete token from Valkey immediately (single-use)
+3. Create secure HttpOnly session cookie (`tc_session_token`)
+4. Create audit record: `LOGIN_HANDOFF_REDEEMED`
+5. Redirect customer to their dashboard
+
+> Do NOT put passwords or permanent session tokens in redirect URLs.
 
 ---
 
@@ -106,7 +220,7 @@
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
-| GET | `/finance/balance` | Get account balance | customer |
+| GET | `/finance/balance` | Get account balance (computed from ledger) | customer |
 | GET | `/finance/deposits` | Get deposit history | customer |
 | POST | `/finance/deposits` | Submit deposit request | customer |
 | GET | `/finance/withdrawals` | Get withdrawal history | customer |
@@ -118,11 +232,13 @@
 
 ## KYC / Verification (Customer)
 
+> KYC is mandatory but presented under Profile/Settings rather than primary navigation.
+
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
 | GET | `/kyc/status` | Get KYC status | customer |
 | PATCH | `/kyc/personal` | Save personal info | customer |
-| POST | `/kyc/documents` | Upload document | customer |
+| POST | `/kyc/documents` | Upload document (stored in S3-compatible storage; PostgreSQL stores key/metadata only) | customer |
 | POST | `/kyc/submit` | Submit KYC for review | customer |
 
 ---
@@ -331,62 +447,82 @@
 
 ## Admin — Account Requests (Customer Account Provisioning)
 
-> Permission required: `customer_account.request_view` (view), `customer_account.approve` / `customer_account.reject` (actions)
+> Permission required: `customer_account.request_view` (view), `customer_account.approve` / `customer_account.reject` (actions)  
+> Authorization must be validated server-side. Frontend controls are not a security boundary.
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
 | GET | `/admin/account-requests` | List all account requests (filterable by status) | admin, super_admin |
-| GET | `/admin/account-requests/:id` | Get account request detail + approval history | admin, super_admin |
-| POST | `/admin/account-requests/:id/approve` | Approve request → triggers provisioning | admin, super_admin |
+| GET | `/admin/account-requests/:id` | Get account request detail + approval history (from audit_logs) | admin, super_admin |
+| POST | `/admin/account-requests/:id/approve` | Approve request → triggers async provisioning job | admin, super_admin |
 | POST | `/admin/account-requests/:id/reject` | Reject request with reason | admin, super_admin |
-| POST | `/admin/account-requests/:id/resend-invitation` | Resend account access email | admin, super_admin |
+| POST | `/admin/account-requests/:id/resend-invitation` | Resend activation email | admin, super_admin |
 | POST | `/admin/account-requests/:id/disable` | Disable provisioned account | admin, super_admin |
 | POST | `/admin/account-requests/:id/reset-access` | Reset customer access credentials | admin, super_admin |
 
 ### Account Request — Create (Manager)
 
-> Permission required: `customer_account.request`
+> Permission required: `customer_account.request`  
+> Additional scope check: manager must have assignment scope for the referenced registration/customer.
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
-| POST | `/account-requests` | Submit account creation request for a lead/customer | manager roles |
+| POST | `/account-requests` | Submit account creation request for a lead/customer | manager roles with assignment scope |
 | GET | `/account-requests` | List own submitted requests | manager roles |
 
 ### Create Request Body
 ```json
 {
-  "customerId": "string",
+  "registrationId": "string",
   "marketingSiteId": "string",
   "requestReason": "string"
 }
 ```
-> `requestingManagerId` is resolved server-side from the authenticated session.  
+> `requestedByUserId` is resolved server-side from the authenticated session.  
 > `marketingSiteId` must reference a configured, active `marketing_sites` record.  
-> Frontend must NOT allow arbitrary domain text entry.
+> Frontend must NOT allow arbitrary domain text entry.  
+> Backend additionally verifies assignment/customer scope — permission alone is not sufficient.
 
-### Approve Response (triggers backend provisioning)
+### Approve Response (triggers async provisioning job)
 ```json
 {
   "data": {
     "requestId": "string",
     "status": "approved",
-    "provisioningTriggered": true,
-    "username": "string",
-    "mustChangePassword": true,
-    "accountActivated": false
+    "provisioningTriggered": true
   }
 }
 ```
+
+### Provisioning Complete Response (via WebSocket or polling)
+```json
+{
+  "data": {
+    "requestId": "string",
+    "status": "provisioned",
+    "provisionedUserId": "string",
+    "username": "string",
+    "accountActivated": false,
+    "mustChangePassword": false
+  }
+}
+```
+
+> Username is generated by the backend. Frontend must NOT generate authoritative usernames.  
+> `accountActivated` is false until the customer uses the activation link to set their password.  
+> No plaintext password is ever returned by the API.
 
 ---
 
 ## Marketing Site Configuration
 
-> Permission required: `marketing_site.manage` (admin/super_admin)
+> Permission required: `marketing_site.view` (read), `marketing_site.manage` (write — super_admin only)  
+> Marketing sites are the approved authentication entry-point allowlist.  
+> They are separate from `marketing_sources` (attribution data).
 
 | Method | Endpoint | Description | Roles |
 |--------|----------|-------------|-------|
-| GET | `/admin/marketing-sites` | List all configured marketing sites | admin, super_admin |
+| GET | `/admin/marketing-sites` | List all configured marketing sites | admin, super_admin, manager roles |
 | POST | `/admin/marketing-sites` | Create new marketing site | super_admin |
 | PATCH | `/admin/marketing-sites/:id` | Update marketing site | super_admin |
 | DELETE | `/admin/marketing-sites/:id` | Deactivate marketing site | super_admin |
@@ -399,119 +535,57 @@
   "domain": "cryonfx.com",
   "loginUrl": "https://cryonfx.com/login",
   "status": "active",
-  "brandConfig": {},
+  "brandConfig": {
+    "brandName": "CryonFX",
+    "logoUrl": "https://...",
+    "primaryColor": "#..."
+  },
   "createdAt": "string",
   "updatedAt": "string"
 }
 ```
 > Backend must validate `loginUrl` against an approved-domain allowlist.  
-> Frontend must never accept arbitrary redirect URLs.
-
----
-
-## Cross-Domain Login Handoff
-
-> These endpoints support the marketing-site → Trade Console seamless login flow.  
-> Marketing websites authenticate against the Trade Console API — they do NOT maintain their own auth database.
-
-### Step 1 — Marketing Site Login
-```
-POST /api/v1/auth/login
-```
-**Request:**
-```json
-{
-  "username": "string",
-  "password": "string",
-  "sourceSite": "cryonfx.com"
-}
-```
-> `sourceSite` is used for attribution and to resolve the approved redirect domain.  
-> Backend validates credentials against the central Trade Console user/session system.  
-> Backend does NOT trust an arbitrary redirect URL from the request body.
-
-**Success Response:**
-```json
-{
-  "data": {
-    "handoffUrl": "https://app.tradeconsole.com/auth/handoff?token=<short_lived_token>"
-  }
-}
-```
-> The `handoffUrl` is constructed server-side from the approved domain configuration.  
-> The token is cryptographically random, single-use, short-lived (~30–60 seconds), stored hashed.
-
-**Login Error Codes:**
-| Code | Meaning |
-|------|---------|
-| `invalid_credentials` | Username or password incorrect |
-| `account_pending` | Account not yet activated |
-| `account_disabled` | Account has been disabled |
-| `activation_required` | Customer must complete activation |
-| `password_change_required` | Temporary password must be changed |
-| `rate_limited` | Too many attempts |
-
-> Do NOT reveal whether a username exists.
-
----
-
-### Step 2 — Handoff Token Redemption (Trade Console)
-```
-GET /auth/handoff?token=<token>
-```
-> This is a Trade Console frontend route that calls the backend to redeem the token.
-
-**Backend behavior:**
-1. Validate token exists, is not expired, is not already redeemed
-2. Mark token as redeemed (immediately invalid after this point)
-3. Create secure HttpOnly session cookie (`cv_session_token`)
-4. Create audit record: `LOGIN_HANDOFF_REDEEMED`
-5. Redirect customer to their dashboard
-
-**Token Security Requirements:**
-- Cryptographically random (minimum 32 bytes)
-- Short-lived: 30–60 seconds
-- Single-use: invalidated immediately on redemption
-- Stored hashed (not plaintext) in backend
-- Bound to authenticated user/session attempt
-- Protected against replay attacks
-- Auditable
-
-> Do NOT put passwords or permanent session tokens in redirect URLs.
+> Frontend must never accept arbitrary redirect URLs.  
+> `brandConfig` is used for per-site email template branding.
 
 ---
 
 ## Account Provisioning Contract
 
-On approval, the backend will:
-1. Create/activate `users` record
-2. Create `customer_profiles` record if required
+On approval, the backend async provisioning job will:
+1. Create `users` record (with `account_activated = false`, `password_hash = NULL`)
+2. Create `customer_profiles` record
 3. Assign `Customer` role
-4. Associate source/affiliate/campaign attribution
+4. Associate source/affiliate/campaign attribution from `registration_attribution`
 5. Associate assigned manager
 6. Generate unique username (backend responsibility — frontend must NOT generate authoritative usernames)
-7. Generate first-login access (temporary password or activation link — TBD, see Open Questions)
-8. Create audit records
-9. Trigger account access email with login URL from `marketing_sites.login_url`
+7. Generate secure activation token (stored hashed in `users.activation_token_hash`)
+8. Create audit records in `audit_logs`
+9. Trigger account access email with activation link and login URL from `marketing_sites.login_url`
+10. Update `account_requests.status` to `provisioned`
+11. Set `account_requests.provisioned_user_id` to the new `users.id`
 
 **Account flags returned by provisioning API:**
 ```json
 {
   "username": "string",
-  "mustChangePassword": true,
+  "mustChangePassword": false,
   "accountActivated": false
 }
 ```
+
+> No plaintext password is ever emailed or returned by the API.  
+> Customer sets their own password via the activation link.
 
 ---
 
 ## WebSocket Events (Account Provisioning)
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `account_request.status_updated` | Server → Client | Account request status changed |
-| `account.provisioned` | Server → Client | Customer account provisioned |
-| `account.activated` | Server → Client | Customer completed first login |
+| Event | Direction | Payload | Trigger |
+|-------|-----------|---------|---------|
+| `account_request.status_updated` | Server → Client | `{ requestId, status, updatedAt }` | Account request status changed |
+| `account.provisioned` | Server → Client | `{ requestId, provisionedUserId, username }` | Customer account provisioned |
+| `account.activated` | Server → Client | `{ userId, activatedAt }` | Customer completed first login |
 
 ---
 

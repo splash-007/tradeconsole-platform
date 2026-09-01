@@ -1,4 +1,4 @@
-# CryonFX — Database Relationships
+# Trade Console — Database Relationships
 
 ---
 
@@ -7,14 +7,16 @@
 ```
 User
 │
-├── Customer Profile (1:1)
-│   ├── Registration (1:1)
-│   │   └── Registration Attribution (1:1)
+├── Customer Profile (1:1) [created only after Admin approval + provisioning]
+│   ├── Registration (1:1 via registrations.user_id — nullable until provisioned)
+│   │   ├── Registration Attribution (1:1)
+│   │   └── Account Request (1:many via account_requests.registration_id)
+│   │       └── Marketing Site (many:1 via account_requests.marketing_site_id)
 │   ├── Customer Assignments (1:many)
 │   │   └── Assignment History (1:many)
 │   ├── Tasks (1:many via assigned customer)
-│   ├── Accounts (1:many — one per currency)
-│   │   ├── Ledger Entries (1:many)
+│   ├── Accounts (1:many — one per currency; system accounts have no customer_id)
+│   │   ├── Ledger Entries (1:many via ledger_transactions)
 │   │   ├── Deposit Requests (1:many)
 │   │   └── Withdrawal Requests (1:many)
 │   ├── Trading Account (1:1 or 1:many)
@@ -43,12 +45,30 @@ User
     ├── Staff Permission Overrides (1:many)
     ├── Staff Manager History (1:many)
     ├── Customer Assignments (1:many — as assignee)
+    ├── Account Requests (1:many — as requested_by_user_id or assigned_manager_id)
     ├── Tasks (1:many — as assignee)
     ├── Calls (1:many — as staff)
     ├── Conversations (1:many — as member)
     │   └── Messages (1:many — as sender)
     ├── Notifications (1:many)
     └── Audit Logs (1:many — as actor)
+
+Registration [may exist without a User]
+│
+├── User (1:1 via registrations.user_id — NULL until provisioned)
+├── Registration Attribution (1:1)
+└── Account Requests (1:many via account_requests.registration_id)
+
+Marketing Sites [approved authentication entry-point allowlist]
+│
+├── Account Requests (1:many via account_requests.marketing_site_id)
+└── Customer Profiles (1:many via customer_profiles.marketing_site_id)
+
+Ledger (double-entry)
+│
+├── Ledger Transactions (1:many per reference)
+│   └── Ledger Entries (1:many per transaction — must balance debits/credits)
+│       └── Accounts (many:1 — customer or system accounts)
 ```
 
 ---
@@ -67,11 +87,14 @@ User
 | login_history | user_id | users.id | many:1 | SET NULL | Preserve login history even if user deleted |
 | security_events | user_id | users.id | many:1 | SET NULL | Preserve security events |
 
+> **Note**: There is NO `login_handoff_tokens` table in PostgreSQL. Cross-domain login handoff tokens are stored exclusively in Valkey with ~60s TTL. Audit records go to `audit_logs`.
+
 ### Identity & Profiles
 
 | From | Column | To | Type | On Delete | Notes |
 |------|--------|----|------|-----------|-------|
-| customer_profiles | user_id | users.id | 1:1 | CASCADE | — |
+| customer_profiles | user_id | users.id | 1:1 | CASCADE | Created only after Admin approval + provisioning |
+| customer_profiles | marketing_site_id | marketing_sites.id | many:1 | SET NULL | Associated login entry point |
 | staff_profiles | user_id | users.id | 1:1 | CASCADE | — |
 | staff_profiles | manager_id | staff_profiles.id | many:1 | SET NULL | Current manager |
 | staff_manager_history | staff_id | staff_profiles.id | many:1 | RESTRICT | Never delete — history |
@@ -99,13 +122,26 @@ User
 | affiliates | manager_user_id | users.id | many:1 | SET NULL | — |
 | campaigns | affiliate_id | affiliates.id | many:1 | SET NULL | — |
 | campaigns | source_id | marketing_sources.id | many:1 | SET NULL | — |
-| registrations | user_id | users.id | 1:1 | SET NULL | — |
+| registrations | user_id | users.id | 1:1 | SET NULL | **Nullable** — registration may exist without a user record |
 | registrations | assigned_staff_id | users.id | many:1 | SET NULL | — |
 | registration_attribution | registration_id | registrations.id | 1:1 | CASCADE | — |
 | registration_attribution | source_id | marketing_sources.id | many:1 | SET NULL | — |
 | registration_attribution | affiliate_id | affiliates.id | many:1 | SET NULL | — |
 | registration_attribution | campaign_id | campaigns.id | many:1 | SET NULL | — |
 | utm_events | registration_id | registrations.id | many:1 | SET NULL | — |
+
+### Account Provisioning
+
+| From | Column | To | Type | On Delete | Notes |
+|------|--------|----|------|-----------|-------|
+| account_requests | registration_id | registrations.id | many:1 | RESTRICT | The lead/registration this request is for. NOT NULL. |
+| account_requests | provisioned_user_id | users.id | many:1 | SET NULL | NULL until provisioning completes |
+| account_requests | requested_by_user_id | users.id | many:1 | RESTRICT | Manager who submitted. NOT NULL. |
+| account_requests | assigned_manager_id | users.id | many:1 | SET NULL | May differ from requester |
+| account_requests | marketing_site_id | marketing_sites.id | many:1 | RESTRICT | Selected login entry point. NOT NULL. |
+| account_requests | reviewed_by_id | users.id | many:1 | SET NULL | Admin who approved/rejected |
+
+> **No `account_request_audit` table.** All approval/rejection/provisioning events are recorded in the existing immutable `audit_logs` table.
 
 ### Assignments & Tasks
 
@@ -127,11 +163,13 @@ User
 | task_activity_log | task_id | tasks.id | many:1 | RESTRICT | Never delete — history |
 | task_activity_log | actor_id | users.id | many:1 | RESTRICT | — |
 
-### Finance
+### Finance (Double-Entry Ledger)
 
 | From | Column | To | Type | On Delete | Notes |
 |------|--------|----|------|-----------|-------|
-| accounts | customer_id | customer_profiles.id | many:1 | RESTRICT | Never delete customer with account |
+| accounts | customer_id | customer_profiles.id | many:1 | RESTRICT | NULL for system accounts (clearing/fee/settlement) |
+| ledger_transactions | reference_id | (polymorphic) | many:1 | RESTRICT | Points to deposit_request.id, order.id, etc. |
+| ledger_entries | ledger_transaction_id | ledger_transactions.id | many:1 | RESTRICT | Never delete — financial record |
 | ledger_entries | account_id | accounts.id | many:1 | RESTRICT | Never delete — financial record |
 | deposit_requests | customer_id | customer_profiles.id | many:1 | RESTRICT | — |
 | deposit_requests | account_id | accounts.id | many:1 | RESTRICT | — |
@@ -225,6 +263,64 @@ User
 
 ---
 
+## Key Lifecycle Relationships
+
+### Registration → Account Provisioning Lifecycle
+
+```
+registrations (lead captured)
+    │
+    │  [no users record yet]
+    │
+    ├── registration_attribution (attribution preserved)
+    │
+    └── account_requests (manager submits request)
+            │
+            │  [Admin approves]
+            │
+            ├── users (created on provisioning)
+            │       └── customer_profiles (created on provisioning)
+            │               └── customer_profiles.marketing_site_id → marketing_sites
+            │
+            └── account_requests.provisioned_user_id → users.id (set after provisioning)
+```
+
+### Cross-Domain Login Handoff (Valkey — no PostgreSQL table)
+
+```
+Marketing site login
+    │
+    POST /api/v1/auth/login (with sourceSite)
+    │
+    Trade Console API validates credentials
+    │
+    Generates handoff token → stored in Valkey (hashed, ~60s TTL)
+    │
+    Returns handoffUrl (server-constructed from marketing_sites.login_url)
+    │
+    Browser → GET /auth/handoff?token=...
+    │
+    Token redeemed → deleted from Valkey immediately
+    │
+    sessions record created in PostgreSQL
+    │
+    audit_logs: LOGIN_HANDOFF_CREATED + LOGIN_HANDOFF_REDEEMED
+```
+
+### Double-Entry Ledger
+
+```
+deposit_request approved
+    │
+    ledger_transactions (reference_type='deposit', reference_id=deposit_request.id)
+    │
+    ├── ledger_entries (debit: clearing_account, amount=X)
+    └── ledger_entries (credit: customer_account, amount=X)
+    [sum(debits) = sum(credits) — transaction balances]
+```
+
+---
+
 ## Soft Delete / Archive Strategy
 
 | Table | Strategy | Column | Notes |
@@ -240,6 +336,8 @@ User
 | conversations | Status field | closed_at | — |
 | audit_logs | NEVER delete | — | Append-only |
 | ledger_entries | NEVER delete | — | Immutable |
+| ledger_transactions | NEVER delete | — | Immutable |
 | assignment_history | NEVER delete | — | Immutable |
 | task_activity_log | NEVER delete | — | Immutable |
 | login_history | NEVER delete | — | Security record |
+| account_requests | Status field | — | Use status=cancelled |

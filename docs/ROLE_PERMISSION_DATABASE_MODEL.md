@@ -1,4 +1,4 @@
-# CryonFX — Role & Permission Database Model
+# Trade Console — Role & Permission Database Model
 
 ---
 
@@ -32,7 +32,7 @@ Inspected from `src/lib/rbac.ts`, `src/services/admin.service.ts`, and `src/serv
 | Conversion Manager | `conversion_manager` | `/conversion-manager` | — | Manager |
 | Retention Manager | `retention_manager` | `/retention-manager` | — | Manager |
 
-**Total roles: 23**
+**Total roles: 23** (canonical — do not add new roles without explicit product decision)
 
 ---
 
@@ -40,7 +40,7 @@ Inspected from `src/lib/rbac.ts`, `src/services/admin.service.ts`, and `src/serv
 
 ### Design Principles
 
-The CryonFX permission system requires three layers:
+The Trade Console permission system requires three layers:
 
 ```
 Layer 1: Role Permissions (default for all staff with that role)
@@ -56,6 +56,8 @@ Assignment-specific override
 Staff-level override
     ↓ (if none)
 Role default permission
+    ↓ (if none)
+Deny
 ```
 
 ### Tables
@@ -110,9 +112,25 @@ function canStaffDoAction(staff_user_id, permission_key, customer_id, assignment
   5. Default: return false (deny)
 ```
 
+### Account-Request Authorization (Additional Scope Check)
+
+For `customer_account.request` and `customer_account.request_view`, permission possession alone is not sufficient. The backend must additionally verify:
+
+```
+function canRequestAccount(staff_user_id, registration_id):
+  1. Check permission via standard resolution above
+  2. Additionally verify: staff has active assignment scope for the customer/lead
+     (i.e. customer_assignments record exists linking staff_user_id to the customer)
+  3. Both checks must pass — permission + scope
+```
+
+Admin and Super Admin bypass scope restriction for `customer_account.approve`, `customer_account.reject`, `customer_account.provision`, `customer_account.invite_resend`, `customer_account.disable`, `customer_account.credentials_reset`.
+
 ---
 
 ## 3. Known Permissions (from application inspection)
+
+### Core Permissions
 
 | Permission Key | Category | Description | Default Role Access |
 |---------------|----------|-------------|---------------------|
@@ -133,6 +151,26 @@ function canStaffDoAction(staff_user_id, permission_key, customer_id, assignment
 | `change_staff_role` | ADMIN | Change staff role | admin, super_admin |
 | `view_audit_logs` | SECURITY | View audit logs | admin, super_admin |
 | `manage_staff` | ADMIN | Create/disable staff | admin, super_admin |
+
+### Account Provisioning Permissions (New)
+
+| Permission Key | Category | Description | Default Role Access | Scope Restriction |
+|---------------|----------|-------------|---------------------|-------------------|
+| `customer_account.request` | ACCOUNT_PROVISIONING | Submit account creation request for an assigned lead/customer | broker, ftd_broker, retention_broker, desk_broker, compliance_broker, operator | **Must also have assignment scope for the customer** |
+| `customer_account.request_view` | ACCOUNT_PROVISIONING | View own submitted account requests | broker, ftd_broker, retention_broker, desk_broker, compliance_broker, operator | Own requests only |
+| `customer_account.approve` | ACCOUNT_PROVISIONING | Approve account requests | admin, super_admin | — |
+| `customer_account.reject` | ACCOUNT_PROVISIONING | Reject account requests | admin, super_admin | — |
+| `customer_account.provision` | ACCOUNT_PROVISIONING | Manual provisioning override | super_admin | — |
+| `customer_account.invite_resend` | ACCOUNT_PROVISIONING | Resend account access invitation email | admin, super_admin | — |
+| `customer_account.disable` | ACCOUNT_PROVISIONING | Disable a provisioned customer account | admin, super_admin | — |
+| `customer_account.credentials_reset` | ACCOUNT_PROVISIONING | Reset customer access credentials | admin, super_admin | — |
+
+### Marketing Site Permissions (New)
+
+| Permission Key | Category | Description | Default Role Access |
+|---------------|----------|-------------|---------------------|
+| `marketing_site.view` | MARKETING | View configured marketing sites (for site selection in account requests) | broker, ftd_broker, retention_broker, desk_broker, compliance_broker, operator, broker_manager, desk_manager, conversion_manager, retention_manager, compliance_manager, affiliate_manager, admin, super_admin |
+| `marketing_site.manage` | MARKETING | Create/update/deactivate marketing sites | super_admin |
 
 ---
 
@@ -240,3 +278,22 @@ CREATE INDEX idx_staff_perm_overrides_assignment
 CREATE INDEX idx_role_permissions_role
   ON role_permissions (role_id, permission_id);
 ```
+
+---
+
+## 8. Account Provisioning Permission Summary
+
+| Action | Required Permission | Additional Scope Check |
+|--------|--------------------|-----------------------|
+| Submit account request | `customer_account.request` | Must have assignment scope for the customer/lead |
+| View own requests | `customer_account.request_view` | Own requests only |
+| Approve request | `customer_account.approve` | Admin/Super Admin only |
+| Reject request | `customer_account.reject` | Admin/Super Admin only |
+| Manual provisioning override | `customer_account.provision` | Super Admin only |
+| Resend invitation | `customer_account.invite_resend` | Admin/Super Admin |
+| Disable account | `customer_account.disable` | Admin/Super Admin |
+| Reset credentials | `customer_account.credentials_reset` | Admin/Super Admin |
+| View marketing sites | `marketing_site.view` | Manager roles + Admin |
+| Manage marketing sites | `marketing_site.manage` | Super Admin only |
+
+**Security principle**: The frontend may render approval controls, but actual approve/reject/provision/disable/reset authorization must be validated server-side by the API. Do not rely on hidden buttons as security.

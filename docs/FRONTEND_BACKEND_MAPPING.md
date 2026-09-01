@@ -1,4 +1,4 @@
-# CryonFX — Frontend ↔ Backend Mapping
+# Trade Console — Frontend ↔ Backend Mapping
 
 > Maps every major page to its required API endpoints and database tables.
 
@@ -70,9 +70,9 @@
 
 | API Endpoint | DB Tables |
 |-------------|-----------|
-| GET `/finance/balance` | `accounts`, `ledger_entries` (computed) |
+| GET `/finance/balance` | `accounts`, `ledger_entries` (computed from double-entry ledger) |
 | GET `/finance/deposits` | `deposit_requests` |
-| POST `/finance/deposits` | `deposit_requests`, `ledger_entries` |
+| POST `/finance/deposits` | `deposit_requests`, `ledger_transactions`, `ledger_entries` |
 | GET `/finance/withdrawals` | `withdrawal_requests` |
 | POST `/finance/withdrawals` | `withdrawal_requests` |
 | DELETE `/finance/withdrawals/:id` | `withdrawal_requests` |
@@ -91,11 +91,13 @@
 ### `/kyc`
 **Service**: `kycService`
 
+> KYC is mandatory but presented under Profile/Settings rather than primary navigation.
+
 | API Endpoint | DB Tables |
 |-------------|-----------|
 | GET `/kyc/status` | `verification_cases` |
 | PATCH `/kyc/personal` | `verification_cases` |
-| POST `/kyc/documents` | `verification_documents`, `document_storage` |
+| POST `/kyc/documents` | `verification_documents` (key/metadata only — binary stored in Cloudflare R2) |
 | POST `/kyc/submit` | `verification_cases` |
 
 ---
@@ -120,6 +122,45 @@
 |-------------|-----------|
 | GET `/auth/me` | `users`, `customer_profiles` |
 | PATCH `/auth/me` | `users`, `customer_profiles` |
+
+---
+
+## Authentication & Activation Pages
+
+### `/sign-up-login-screen` (Direct Trade Console Login)
+**Service**: `authService`
+
+| API Endpoint | DB Tables |
+|-------------|-----------|
+| POST `/auth/login` (identifier + password, no sourceSite) | `users`, `sessions`, `login_history`, `audit_logs` |
+| POST `/auth/register` | `registrations`, `registration_attribution` |
+
+> Registration creates a `registrations` record only. A `users` record is NOT created at registration time.
+
+---
+
+### `/auth/handoff` (Cross-Domain Login Handoff — Trade Console)
+**Service**: `authService`
+
+| Step | Action | Storage |
+|------|--------|---------|
+| 1 | Customer arrives from marketing site with handoff token | — |
+| 2 | Backend validates token in Valkey | Valkey |
+| 3 | Token deleted from Valkey immediately (single-use) | Valkey |
+| 4 | Secure HttpOnly session cookie created (`tc_session_token`) | `sessions` |
+| 5 | Audit records created | `audit_logs` (LOGIN_HANDOFF_REDEEMED) |
+| 6 | Customer redirected to dashboard | — |
+
+> No PostgreSQL `login_handoff_tokens` table. Tokens are Valkey-only with ~60s TTL.
+
+---
+
+### Account Activation (via activation link in email)
+**Service**: `authService`
+
+| API Endpoint | DB Tables |
+|-------------|-----------|
+| POST `/auth/activate` (token + new password) | `users` (sets password_hash, account_activated=true, clears activation_token_hash) |
 
 ---
 
@@ -175,6 +216,8 @@
 |-------------|-----------|
 | GET `/admin/registrations` | `registrations`, `registration_attribution` |
 
+> Registrations may exist without a corresponding `users` record (leads not yet provisioned).
+
 ---
 
 ### `/admin/marketing/*`
@@ -196,7 +239,7 @@
 
 | API Endpoint | DB Tables |
 |-------------|-----------|
-| GET `/admin/finance/accounts` | `accounts`, `customer_profiles`, `ledger_entries` (computed) |
+| GET `/admin/finance/accounts` | `accounts`, `customer_profiles`, `ledger_entries` (computed from double-entry ledger) |
 
 ---
 
@@ -215,7 +258,7 @@
 | API Endpoint | DB Tables |
 |-------------|-----------|
 | GET `/admin/finance/deposits` | `deposit_requests`, `customer_profiles` |
-| PATCH `/admin/finance/deposits/:id` | `deposit_requests`, `ledger_entries`, `audit_logs` |
+| PATCH `/admin/finance/deposits/:id` | `deposit_requests`, `ledger_transactions`, `ledger_entries`, `audit_logs` |
 | POST `/notifications/email` | `notifications` |
 
 ---
@@ -226,7 +269,7 @@
 | API Endpoint | DB Tables |
 |-------------|-----------|
 | GET `/admin/finance/withdrawals` | `withdrawal_requests`, `customer_profiles` |
-| PATCH `/admin/finance/withdrawals/:id` | `withdrawal_requests`, `ledger_entries`, `audit_logs` |
+| PATCH `/admin/finance/withdrawals/:id` | `withdrawal_requests`, `ledger_transactions`, `ledger_entries`, `audit_logs` |
 | POST `/notifications/email` | `notifications` |
 
 ---
@@ -247,6 +290,8 @@
 | API Endpoint | DB Tables |
 |-------------|-----------|
 | GET `/admin/compliance/documents` | `verification_documents`, `verification_cases` |
+
+> Document binaries are in Cloudflare R2. PostgreSQL stores keys/metadata only.
 
 ---
 
@@ -346,75 +391,25 @@
 
 ---
 
-## Admin Pages (continued)
-
 ### `/admin/account-requests`
-**Service**: `adminService` (future: `accountRequestService`)
+**Service**: `adminService`
 
 | API Endpoint | DB Tables |
 |-------------|-----------|
-| GET `/admin/account-requests` | `account_requests`, `users`, `customer_profiles`, `marketing_sites`, `staff_profiles` |
-| GET `/admin/account-requests/:id` | `account_requests`, `account_request_audit` |
-| POST `/admin/account-requests/:id/approve` | `account_requests`, `users`, `customer_profiles`, `audit_logs` |
+| GET `/admin/account-requests` | `account_requests`, `users`, `customer_profiles`, `registrations`, `marketing_sites`, `staff_profiles` |
+| GET `/admin/account-requests/:id` | `account_requests`, `audit_logs` (approval history — no separate audit table) |
+| POST `/admin/account-requests/:id/approve` | `account_requests`, `audit_logs` (triggers async provisioning) |
 | POST `/admin/account-requests/:id/reject` | `account_requests`, `audit_logs` |
 | POST `/admin/account-requests/:id/resend-invitation` | `account_requests`, `audit_logs` |
 | POST `/admin/account-requests/:id/disable` | `users`, `audit_logs` |
 | POST `/admin/account-requests/:id/reset-access` | `users`, `audit_logs` |
 
----
-
-## Agent / Manager Pages (continued)
-
-### `/agent/customers/[id]` — Request Account Action
-**Service**: `agentService` (future: `accountRequestService`)
-
-| API Endpoint | DB Tables |
-|-------------|-----------|
-| POST `/account-requests` | `account_requests`, `audit_logs` |
-| GET `/admin/marketing-sites` (active only) | `marketing_sites` |
-
-**Frontend contract:**
-- Manager selects from configured `marketing_sites` (active only)
-- Manager provides `requestReason`
-- `requestingManagerId` resolved server-side from session
-- Frontend does NOT allow arbitrary domain text entry
-- Manager cannot create active customer login accounts directly
+> Approval history is sourced from `audit_logs` — there is NO separate `account_request_audit` table.
 
 ---
-
-## Marketing Site Login Handoff Flow
-
-### `cryonfx.com/login` (Marketing Site — external)
-> Marketing site is NOT a separate auth system. It is a branded login entry point only.
-
-| Step | Action | Notes |
-|------|--------|-------|
-| 1 | Customer submits credentials on marketing site | Marketing site calls Trade Console API |
-| 2 | `POST /api/v1/auth/login` with `sourceSite` | Trade Console validates credentials |
-| 3 | Backend generates short-lived handoff token | Cryptographically random, ~30–60s TTL |
-| 4 | Backend returns `handoffUrl` | URL constructed server-side from approved domain config |
-| 5 | Browser redirects to `/auth/handoff?token=...` | Trade Console frontend route |
-| 6 | Trade Console backend redeems token | Token immediately invalidated |
-| 7 | Secure HttpOnly session cookie created | `cv_session_token` |
-| 8 | Customer redirected to dashboard | No second login required |
-
-**DB Tables involved:** `users`, `login_handoff_tokens` (new), `sessions`, `audit_logs`
-
----
-
-### `/auth/handoff` (Trade Console — new route)
-**Service**: `authService`
-
-| API Endpoint | DB Tables |
-|-------------|-----------|
-| GET `/auth/handoff?token=...` (internal backend call) | `login_handoff_tokens`, `sessions`, `audit_logs` |
-
----
-
-## Admin — Marketing Site Management
 
 ### `/admin/marketing-sites` (future page)
-**Service**: `adminService` (future: `marketingSiteService`)
+**Service**: `adminService`
 
 | API Endpoint | DB Tables |
 |-------------|-----------|
@@ -423,7 +418,54 @@
 | PATCH `/admin/marketing-sites/:id` | `marketing_sites` |
 | DELETE `/admin/marketing-sites/:id` | `marketing_sites` |
 
+> `marketing_sites` = approved authentication entry-point allowlist.  
+> Separate from `marketing_sources` (attribution/analytics data).  
 > Backend must enforce approved-domain allowlist for `loginUrl` values.
+
+---
+
+## Agent / Manager Pages
+
+### `/agent/customers/[id]` — Request Account Action
+**Service**: `agentService`
+
+| API Endpoint | DB Tables |
+|-------------|-----------|
+| POST `/account-requests` | `account_requests`, `registrations`, `marketing_sites`, `audit_logs` |
+| GET `/admin/marketing-sites` (active only) | `marketing_sites` |
+
+**Frontend contract:**
+- Manager selects from configured `marketing_sites` (active only — dropdown, not free text)
+- Manager provides `requestReason`
+- `registrationId` references the lead/registration record
+- `requestedByUserId` resolved server-side from session
+- Frontend does NOT allow arbitrary domain text entry
+- Manager cannot create active customer login accounts directly
+- Backend additionally verifies assignment/customer scope
+
+---
+
+## Marketing Site Login Handoff Flow
+
+### `cryonfx.com/login` (Marketing Site — external, example)
+> Marketing site is NOT a separate auth system. It is a branded login entry point only.  
+> CryonFX may remain as an example external marketing website/brand.
+
+| Step | Action | Notes |
+|------|--------|-------|
+| 1 | Customer submits credentials on marketing site | Marketing site calls Trade Console API |
+| 2 | `POST /api/v1/auth/login` with `identifier` + `sourceSite` | Trade Console validates credentials |
+| 3 | Backend generates short-lived handoff token | Cryptographically random, ~60s TTL, stored hashed in Valkey |
+| 4 | Backend returns `handoffUrl` | URL constructed server-side from approved domain config |
+| 5 | Browser redirects to `/auth/handoff?token=...` | Trade Console frontend route |
+| 6 | Trade Console backend validates + redeems token from Valkey | Token immediately deleted |
+| 7 | Secure HttpOnly session cookie created | `tc_session_token` |
+| 8 | Audit records created | `audit_logs`: LOGIN_HANDOFF_CREATED + LOGIN_HANDOFF_REDEEMED |
+| 9 | Customer redirected to dashboard | No second login required |
+
+**DB Tables involved:** `users`, `sessions`, `audit_logs`  
+**Valkey:** handoff token (hashed, ~60s TTL, deleted on redemption)  
+**No PostgreSQL `login_handoff_tokens` table.**
 
 ---
 
@@ -499,5 +541,5 @@
 | GET `/admin/finance/deposits` | `deposit_requests` |
 | GET `/admin/finance/withdrawals` | `withdrawal_requests` |
 | GET `/admin/finance/transactions` | `transactions` |
-| PATCH `/admin/finance/deposits/:id` | `deposit_requests`, `ledger_entries`, `audit_logs` |
-| PATCH `/admin/finance/withdrawals/:id` | `withdrawal_requests`, `ledger_entries`, `audit_logs` |
+| PATCH `/admin/finance/deposits/:id` | `deposit_requests`, `ledger_transactions`, `ledger_entries`, `audit_logs` |
+| PATCH `/admin/finance/withdrawals/:id` | `withdrawal_requests`, `ledger_transactions`, `ledger_entries`, `audit_logs` |

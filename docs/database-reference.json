@@ -1,2332 +1,1126 @@
 {
-    "meta": {
-        "product": "CryonFX",
-        "generated": "2026-08-28",
-        "version": "1.0.0",
-        "total_tables": 62,
-        "phase_1_tables": 38,
-        "phase_2_tables": 24
+  "meta": {
+    "product": "Trade Console",
+    "version": "2.0.0",
+    "generatedAt": "2026-09-01",
+    "description": "Canonical database reference for Trade Console backend architecture. Reflects finalized decisions: sequential registration lifecycle, activation-link first-login, Valkey-only handoff tokens, double-entry ledger, canonical account_requests FKs, marketing_sites vs marketing_sources separation, 65-table schema.",
+    "tableCount": 65,
+    "supersedes": "August 28 architecture (CryonFX, 62 tables)"
+  },
+  "groups": [
+    {
+      "name": "Authentication & Security",
+      "tables": ["users", "sessions", "password_resets", "email_verifications", "two_factor_auth", "recovery_codes", "login_history", "security_events"]
     },
-    "tables": [
-        {
-            "name": "users",
-            "group": "authentication",
-            "phase": 1,
-            "description": "Core authentication identity for all platform users"
-        },
-        {
-            "name": "sessions",
-            "group": "authentication",
-            "phase": 1,
-            "description": "Active authenticated sessions"
-        },
-        {
-            "name": "password_resets",
-            "group": "authentication",
-            "phase": 1,
-            "description": "Password reset tokens"
-        },
-        {
-            "name": "email_verifications",
-            "group": "authentication",
-            "phase": 1,
-            "description": "Email verification tokens"
-        },
-        {
-            "name": "two_factor_auth",
-            "group": "authentication",
-            "phase": 2,
-            "description": "TOTP/2FA configuration"
-        },
-        {
-            "name": "recovery_codes",
-            "group": "authentication",
-            "phase": 2,
-            "description": "2FA backup recovery codes"
-        },
-        {
-            "name": "login_history",
-            "group": "authentication",
-            "phase": 1,
-            "description": "Immutable login attempt log"
-        },
-        {
-            "name": "security_events",
-            "group": "authentication",
-            "phase": 1,
-            "description": "Security-relevant events"
-        },
-        {
-            "name": "customer_profiles",
-            "group": "identity",
-            "phase": 1,
-            "description": "Customer profile information"
-        },
-        {
-            "name": "staff_profiles",
-            "group": "identity",
-            "phase": 1,
-            "description": "Staff profile information"
-        },
-        {
-            "name": "staff_manager_history",
-            "group": "identity",
-            "phase": 2,
-            "description": "Manager relationship history"
-        },
-        {
-            "name": "roles",
-            "group": "permissions",
-            "phase": 1,
-            "description": "Platform role definitions"
-        },
-        {
-            "name": "permissions",
-            "group": "permissions",
-            "phase": 1,
-            "description": "Granular permission definitions"
-        },
-        {
-            "name": "role_permissions",
-            "group": "permissions",
-            "phase": 1,
-            "description": "Default permissions per role"
-        },
-        {
-            "name": "staff_permission_overrides",
-            "group": "permissions",
-            "phase": 1,
-            "description": "Individual and assignment-specific permission overrides"
-        },
-        {
-            "name": "departments",
-            "group": "organization",
-            "phase": 2,
-            "description": "Organizational departments"
-        },
-        {
-            "name": "offices",
-            "group": "organization",
-            "phase": 2,
-            "description": "Office locations"
-        },
-        {
-            "name": "shifts",
-            "group": "organization",
-            "phase": 2,
-            "description": "Shift definitions"
-        },
-        {
-            "name": "marketing_sources",
-            "group": "marketing",
-            "phase": 1,
-            "description": "Traffic source definitions"
-        },
-        {
-            "name": "affiliates",
-            "group": "marketing",
-            "phase": 1,
-            "description": "Affiliate partner records"
-        },
-        {
-            "name": "campaigns",
-            "group": "marketing",
-            "phase": 1,
-            "description": "Marketing campaigns"
-        },
-        {
-            "name": "registrations",
-            "group": "marketing",
-            "phase": 1,
-            "description": "Raw registration records"
-        },
-        {
-            "name": "registration_attribution",
-            "group": "marketing",
-            "phase": 1,
-            "description": "Marketing attribution per registration"
-        },
-        {
-            "name": "utm_events",
-            "group": "marketing",
-            "phase": 2,
-            "description": "UTM click/visit events"
-        },
-        {
-            "name": "customer_assignments",
-            "group": "assignments",
-            "phase": 1,
-            "description": "Current customer-to-staff assignments"
-        },
-        {
-            "name": "assignment_history",
-            "group": "assignments",
-            "phase": 1,
-            "description": "Immutable assignment change history"
-        },
-        {
-            "name": "tasks",
-            "group": "assignments",
-            "phase": 1,
-            "description": "Staff tasks related to customers"
-        },
-        {
-            "name": "task_activity_log",
-            "group": "assignments",
-            "phase": 1,
-            "description": "Immutable task status change log"
-        },
-        {
-            "name": "accounts",
-            "group": "finance",
-            "phase": 1,
-            "description": "Customer financial accounts"
-        },
-        {
-            "name": "ledger_entries",
-            "group": "finance",
-            "phase": 1,
-            "description": "Immutable double-entry ledger"
-        },
-        {
-            "name": "deposit_requests",
-            "group": "finance",
-            "phase": 1,
-            "description": "Customer deposit requests"
-        },
-        {
-            "name": "withdrawal_requests",
-            "group": "finance",
-            "phase": 1,
-            "description": "Customer withdrawal requests"
-        },
-        {
-            "name": "transactions",
-            "group": "finance",
-            "phase": 1,
-            "description": "Completed financial transactions"
-        },
-        {
-            "name": "fees",
-            "group": "finance",
-            "phase": 2,
-            "description": "Fee records"
-        },
-        {
-            "name": "trading_accounts",
-            "group": "trading",
-            "phase": 1,
-            "description": "Customer trading accounts"
-        },
-        {
-            "name": "orders",
-            "group": "trading",
-            "phase": 1,
-            "description": "Trading orders"
-        },
-        {
-            "name": "positions",
-            "group": "trading",
-            "phase": 1,
-            "description": "Open trading positions"
-        },
-        {
-            "name": "trades",
-            "group": "trading",
-            "phase": 1,
-            "description": "Executed trade records"
-        },
-        {
-            "name": "watchlists",
-            "group": "trading",
-            "phase": 2,
-            "description": "Customer watchlists"
-        },
-        {
-            "name": "watchlist_items",
-            "group": "trading",
-            "phase": 2,
-            "description": "Instruments in watchlists"
-        },
-        {
-            "name": "verification_cases",
-            "group": "compliance",
-            "phase": 1,
-            "description": "KYC verification cases"
-        },
-        {
-            "name": "verification_documents",
-            "group": "compliance",
-            "phase": 1,
-            "description": "KYC document uploads"
-        },
-        {
-            "name": "compliance_notes",
-            "group": "compliance",
-            "phase": 2,
-            "description": "Internal compliance notes"
-        },
-        {
-            "name": "compliance_reviews",
-            "group": "compliance",
-            "phase": 2,
-            "description": "Verification review decisions"
-        },
-        {
-            "name": "document_storage",
-            "group": "compliance",
-            "phase": 2,
-            "description": "File storage metadata"
-        },
-        {
-            "name": "conversations",
-            "group": "messaging",
-            "phase": 1,
-            "description": "Chat conversation threads"
-        },
-        {
-            "name": "conversation_members",
-            "group": "messaging",
-            "phase": 1,
-            "description": "Conversation participants"
-        },
-        {
-            "name": "messages",
-            "group": "messaging",
-            "phase": 1,
-            "description": "Chat messages"
-        },
-        {
-            "name": "message_reads",
-            "group": "messaging",
-            "phase": 1,
-            "description": "Message read receipts"
-        },
-        {
-            "name": "calls",
-            "group": "calls",
-            "phase": 1,
-            "description": "Call session records"
-        },
-        {
-            "name": "call_outcomes",
-            "group": "calls",
-            "phase": 2,
-            "description": "Detailed call outcome notes"
-        },
-        {
-            "name": "notifications",
-            "group": "platform",
-            "phase": 1,
-            "description": "In-app notifications"
-        },
-        {
-            "name": "customer_activities",
-            "group": "platform",
-            "phase": 1,
-            "description": "Customer activity timeline"
-        },
-        {
-            "name": "audit_logs",
-            "group": "platform",
-            "phase": 1,
-            "description": "Immutable platform audit log"
-        },
-        {
-            "name": "customer_notes",
-            "group": "platform",
-            "phase": 1,
-            "description": "Internal staff notes on customers"
-        },
-        {
-            "name": "customer_tags",
-            "group": "platform",
-            "phase": 2,
-            "description": "Customer tag definitions"
-        },
-        {
-            "name": "customer_tag_assignments",
-            "group": "platform",
-            "phase": 2,
-            "description": "Customer tag junction table"
-        },
-        {
-            "name": "staff_presence_log",
-            "group": "platform",
-            "phase": 2,
-            "description": "Historical presence log"
-        },
-        {
-            "name": "platform_settings",
-            "group": "platform",
-            "phase": 2,
-            "description": "Key-value platform configuration"
-        },
-        {
-            "name": "email_templates",
-            "group": "platform",
-            "phase": 2,
-            "description": "Email notification templates"
-        },
-        {
-            "name": "escalations",
-            "group": "platform",
-            "phase": 1,
-            "description": "Escalation records"
-        },
-        {
-            "name": "simulation_runs",
-            "group": "platform",
-            "phase": 2,
-            "description": "Admin simulation lab records"
-        }
-    ],
-    "foreign_keys": [
-        {
-            "from_table": "sessions",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "password_resets",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "email_verifications",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "two_factor_auth",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "recovery_codes",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "login_history",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "security_events",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "customer_profiles",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "staff_profiles",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "staff_profiles",
-            "from_column": "manager_id",
-            "to_table": "staff_profiles",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "staff_manager_history",
-            "from_column": "staff_id",
-            "to_table": "staff_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "staff_manager_history",
-            "from_column": "manager_id",
-            "to_table": "staff_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "role_permissions",
-            "from_column": "role_id",
-            "to_table": "roles",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "role_permissions",
-            "from_column": "permission_id",
-            "to_table": "permissions",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "staff_permission_overrides",
-            "from_column": "staff_user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "staff_permission_overrides",
-            "from_column": "permission_id",
-            "to_table": "permissions",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "staff_permission_overrides",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "staff_permission_overrides",
-            "from_column": "assignment_id",
-            "to_table": "customer_assignments",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "affiliates",
-            "from_column": "owner_user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "affiliates",
-            "from_column": "manager_user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "campaigns",
-            "from_column": "affiliate_id",
-            "to_table": "affiliates",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "campaigns",
-            "from_column": "source_id",
-            "to_table": "marketing_sources",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "registrations",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "registration_attribution",
-            "from_column": "registration_id",
-            "to_table": "registrations",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "registration_attribution",
-            "from_column": "affiliate_id",
-            "to_table": "affiliates",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "registration_attribution",
-            "from_column": "campaign_id",
-            "to_table": "campaigns",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "customer_assignments",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "customer_assignments",
-            "from_column": "staff_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "assignment_history",
-            "from_column": "assignment_id",
-            "to_table": "customer_assignments",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "tasks",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "tasks",
-            "from_column": "assigned_to_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "tasks",
-            "from_column": "assignment_id",
-            "to_table": "customer_assignments",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "task_activity_log",
-            "from_column": "task_id",
-            "to_table": "tasks",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "accounts",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "ledger_entries",
-            "from_column": "account_id",
-            "to_table": "accounts",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "deposit_requests",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "withdrawal_requests",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "transactions",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "trading_accounts",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "orders",
-            "from_column": "trading_account_id",
-            "to_table": "trading_accounts",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "positions",
-            "from_column": "trading_account_id",
-            "to_table": "trading_accounts",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "trades",
-            "from_column": "order_id",
-            "to_table": "orders",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "watchlists",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "watchlist_items",
-            "from_column": "watchlist_id",
-            "to_table": "watchlists",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "verification_cases",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "verification_documents",
-            "from_column": "case_id",
-            "to_table": "verification_cases",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "conversations",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "SET NULL"
-        },
-        {
-            "from_table": "conversation_members",
-            "from_column": "conversation_id",
-            "to_table": "conversations",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "conversation_members",
-            "from_column": "user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "messages",
-            "from_column": "conversation_id",
-            "to_table": "conversations",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "messages",
-            "from_column": "sender_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "message_reads",
-            "from_column": "message_id",
-            "to_table": "messages",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "calls",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "calls",
-            "from_column": "staff_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "notifications",
-            "from_column": "recipient_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "customer_activities",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "audit_logs",
-            "from_column": "actor_user_id",
-            "to_table": "users",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "customer_notes",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "RESTRICT"
-        },
-        {
-            "from_table": "customer_tag_assignments",
-            "from_column": "customer_id",
-            "to_table": "customer_profiles",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        },
-        {
-            "from_table": "customer_tag_assignments",
-            "from_column": "tag_id",
-            "to_table": "customer_tags",
-            "to_column": "id",
-            "on_delete": "CASCADE"
-        }
-    ],
-    "indexes": [
-        {
-            "table": "users",
-            "columns": [
-                "email"
-            ],
-            "unique": true
-        },
-        {
-            "table": "users",
-            "columns": [
-                "role"
-            ],
-            "unique": false
-        },
-        {
-            "table": "users",
-            "columns": [
-                "status"
-            ],
-            "unique": false
-        },
-        {
-            "table": "sessions",
-            "columns": [
-                "token_hash"
-            ],
-            "unique": true
-        },
-        {
-            "table": "sessions",
-            "columns": [
-                "user_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "sessions",
-            "columns": [
-                "expires_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "login_history",
-            "columns": [
-                "user_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "login_history",
-            "columns": [
-                "ip_address"
-            ],
-            "unique": false
-        },
-        {
-            "table": "customer_profiles",
-            "columns": [
-                "user_id"
-            ],
-            "unique": true
-        },
-        {
-            "table": "staff_profiles",
-            "columns": [
-                "user_id"
-            ],
-            "unique": true
-        },
-        {
-            "table": "staff_profiles",
-            "columns": [
-                "manager_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "roles",
-            "columns": [
-                "key"
-            ],
-            "unique": true
-        },
-        {
-            "table": "permissions",
-            "columns": [
-                "key"
-            ],
-            "unique": true
-        },
-        {
-            "table": "role_permissions",
-            "columns": [
-                "role_id",
-                "permission_id"
-            ],
-            "unique": true
-        },
-        {
-            "table": "staff_permission_overrides",
-            "columns": [
-                "staff_user_id",
-                "permission_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "staff_permission_overrides",
-            "columns": [
-                "staff_user_id",
-                "customer_id",
-                "permission_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "affiliates",
-            "columns": [
-                "affiliate_code"
-            ],
-            "unique": true
-        },
-        {
-            "table": "campaigns",
-            "columns": [
-                "slug"
-            ],
-            "unique": true
-        },
-        {
-            "table": "registrations",
-            "columns": [
-                "email"
-            ],
-            "unique": false
-        },
-        {
-            "table": "registrations",
-            "columns": [
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "registration_attribution",
-            "columns": [
-                "registration_id"
-            ],
-            "unique": true
-        },
-        {
-            "table": "registration_attribution",
-            "columns": [
-                "affiliate_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "customer_assignments",
-            "columns": [
-                "customer_id",
-                "status"
-            ],
-            "unique": false
-        },
-        {
-            "table": "customer_assignments",
-            "columns": [
-                "staff_id",
-                "status"
-            ],
-            "unique": false
-        },
-        {
-            "table": "assignment_history",
-            "columns": [
-                "assignment_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "assignment_history",
-            "columns": [
-                "customer_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "tasks",
-            "columns": [
-                "assigned_to_id",
-                "status",
-                "due_date"
-            ],
-            "unique": false
-        },
-        {
-            "table": "tasks",
-            "columns": [
-                "customer_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "tasks",
-            "columns": [
-                "manager_id"
-            ],
-            "unique": false
-        },
-        {
-            "table": "accounts",
-            "columns": [
-                "customer_id",
-                "currency"
-            ],
-            "unique": true
-        },
-        {
-            "table": "ledger_entries",
-            "columns": [
-                "account_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "deposit_requests",
-            "columns": [
-                "reference"
-            ],
-            "unique": true
-        },
-        {
-            "table": "deposit_requests",
-            "columns": [
-                "customer_id",
-                "status"
-            ],
-            "unique": false
-        },
-        {
-            "table": "withdrawal_requests",
-            "columns": [
-                "reference"
-            ],
-            "unique": true
-        },
-        {
-            "table": "withdrawal_requests",
-            "columns": [
-                "customer_id",
-                "status"
-            ],
-            "unique": false
-        },
-        {
-            "table": "transactions",
-            "columns": [
-                "reference"
-            ],
-            "unique": true
-        },
-        {
-            "table": "transactions",
-            "columns": [
-                "customer_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "orders",
-            "columns": [
-                "customer_id",
-                "status"
-            ],
-            "unique": false
-        },
-        {
-            "table": "orders",
-            "columns": [
-                "symbol",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "positions",
-            "columns": [
-                "customer_id",
-                "symbol"
-            ],
-            "unique": false
-        },
-        {
-            "table": "trades",
-            "columns": [
-                "customer_id",
-                "executed_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "watchlist_items",
-            "columns": [
-                "watchlist_id",
-                "symbol"
-            ],
-            "unique": true
-        },
-        {
-            "table": "verification_cases",
-            "columns": [
-                "customer_id"
-            ],
-            "unique": true
-        },
-        {
-            "table": "conversations",
-            "columns": [
-                "customer_id",
-                "type"
-            ],
-            "unique": false
-        },
-        {
-            "table": "conversation_members",
-            "columns": [
-                "conversation_id",
-                "user_id"
-            ],
-            "unique": true
-        },
-        {
-            "table": "messages",
-            "columns": [
-                "conversation_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "message_reads",
-            "columns": [
-                "message_id",
-                "user_id"
-            ],
-            "unique": true
-        },
-        {
-            "table": "calls",
-            "columns": [
-                "customer_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "calls",
-            "columns": [
-                "staff_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "notifications",
-            "columns": [
-                "recipient_id",
-                "read"
-            ],
-            "unique": false
-        },
-        {
-            "table": "notifications",
-            "columns": [
-                "recipient_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "customer_activities",
-            "columns": [
-                "customer_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "audit_logs",
-            "columns": [
-                "actor_user_id",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "audit_logs",
-            "columns": [
-                "action",
-                "created_at"
-            ],
-            "unique": false
-        },
-        {
-            "table": "audit_logs",
-            "columns": [
-                "customer_id",
-                "created_at"
-            ],
-            "unique": false
-        }
-    ],
-    "roles": [
-        {
-            "key": "super_admin",
-            "display_name": "Super Admin",
-            "default_route": "/admin-dashboard",
-            "is_staff": true,
-            "is_admin": true
-        },
-        {
-            "key": "admin",
-            "display_name": "Admin",
-            "default_route": "/admin-dashboard",
-            "is_staff": true,
-            "is_admin": true
-        },
-        {
-            "key": "customer",
-            "display_name": "Customer",
-            "default_route": "/trading-dashboard",
-            "is_staff": false,
-            "is_admin": false
-        },
-        {
-            "key": "affiliate",
-            "display_name": "Affiliate",
-            "default_route": "/affiliate",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "operator",
-            "display_name": "Operator",
-            "default_route": "/operator",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "broker",
-            "display_name": "Broker",
-            "default_route": "/broker",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "ftd_broker",
-            "display_name": "FTD Broker",
-            "default_route": "/ftd-broker",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "retention_broker",
-            "display_name": "Retention Broker",
-            "default_route": "/retention-broker",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "compliance_broker",
-            "display_name": "Compliance Broker",
-            "default_route": "/compliance-broker",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "new_affiliate_manager",
-            "display_name": "New Affiliate Manager",
-            "default_route": "/new-affiliate-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "affiliate_manager",
-            "display_name": "Affiliate Manager",
-            "default_route": "/affiliate-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "broker_manager",
-            "display_name": "Broker Manager",
-            "default_route": "/broker-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "desk_manager",
-            "display_name": "Desk Manager",
-            "default_route": "/desk-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "shift_manager",
-            "display_name": "Shift Manager",
-            "default_route": "/shift-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "desk_broker",
-            "display_name": "Desk Broker",
-            "default_route": "/desk-broker",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "marketer_manager",
-            "display_name": "Marketer Manager",
-            "default_route": "/marketer-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "compliance_manager",
-            "display_name": "Compliance Manager",
-            "default_route": "/compliance-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "team_leader",
-            "display_name": "Team Leader",
-            "default_route": "/team-leader",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "office",
-            "display_name": "Office",
-            "default_route": "/office",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "vp_sales",
-            "display_name": "VP Sales",
-            "default_route": "/vp-sales",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "finance",
-            "display_name": "Finance",
-            "default_route": "/finance-workspace",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "conversion_manager",
-            "display_name": "Conversion Manager",
-            "default_route": "/conversion-manager",
-            "is_staff": true,
-            "is_admin": false
-        },
-        {
-            "key": "retention_manager",
-            "display_name": "Retention Manager",
-            "default_route": "/retention-manager",
-            "is_staff": true,
-            "is_admin": false
-        }
-    ],
-    "permissions": [
-        {
-            "key": "view_customer_email",
-            "category": "pii",
-            "description": "View customer email address"
-        },
-        {
-            "key": "view_customer_phone",
-            "category": "sensitive_pii",
-            "description": "View customer phone number"
-        },
-        {
-            "key": "view_customer_country",
-            "category": "pii",
-            "description": "View customer country"
-        },
-        {
-            "key": "view_account_data",
-            "category": "financial",
-            "description": "View account balance and data"
-        },
-        {
-            "key": "view_transactions",
-            "category": "financial",
-            "description": "View transaction history"
-        },
-        {
-            "key": "view_verification",
-            "category": "compliance",
-            "description": "View KYC/verification data"
-        },
-        {
-            "key": "call_customer",
-            "category": "operational",
-            "description": "Initiate calls to customer"
-        },
-        {
-            "key": "chat_with_customer",
-            "category": "operational",
-            "description": "Send messages to customer"
-        },
-        {
-            "key": "add_internal_notes",
-            "category": "operational",
-            "description": "Add internal staff notes"
-        },
-        {
-            "key": "assign_customer",
-            "category": "admin",
-            "description": "Assign customers to staff"
-        },
-        {
-            "key": "review_deposit",
-            "category": "financial",
-            "description": "Approve or reject deposits"
-        },
-        {
-            "key": "review_withdrawal",
-            "category": "financial",
-            "description": "Approve or reject withdrawals"
-        },
-        {
-            "key": "review_kyc",
-            "category": "compliance",
-            "description": "Approve or reject KYC"
-        },
-        {
-            "key": "change_customer_status",
-            "category": "admin",
-            "description": "Change customer status"
-        },
-        {
-            "key": "change_staff_role",
-            "category": "admin",
-            "description": "Change staff role"
-        },
-        {
-            "key": "view_audit_logs",
-            "category": "security",
-            "description": "View audit logs"
-        },
-        {
-            "key": "manage_staff",
-            "category": "admin",
-            "description": "Create and disable staff accounts"
-        }
-    ],
-    "enums": {
-        "user_status": [
-            "active",
-            "suspended",
-            "disabled"
-        ],
-        "customer_status": [
-            "pending",
-            "verified",
-            "active",
-            "suspended",
-            "rejected"
-        ],
-        "kyc_status": [
-            "not_started",
-            "in_progress",
-            "submitted",
-            "under_review",
-            "verified",
-            "rejected"
-        ],
-        "task_status": [
-            "pending",
-            "in_progress",
-            "completed",
-            "unable_to_complete",
-            "cancelled",
-            "overdue"
-        ],
-        "task_type": [
-            "call_customer",
-            "follow_up",
-            "review_registration",
-            "contact_customer",
-            "request_information",
-            "verify_information",
-            "custom"
-        ],
-        "priority": [
-            "low",
-            "medium",
-            "high",
-            "urgent"
-        ],
-        "assignment_status": [
-            "active",
-            "completed",
-            "cancelled"
-        ],
-        "presence_status": [
-            "online",
-            "away",
-            "busy",
-            "offline"
-        ],
-        "call_status": [
-            "connecting",
-            "ringing",
-            "connected",
-            "ended",
-            "failed",
-            "unavailable",
-            "missed"
-        ],
-        "call_outcome": [
-            "connected",
-            "no_answer",
-            "busy",
-            "call_back",
-            "interested",
-            "not_interested",
-            "follow_up_required"
-        ],
-        "deposit_status": [
-            "pending",
-            "processing",
-            "approved",
-            "rejected",
-            "completed",
-            "failed",
-            "cancelled"
-        ],
-        "withdrawal_status": [
-            "pending",
-            "processing",
-            "approved",
-            "rejected",
-            "completed",
-            "failed",
-            "cancelled"
-        ],
-        "transaction_type": [
-            "deposit",
-            "withdrawal",
-            "trade",
-            "fee",
-            "transfer"
-        ],
-        "transaction_status": [
-            "pending",
-            "completed",
-            "failed",
-            "cancelled"
-        ],
-        "order_status": [
-            "pending",
-            "filled",
-            "partially_filled",
-            "cancelled"
-        ],
-        "order_side": [
-            "buy",
-            "sell"
-        ],
-        "order_type": [
-            "market",
-            "limit",
-            "stop_limit"
-        ],
-        "position_side": [
-            "long",
-            "short"
-        ],
-        "deposit_method": [
-            "bank_transfer",
-            "credit_card",
-            "crypto",
-            "wire"
-        ],
-        "withdrawal_method": [
-            "bank_transfer",
-            "crypto",
-            "wire"
-        ],
-        "conversation_type": [
-            "customer_support",
-            "internal_direct",
-            "internal_team",
-            "internal_department"
-        ],
-        "notification_type": [
-            "assignment",
-            "task",
-            "message",
-            "escalation",
-            "system",
-            "finance",
-            "compliance"
-        ],
-        "document_type": [
-            "passport",
-            "national_id",
-            "drivers_license"
-        ],
-        "document_upload_type": [
-            "passport_front",
-            "passport_back",
-            "national_id_front",
-            "national_id_back",
-            "selfie",
-            "proof_of_address"
-        ]
+    {
+      "name": "Identity & Profiles",
+      "tables": ["customer_profiles", "staff_profiles", "staff_manager_history"]
     },
-    "api_endpoints": [
-        {
-            "method": "POST",
-            "path": "/api/v1/auth/login",
-            "description": "Login",
-            "roles": [
-                "public"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/auth/register",
-            "description": "Register",
-            "roles": [
-                "public"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/auth/logout",
-            "description": "Logout",
-            "roles": [
-                "authenticated"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/auth/me",
-            "description": "Get current user",
-            "roles": [
-                "authenticated"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/dashboard/overview",
-            "description": "Customer dashboard",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/orders",
-            "description": "Place order",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/orders",
-            "description": "Get orders",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/positions",
-            "description": "Get positions",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/portfolio/positions",
-            "description": "Portfolio positions",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/portfolio/trades",
-            "description": "Trade history",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/markets",
-            "description": "Market instruments",
-            "roles": [
-                "customer",
-                "staff"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/markets/:symbol/orderbook",
-            "description": "Order book",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/markets/:symbol/candles",
-            "description": "OHLC candles",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/finance/balance",
-            "description": "Account balance",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/finance/deposits",
-            "description": "Deposit history",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/finance/deposits",
-            "description": "Submit deposit",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/finance/withdrawals",
-            "description": "Withdrawal history",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/finance/withdrawals",
-            "description": "Submit withdrawal",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/kyc/status",
-            "description": "KYC status",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/kyc/documents",
-            "description": "Upload KYC document",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/kyc/submit",
-            "description": "Submit KYC",
-            "roles": [
-                "customer"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/conversations",
-            "description": "Get conversations",
-            "roles": [
-                "customer",
-                "staff"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/conversations/:id/messages",
-            "description": "Send message",
-            "roles": [
-                "customer",
-                "staff"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/notifications",
-            "description": "Get notifications",
-            "roles": [
-                "authenticated"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/calls/initiate",
-            "description": "Initiate call",
-            "roles": [
-                "staff"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/agents/:id/customers",
-            "description": "Assigned customers",
-            "roles": [
-                "staff"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/tasks",
-            "description": "Get tasks",
-            "roles": [
-                "staff",
-                "admin"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/tasks",
-            "description": "Create task",
-            "roles": [
-                "admin",
-                "manager",
-                "staff"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/assignments",
-            "description": "Get assignments",
-            "roles": [
-                "admin",
-                "manager"
-            ]
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/assignments",
-            "description": "Create assignment",
-            "roles": [
-                "admin",
-                "manager"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/customers",
-            "description": "List customers",
-            "roles": [
-                "admin"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/staff",
-            "description": "List staff",
-            "roles": [
-                "admin"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/roles",
-            "description": "List roles",
-            "roles": [
-                "admin"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/finance/deposits",
-            "description": "List deposits",
-            "roles": [
-                "admin",
-                "finance"
-            ]
-        },
-        {
-            "method": "PATCH",
-            "path": "/api/v1/admin/finance/deposits/:id",
-            "description": "Review deposit",
-            "roles": [
-                "admin",
-                "finance"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/finance/withdrawals",
-            "description": "List withdrawals",
-            "roles": [
-                "admin",
-                "finance"
-            ]
-        },
-        {
-            "method": "PATCH",
-            "path": "/api/v1/admin/finance/withdrawals/:id",
-            "description": "Review withdrawal",
-            "roles": [
-                "admin",
-                "finance"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/compliance/verification",
-            "description": "Verification queue",
-            "roles": [
-                "admin",
-                "compliance_manager",
-                "compliance_broker"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/marketing/overview",
-            "description": "Marketing KPIs",
-            "roles": [
-                "admin",
-                "marketer_manager"
-            ]
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/admin/audit",
-            "description": "Audit logs",
-            "roles": [
-                "admin",
-                "super_admin"
-            ]
-        }
+    {
+      "name": "Roles & Permissions",
+      "tables": ["roles", "permissions", "role_permissions", "staff_permission_overrides"]
+    },
+    {
+      "name": "Organization",
+      "tables": ["departments", "offices", "shifts"]
+    },
+    {
+      "name": "Marketing & Attribution",
+      "tables": ["marketing_sources", "marketing_sites", "affiliates", "campaigns", "registrations", "registration_attribution", "utm_events"]
+    },
+    {
+      "name": "Account Provisioning",
+      "tables": ["account_requests"]
+    },
+    {
+      "name": "Assignments & Tasks",
+      "tables": ["customer_assignments", "assignment_history", "tasks", "task_activity_log"]
+    },
+    {
+      "name": "Finance",
+      "tables": ["accounts", "ledger_transactions", "ledger_entries", "deposit_requests", "withdrawal_requests", "transactions", "fees"]
+    },
+    {
+      "name": "Trading",
+      "tables": ["trading_accounts", "orders", "positions", "trades", "watchlists", "watchlist_items"]
+    },
+    {
+      "name": "Compliance & KYC",
+      "tables": ["verification_cases", "verification_documents", "compliance_notes", "compliance_reviews", "document_storage"]
+    },
+    {
+      "name": "Messaging & Chat",
+      "tables": ["conversations", "conversation_members", "messages", "message_reads"]
+    },
+    {
+      "name": "Calls",
+      "tables": ["calls", "call_outcomes"]
+    },
+    {
+      "name": "Platform Operations",
+      "tables": ["notifications", "customer_activities", "audit_logs", "customer_notes", "customer_tags", "customer_tag_assignments", "staff_presence_log", "platform_settings", "email_templates", "escalations", "simulation_runs"]
+    }
+  ],
+  "tables": {
+    "users": {
+      "group": "Authentication & Security",
+      "description": "Core authentication identity for all platform users (customers and staff).",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "email": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "username": { "type": "text", "nullable": true, "unique": true, "indexed": true, "note": "Generated by backend on provisioning. NULL before provisioning." },
+        "password_hash": { "type": "text", "nullable": true, "note": "Argon2id hash. NULL permitted only before account_activated=true. Once activated, valid hash required. Do NOT email plaintext passwords." },
+        "role": { "type": "text", "nullable": false, "indexed": true, "fk": "roles.key" },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "suspended", "disabled"] },
+        "email_verified": { "type": "boolean", "nullable": false, "default": false },
+        "must_change_password": { "type": "boolean", "nullable": false, "default": false },
+        "account_activated": { "type": "boolean", "nullable": false, "default": false, "note": "True once customer has set password via activation link." },
+        "activation_token_hash": { "type": "text", "nullable": true, "note": "SHA-256 of activation token. NULL after activation. Never store raw token." },
+        "activation_token_expires_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" },
+        "last_login_at": { "type": "timestamptz", "nullable": true },
+        "archived_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "sessions": {
+      "group": "Authentication & Security",
+      "description": "Active authenticated sessions. Valkey stores session token; PostgreSQL stores metadata.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "token_hash": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "ip_address": { "type": "text", "nullable": true },
+        "user_agent": { "type": "text", "nullable": true },
+        "device_info": { "type": "jsonb", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "expires_at": { "type": "timestamptz", "nullable": false, "indexed": true },
+        "revoked_at": { "type": "timestamptz", "nullable": true },
+        "last_active_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "password_resets": {
+      "group": "Authentication & Security",
+      "description": "Password reset tokens (short-lived, single-use).",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "token_hash": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "expires_at": { "type": "timestamptz", "nullable": false, "indexed": true },
+        "used_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" },
+        "ip_address": { "type": "text", "nullable": true }
+      }
+    },
+    "email_verifications": {
+      "group": "Authentication & Security",
+      "description": "Email verification tokens.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "token_hash": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "expires_at": { "type": "timestamptz", "nullable": false, "indexed": true },
+        "verified_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "two_factor_auth": {
+      "group": "Authentication & Security",
+      "description": "TOTP / 2FA configuration per user.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "unique": true, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "method": { "type": "text", "nullable": false, "default": "totp", "enum": ["totp", "sms"] },
+        "secret_encrypted": { "type": "text", "nullable": false },
+        "enabled": { "type": "boolean", "nullable": false, "default": false },
+        "enabled_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "recovery_codes": {
+      "group": "Authentication & Security",
+      "description": "Backup recovery codes for 2FA.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "code_hash": { "type": "text", "nullable": false },
+        "used_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "login_history": {
+      "group": "Authentication & Security",
+      "description": "Immutable record of all login attempts.",
+      "phase": 1,
+      "immutable": true,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "email_attempted": { "type": "text", "nullable": false },
+        "ip_address": { "type": "text", "nullable": false, "indexed": true },
+        "user_agent": { "type": "text", "nullable": true },
+        "location": { "type": "text", "nullable": true },
+        "success": { "type": "boolean", "nullable": false, "indexed": true },
+        "failure_reason": { "type": "text", "nullable": true },
+        "source_site": { "type": "text", "nullable": true, "note": "Marketing site domain if login originated from marketing site." },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "security_events": {
+      "group": "Authentication & Security",
+      "description": "Security-relevant events (brute force, suspicious login, etc.).",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "event_type": { "type": "text", "nullable": false, "indexed": true },
+        "ip_address": { "type": "text", "nullable": true },
+        "details": { "type": "jsonb", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "customer_profiles": {
+      "group": "Identity & Profiles",
+      "description": "Customer-specific profile information. Created only after Admin approval and provisioning.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "unique": true, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "first_name": { "type": "text", "nullable": false },
+        "last_name": { "type": "text", "nullable": false },
+        "phone": { "type": "text", "nullable": true, "note": "SENSITIVE PII — never sent to browser without permission" },
+        "country": { "type": "text", "nullable": true, "indexed": true },
+        "date_of_birth": { "type": "date", "nullable": true },
+        "nationality": { "type": "text", "nullable": true },
+        "address": { "type": "text", "nullable": true },
+        "city": { "type": "text", "nullable": true },
+        "postal_code": { "type": "text", "nullable": true },
+        "occupation": { "type": "text", "nullable": true },
+        "employer_name": { "type": "text", "nullable": true },
+        "annual_income": { "type": "text", "nullable": true },
+        "online_status": { "type": "text", "nullable": false, "default": "offline", "note": "Valkey is source of truth" },
+        "tags": { "type": "text[]", "nullable": false, "default": "{}" },
+        "activation_status": { "type": "text", "nullable": true, "indexed": true, "enum": ["pending_approval", "approved", "invite_sent", "active", "disabled", "suspended"] },
+        "marketing_site_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "marketing_sites.id", "onDelete": "SET NULL" },
+        "provisioned_at": { "type": "timestamptz", "nullable": true },
+        "invited_at": { "type": "timestamptz", "nullable": true },
+        "activated_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "staff_profiles": {
+      "group": "Identity & Profiles",
+      "description": "Staff-specific profile information.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "unique": true, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "first_name": { "type": "text", "nullable": false },
+        "last_name": { "type": "text", "nullable": false },
+        "department": { "type": "text", "nullable": true, "indexed": true },
+        "office": { "type": "text", "nullable": true, "indexed": true },
+        "shift": { "type": "text", "nullable": true, "indexed": true },
+        "manager_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "staff_profiles.id", "onDelete": "SET NULL" },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" },
+        "disabled_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "staff_manager_history": {
+      "group": "Identity & Profiles",
+      "description": "Immutable history of manager relationships.",
+      "phase": 2,
+      "immutable": true,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "staff_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "staff_profiles.id", "onDelete": "RESTRICT" },
+        "manager_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "staff_profiles.id", "onDelete": "RESTRICT" },
+        "assigned_by_id": { "type": "uuid", "nullable": false, "fk": "users.id", "onDelete": "RESTRICT" },
+        "started_at": { "type": "timestamptz", "nullable": false, "indexed": true },
+        "ended_at": { "type": "timestamptz", "nullable": true, "indexed": true },
+        "reason": { "type": "text", "nullable": true }
+      }
+    },
+    "roles": {
+      "group": "Roles & Permissions",
+      "description": "Platform role definitions. 23 canonical roles.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "key": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "display_name": { "type": "text", "nullable": false },
+        "description": { "type": "text", "nullable": true },
+        "default_route": { "type": "text", "nullable": false },
+        "is_staff": { "type": "boolean", "nullable": false, "default": true },
+        "is_admin": { "type": "boolean", "nullable": false, "default": false },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "permissions": {
+      "group": "Roles & Permissions",
+      "description": "Granular permission definitions.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "key": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "display_name": { "type": "text", "nullable": false },
+        "description": { "type": "text", "nullable": true },
+        "category": { "type": "text", "nullable": true, "indexed": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "role_permissions": {
+      "group": "Roles & Permissions",
+      "description": "Default permissions granted to a role.",
+      "phase": 1,
+      "uniqueConstraints": ["(role_id, permission_id)"],
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "role_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "roles.id", "onDelete": "CASCADE" },
+        "permission_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "permissions.id", "onDelete": "CASCADE" },
+        "granted": { "type": "boolean", "nullable": false, "default": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "staff_permission_overrides": {
+      "group": "Roles & Permissions",
+      "description": "Individual staff permission overrides and assignment-specific overrides.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "staff_user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "permission_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "permissions.id", "onDelete": "CASCADE" },
+        "customer_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_profiles.id", "onDelete": "CASCADE" },
+        "assignment_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_assignments.id", "onDelete": "CASCADE" },
+        "granted": { "type": "boolean", "nullable": false },
+        "granted_by_id": { "type": "uuid", "nullable": false, "fk": "users.id", "onDelete": "RESTRICT" },
+        "reason": { "type": "text", "nullable": true },
+        "expires_at": { "type": "timestamptz", "nullable": true, "indexed": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "revoked_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "marketing_sources": {
+      "group": "Marketing & Attribution",
+      "description": "Traffic source definitions for attribution/analytics. NOT an authentication entry-point allowlist.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "name": { "type": "text", "nullable": false, "unique": true },
+        "type": { "type": "text", "nullable": true, "indexed": true, "enum": ["paid", "organic", "affiliate", "email", "social"] },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "marketing_sites": {
+      "group": "Marketing & Attribution",
+      "description": "Approved authentication entry-point allowlist. Separate from marketing_sources. Backend must enforce approved-domain allowlist for login_url.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "name": { "type": "text", "nullable": false },
+        "domain": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "login_url": { "type": "text", "nullable": false, "note": "Must be on approved-domain allowlist. Never accept arbitrary redirect URLs." },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "inactive"] },
+        "brand_config": { "type": "jsonb", "nullable": true, "note": "Brand name, logo URL, colors — used for per-site email template branding." },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "affiliates": {
+      "group": "Marketing & Attribution",
+      "description": "Affiliate partner records.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "affiliate_code": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "name": { "type": "text", "nullable": false },
+        "country": { "type": "text", "nullable": true, "indexed": true },
+        "owner_user_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "manager_user_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "paused", "terminated"] },
+        "commission_rate": { "type": "numeric(5,2)", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "archived_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "campaigns": {
+      "group": "Marketing & Attribution",
+      "description": "Marketing campaigns.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "name": { "type": "text", "nullable": false },
+        "slug": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "affiliate_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "affiliates.id", "onDelete": "SET NULL" },
+        "source_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "marketing_sources.id", "onDelete": "SET NULL" },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "paused", "ended"] },
+        "started_at": { "type": "timestamptz", "nullable": true },
+        "ended_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "registrations": {
+      "group": "Marketing & Attribution",
+      "description": "Raw registration/lead records. A registrations record may exist without a users record. user_id is nullable until provisioning completes.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": true, "unique": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL", "note": "NULL until account is provisioned after Admin approval." },
+        "first_name": { "type": "text", "nullable": false },
+        "last_name": { "type": "text", "nullable": false },
+        "email": { "type": "text", "nullable": false, "indexed": true },
+        "phone": { "type": "text", "nullable": true, "note": "SENSITIVE PII" },
+        "country": { "type": "text", "nullable": true, "indexed": true },
+        "status": { "type": "text", "nullable": false, "default": "pending", "indexed": true, "enum": ["pending", "verified", "active", "rejected", "suspended"] },
+        "assigned_staff_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "registration_attribution": {
+      "group": "Marketing & Attribution",
+      "description": "Marketing attribution data for each registration.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "registration_id": { "type": "uuid", "nullable": false, "unique": true, "indexed": true, "fk": "registrations.id", "onDelete": "CASCADE" },
+        "source_site": { "type": "text", "nullable": true, "note": "Attribution only — not an auth entry point." },
+        "source_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "marketing_sources.id", "onDelete": "SET NULL" },
+        "affiliate_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "affiliates.id", "onDelete": "SET NULL" },
+        "campaign_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "campaigns.id", "onDelete": "SET NULL" },
+        "utm_source": { "type": "text", "nullable": true },
+        "utm_medium": { "type": "text", "nullable": true },
+        "utm_campaign": { "type": "text", "nullable": true },
+        "utm_term": { "type": "text", "nullable": true },
+        "utm_content": { "type": "text", "nullable": true },
+        "landing_page": { "type": "text", "nullable": true },
+        "referrer": { "type": "text", "nullable": true },
+        "click_id": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "utm_events": {
+      "group": "Marketing & Attribution",
+      "description": "Granular UTM click/visit events for analytics.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "registration_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "registrations.id", "onDelete": "SET NULL" },
+        "utm_source": { "type": "text", "nullable": true, "indexed": true },
+        "utm_medium": { "type": "text", "nullable": true },
+        "utm_campaign": { "type": "text", "nullable": true, "indexed": true },
+        "utm_term": { "type": "text", "nullable": true },
+        "utm_content": { "type": "text", "nullable": true },
+        "ip_address": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "account_requests": {
+      "group": "Account Provisioning",
+      "description": "Customer account provisioning requests. Canonical FKs: registration_id (NOT NULL), provisioned_user_id (nullable), requested_by_user_id (NOT NULL), assigned_manager_id (nullable), marketing_site_id (NOT NULL). No separate account_request_audit table — use audit_logs.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "registration_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "registrations.id", "onDelete": "RESTRICT", "note": "The lead/registration this request is for. NOT NULL." },
+        "provisioned_user_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL", "note": "NULL until provisioning completes." },
+        "requested_by_user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT", "note": "Manager who submitted. NOT NULL." },
+        "assigned_manager_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "marketing_site_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "marketing_sites.id", "onDelete": "RESTRICT", "note": "Selected login entry point. NOT NULL." },
+        "request_reason": { "type": "text", "nullable": false },
+        "status": { "type": "text", "nullable": false, "default": "pending_approval", "indexed": true, "enum": ["draft", "pending_approval", "approved", "rejected", "provisioning", "provisioned", "invite_sent", "activated", "cancelled"] },
+        "reviewed_by_id": { "type": "uuid", "nullable": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "reviewed_at": { "type": "timestamptz", "nullable": true },
+        "review_note": { "type": "text", "nullable": true },
+        "provisioned_at": { "type": "timestamptz", "nullable": true },
+        "invited_at": { "type": "timestamptz", "nullable": true },
+        "activated_at": { "type": "timestamptz", "nullable": true },
+        "provisioning_attempts": { "type": "integer", "nullable": false, "default": 0 },
+        "last_provisioning_error": { "type": "text", "nullable": true },
+        "last_provisioning_attempt_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "customer_assignments": {
+      "group": "Assignments & Tasks",
+      "description": "Current active assignment of a customer to a staff member.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "staff_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "staff_role": { "type": "text", "nullable": false, "indexed": true },
+        "assigned_by_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "completed", "cancelled"] },
+        "priority": { "type": "text", "nullable": false, "default": "medium", "indexed": true, "enum": ["low", "medium", "high", "urgent"] },
+        "notes": { "type": "text", "nullable": true },
+        "assigned_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "ended_at": { "type": "timestamptz", "nullable": true, "indexed": true }
+      }
+    },
+    "assignment_history": {
+      "group": "Assignments & Tasks",
+      "description": "Immutable history of all assignment changes.",
+      "phase": 1,
+      "immutable": true,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "assignment_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_assignments.id", "onDelete": "RESTRICT" },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "from_staff_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "to_staff_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "to_staff_role": { "type": "text", "nullable": false },
+        "changed_by_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "reason": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "tasks": {
+      "group": "Assignments & Tasks",
+      "description": "Tasks assigned to staff members related to customers.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "assigned_to_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "assigned_to_role": { "type": "text", "nullable": false },
+        "manager_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "created_by_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "assignment_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_assignments.id", "onDelete": "SET NULL" },
+        "type": { "type": "text", "nullable": false, "indexed": true, "enum": ["call_customer", "follow_up", "review_registration", "contact_customer", "request_information", "verify_information", "custom"] },
+        "status": { "type": "text", "nullable": false, "default": "pending", "indexed": true, "enum": ["pending", "in_progress", "completed", "unable_to_complete", "cancelled", "overdue"] },
+        "priority": { "type": "text", "nullable": false, "default": "medium", "indexed": true, "enum": ["low", "medium", "high", "urgent"] },
+        "due_date": { "type": "date", "nullable": false, "indexed": true },
+        "notes": { "type": "text", "nullable": true },
+        "outcome": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" },
+        "completed_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "task_activity_log": {
+      "group": "Assignments & Tasks",
+      "description": "Immutable log of all task status changes and notes.",
+      "phase": 1,
+      "immutable": true,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "task_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "tasks.id", "onDelete": "RESTRICT" },
+        "actor_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "action": { "type": "text", "nullable": false },
+        "previous_status": { "type": "text", "nullable": true },
+        "new_status": { "type": "text", "nullable": true },
+        "note": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "accounts": {
+      "group": "Finance",
+      "description": "Financial accounts — customer accounts and system accounts (clearing, fee, settlement). Balance is computed from ledger_entries — no mutable balance column.",
+      "phase": 1,
+      "uniqueConstraints": ["(customer_id, currency) WHERE customer_id IS NOT NULL"],
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT", "note": "NULL for system accounts." },
+        "account_type": { "type": "text", "nullable": false, "default": "customer", "indexed": true, "enum": ["customer", "system_clearing", "system_fee", "system_settlement"] },
+        "currency": { "type": "text", "nullable": false, "default": "USD", "indexed": true },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "suspended", "closed"] },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "closed_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "ledger_transactions": {
+      "group": "Finance",
+      "description": "Double-entry ledger transaction header. Every finalized transaction must have balanced debits and credits.",
+      "phase": 1,
+      "immutable": true,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "reference_type": { "type": "text", "nullable": false, "indexed": true, "enum": ["deposit", "withdrawal", "trade", "fee", "transfer"] },
+        "reference_id": { "type": "uuid", "nullable": false, "indexed": true, "note": "ID of source record (deposit_request.id, order.id, etc.)" },
+        "description": { "type": "text", "nullable": true },
+        "status": { "type": "text", "nullable": false, "default": "pending", "indexed": true, "enum": ["pending", "finalized", "reversed"] },
+        "finalized_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "ledger_entries": {
+      "group": "Finance",
+      "description": "Immutable double-entry ledger lines. Source of truth for all balances. NO UPDATE or DELETE permitted.",
+      "phase": 1,
+      "immutable": true,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "ledger_transaction_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "ledger_transactions.id", "onDelete": "RESTRICT" },
+        "account_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "accounts.id", "onDelete": "RESTRICT" },
+        "entry_type": { "type": "text", "nullable": false, "indexed": true, "enum": ["debit", "credit"] },
+        "amount": { "type": "numeric(18,2)", "nullable": false, "note": "Always positive." },
+        "currency": { "type": "text", "nullable": false },
+        "description": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "deposit_requests": {
+      "group": "Finance",
+      "description": "Customer deposit requests.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "account_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "accounts.id", "onDelete": "RESTRICT" },
+        "amount": { "type": "numeric(18,2)", "nullable": false },
+        "currency": { "type": "text", "nullable": false, "default": "USD" },
+        "method": { "type": "text", "nullable": false, "indexed": true, "enum": ["bank_transfer", "credit_card", "crypto", "wire"] },
+        "status": { "type": "text", "nullable": false, "default": "pending", "indexed": true, "enum": ["pending", "processing", "approved", "rejected", "completed", "failed", "cancelled"] },
+        "reference": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "notes": { "type": "text", "nullable": true },
+        "reviewed_by_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "submitted_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "reviewed_at": { "type": "timestamptz", "nullable": true },
+        "confirmed_at": { "type": "timestamptz", "nullable": true },
+        "estimated_arrival": { "type": "date", "nullable": true }
+      }
+    },
+    "withdrawal_requests": {
+      "group": "Finance",
+      "description": "Customer withdrawal requests.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "account_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "accounts.id", "onDelete": "RESTRICT" },
+        "amount": { "type": "numeric(18,2)", "nullable": false },
+        "currency": { "type": "text", "nullable": false, "default": "USD" },
+        "method": { "type": "text", "nullable": false, "indexed": true, "enum": ["bank_transfer", "crypto", "wire"] },
+        "destination": { "type": "text", "nullable": false },
+        "status": { "type": "text", "nullable": false, "default": "pending", "indexed": true, "enum": ["pending", "processing", "approved", "rejected", "completed", "failed", "cancelled"] },
+        "reference": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "fee": { "type": "numeric(18,2)", "nullable": false, "default": 0 },
+        "notes": { "type": "text", "nullable": true },
+        "reviewed_by_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "submitted_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "reviewed_at": { "type": "timestamptz", "nullable": true },
+        "processed_at": { "type": "timestamptz", "nullable": true },
+        "estimated_arrival": { "type": "date", "nullable": true }
+      }
+    },
+    "transactions": {
+      "group": "Finance",
+      "description": "Completed financial transactions (ledger-linked).",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "account_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "accounts.id", "onDelete": "RESTRICT" },
+        "type": { "type": "text", "nullable": false, "indexed": true, "enum": ["deposit", "withdrawal", "trade", "fee", "transfer"] },
+        "amount": { "type": "numeric(18,2)", "nullable": false },
+        "currency": { "type": "text", "nullable": false },
+        "status": { "type": "text", "nullable": false, "indexed": true, "enum": ["pending", "completed", "failed", "cancelled"] },
+        "reference": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "source_id": { "type": "uuid", "nullable": true, "indexed": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "fees": {
+      "group": "Finance",
+      "description": "Fee records associated with transactions.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "transaction_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "transactions.id", "onDelete": "RESTRICT" },
+        "fee_type": { "type": "text", "nullable": false, "enum": ["trading", "withdrawal", "deposit", "platform"] },
+        "amount": { "type": "numeric(18,2)", "nullable": false },
+        "currency": { "type": "text", "nullable": false },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "trading_accounts": {
+      "group": "Trading",
+      "description": "Customer trading accounts (separate from finance accounts).",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "account_number": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "suspended", "closed"] },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "orders": {
+      "group": "Trading",
+      "description": "Customer trading orders.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "trading_account_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "trading_accounts.id", "onDelete": "RESTRICT" },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "symbol": { "type": "text", "nullable": false, "indexed": true },
+        "side": { "type": "text", "nullable": false, "indexed": true, "enum": ["buy", "sell"] },
+        "type": { "type": "text", "nullable": false, "indexed": true, "enum": ["market", "limit", "stop_limit"] },
+        "price": { "type": "numeric(20,8)", "nullable": true },
+        "amount": { "type": "numeric(20,8)", "nullable": false },
+        "filled": { "type": "numeric(20,8)", "nullable": false, "default": 0 },
+        "take_profit_price": { "type": "numeric(20,8)", "nullable": true },
+        "stop_loss_price": { "type": "numeric(20,8)", "nullable": true },
+        "post_only": { "type": "boolean", "nullable": false, "default": false },
+        "status": { "type": "text", "nullable": false, "default": "pending", "indexed": true, "enum": ["pending", "filled", "partially_filled", "cancelled"] },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" },
+        "filled_at": { "type": "timestamptz", "nullable": true },
+        "cancelled_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "positions": {
+      "group": "Trading",
+      "description": "Open trading positions.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "trading_account_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "trading_accounts.id", "onDelete": "RESTRICT" },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "symbol": { "type": "text", "nullable": false, "indexed": true },
+        "side": { "type": "text", "nullable": false, "enum": ["long", "short"] },
+        "entry_price": { "type": "numeric(20,8)", "nullable": false },
+        "size": { "type": "numeric(20,8)", "nullable": false },
+        "opened_at": { "type": "timestamptz", "nullable": false, "indexed": true },
+        "closed_at": { "type": "timestamptz", "nullable": true, "indexed": true },
+        "close_price": { "type": "numeric(20,8)", "nullable": true },
+        "realized_pnl": { "type": "numeric(18,2)", "nullable": true }
+      }
+    },
+    "trades": {
+      "group": "Trading",
+      "description": "Executed trade records (fills).",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "order_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "orders.id", "onDelete": "RESTRICT" },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "symbol": { "type": "text", "nullable": false, "indexed": true },
+        "side": { "type": "text", "nullable": false, "enum": ["buy", "sell"] },
+        "price": { "type": "numeric(20,8)", "nullable": false },
+        "amount": { "type": "numeric(20,8)", "nullable": false },
+        "total": { "type": "numeric(18,2)", "nullable": false },
+        "fee": { "type": "numeric(18,2)", "nullable": false, "default": 0 },
+        "status": { "type": "text", "nullable": false, "default": "filled", "enum": ["filled"] },
+        "executed_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "watchlists": {
+      "group": "Trading",
+      "description": "Customer watchlists.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "CASCADE" },
+        "name": { "type": "text", "nullable": false, "default": "My Watchlist" },
+        "is_default": { "type": "boolean", "nullable": false, "default": false },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "watchlist_items": {
+      "group": "Trading",
+      "description": "Instruments in a watchlist.",
+      "phase": 2,
+      "uniqueConstraints": ["(watchlist_id, symbol)"],
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "watchlist_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "watchlists.id", "onDelete": "CASCADE" },
+        "symbol": { "type": "text", "nullable": false, "indexed": true },
+        "added_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "verification_cases": {
+      "group": "Compliance & KYC",
+      "description": "KYC verification case per customer. KYC is mandatory but presented under Profile/Settings.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "unique": true, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "status": { "type": "text", "nullable": false, "default": "not_started", "indexed": true, "enum": ["not_started", "in_progress", "submitted", "under_review", "additional_information_required", "verified", "rejected"] },
+        "first_name": { "type": "text", "nullable": true },
+        "last_name": { "type": "text", "nullable": true },
+        "date_of_birth": { "type": "date", "nullable": true },
+        "nationality": { "type": "text", "nullable": true },
+        "address": { "type": "text", "nullable": true },
+        "city": { "type": "text", "nullable": true },
+        "postal_code": { "type": "text", "nullable": true },
+        "country": { "type": "text", "nullable": true },
+        "document_type": { "type": "text", "nullable": true, "enum": ["passport", "national_id", "drivers_license"] },
+        "document_number": { "type": "text", "nullable": true, "note": "SENSITIVE PII" },
+        "document_expiry": { "type": "date", "nullable": true },
+        "steps": { "type": "jsonb", "nullable": true },
+        "rejection_reason": { "type": "text", "nullable": true },
+        "reviewed_by_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "submitted_at": { "type": "timestamptz", "nullable": true },
+        "reviewed_at": { "type": "timestamptz", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "verification_documents": {
+      "group": "Compliance & KYC",
+      "description": "Documents uploaded for KYC. Binary data stored in Cloudflare R2. PostgreSQL stores keys/metadata only.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "case_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "verification_cases.id", "onDelete": "RESTRICT" },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "document_type": { "type": "text", "nullable": false, "indexed": true, "enum": ["passport_front", "passport_back", "national_id_front", "national_id_back", "selfie", "proof_of_address"] },
+        "storage_key": { "type": "text", "nullable": false, "note": "S3/R2 object key. NOT binary data." },
+        "storage_provider": { "type": "text", "nullable": false, "default": "r2", "enum": ["r2", "s3", "minio"] },
+        "file_name": { "type": "text", "nullable": true },
+        "file_size": { "type": "integer", "nullable": true },
+        "mime_type": { "type": "text", "nullable": true },
+        "status": { "type": "text", "nullable": false, "default": "uploaded", "indexed": true, "enum": ["uploaded", "approved", "rejected"] },
+        "uploaded_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "compliance_notes": {
+      "group": "Compliance & KYC",
+      "description": "Internal compliance notes on customers.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "case_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "verification_cases.id", "onDelete": "SET NULL" },
+        "author_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "content": { "type": "text", "nullable": false },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "compliance_reviews": {
+      "group": "Compliance & KYC",
+      "description": "Review decisions on verification cases.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "case_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "verification_cases.id", "onDelete": "RESTRICT" },
+        "reviewer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "decision": { "type": "text", "nullable": false, "enum": ["approved", "rejected", "escalated", "additional_information_required"] },
+        "reason": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "document_storage": {
+      "group": "Compliance & KYC",
+      "description": "Metadata for all platform-stored files. Phase 2.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "storage_key": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "bucket": { "type": "text", "nullable": false },
+        "provider": { "type": "text", "nullable": false, "enum": ["r2", "s3", "minio"] },
+        "uploaded_by_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "conversations": {
+      "group": "Messaging & Chat",
+      "description": "Conversation threads (customer support AND internal staff).",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "type": { "type": "text", "nullable": false, "indexed": true, "enum": ["customer_support", "internal_direct", "internal_team", "internal_department"] },
+        "name": { "type": "text", "nullable": true },
+        "customer_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_profiles.id", "onDelete": "SET NULL" },
+        "status": { "type": "text", "nullable": false, "default": "active", "indexed": true, "enum": ["active", "closed", "pending"] },
+        "last_message_at": { "type": "timestamptz", "nullable": true, "indexed": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "closed_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "conversation_members": {
+      "group": "Messaging & Chat",
+      "description": "Members of each conversation.",
+      "phase": 1,
+      "uniqueConstraints": ["(conversation_id, user_id)"],
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "conversation_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "conversations.id", "onDelete": "CASCADE" },
+        "user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "role_in_conversation": { "type": "text", "nullable": true, "enum": ["customer", "agent", "admin", "observer"] },
+        "joined_at": { "type": "timestamptz", "nullable": false, "default": "now()" },
+        "left_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "messages": {
+      "group": "Messaging & Chat",
+      "description": "Chat messages.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "conversation_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "conversations.id", "onDelete": "RESTRICT" },
+        "sender_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "content": { "type": "text", "nullable": false },
+        "type": { "type": "text", "nullable": false, "default": "text", "enum": ["text", "system"] },
+        "is_internal": { "type": "boolean", "nullable": false, "default": false, "indexed": true },
+        "delivered": { "type": "boolean", "nullable": false, "default": false },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "deleted_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "message_reads": {
+      "group": "Messaging & Chat",
+      "description": "Read receipts per message per user.",
+      "phase": 1,
+      "uniqueConstraints": ["(message_id, user_id)"],
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "message_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "messages.id", "onDelete": "CASCADE" },
+        "user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "read_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "calls": {
+      "group": "Calls",
+      "description": "Call session records. Customer phone number is never stored here.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "staff_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "provider_session_id": { "type": "text", "nullable": true, "indexed": true },
+        "direction": { "type": "text", "nullable": false, "indexed": true, "enum": ["inbound", "outbound"] },
+        "status": { "type": "text", "nullable": false, "default": "connecting", "indexed": true, "enum": ["connecting", "ringing", "connected", "ended", "failed", "unavailable", "missed"] },
+        "outcome": { "type": "text", "nullable": true, "indexed": true, "enum": ["connected", "no_answer", "busy", "call_back", "interested", "not_interested", "follow_up_required"] },
+        "duration_seconds": { "type": "integer", "nullable": true },
+        "follow_up_date": { "type": "date", "nullable": true },
+        "provider": { "type": "text", "nullable": false, "default": "mock", "enum": ["mock", "squaretalk"] },
+        "provider_metadata": { "type": "jsonb", "nullable": true },
+        "started_at": { "type": "timestamptz", "nullable": true, "indexed": true },
+        "answered_at": { "type": "timestamptz", "nullable": true },
+        "ended_at": { "type": "timestamptz", "nullable": true, "indexed": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "call_outcomes": {
+      "group": "Calls",
+      "description": "Detailed call outcome notes. Phase 2.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "call_id": { "type": "uuid", "nullable": false, "unique": true, "indexed": true, "fk": "calls.id", "onDelete": "CASCADE" },
+        "notes": { "type": "text", "nullable": true },
+        "next_action": { "type": "text", "nullable": true },
+        "created_by_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "notifications": {
+      "group": "Platform Operations",
+      "description": "In-app notifications for staff and customers.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "recipient_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "CASCADE" },
+        "recipient_role": { "type": "text", "nullable": false, "indexed": true },
+        "type": { "type": "text", "nullable": false, "indexed": true, "enum": ["assignment", "task", "message", "escalation", "system", "finance", "compliance"] },
+        "title": { "type": "text", "nullable": false },
+        "message": { "type": "text", "nullable": false },
+        "resource_type": { "type": "text", "nullable": true },
+        "resource_id": { "type": "uuid", "nullable": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_profiles.id", "onDelete": "SET NULL" },
+        "link_href": { "type": "text", "nullable": true },
+        "read": { "type": "boolean", "nullable": false, "default": false, "indexed": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "read_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "customer_activities": {
+      "group": "Platform Operations",
+      "description": "Customer operational activity timeline.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "actor_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "type": { "type": "text", "nullable": false, "indexed": true },
+        "description": { "type": "text", "nullable": false },
+        "metadata": { "type": "jsonb", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "audit_logs": {
+      "group": "Platform Operations",
+      "description": "Immutable platform audit log. NO UPDATE or DELETE. Used for all account provisioning events — no separate account_request_audit table.",
+      "phase": 1,
+      "immutable": true,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "actor_user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "actor_name": { "type": "text", "nullable": false },
+        "actor_role": { "type": "text", "nullable": false, "indexed": true },
+        "action": { "type": "text", "nullable": false, "indexed": true },
+        "resource_type": { "type": "text", "nullable": false, "indexed": true },
+        "resource_id": { "type": "text", "nullable": false, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_profiles.id", "onDelete": "SET NULL" },
+        "customer_name": { "type": "text", "nullable": true },
+        "previous_value": { "type": "text", "nullable": true },
+        "new_value": { "type": "text", "nullable": true },
+        "reason": { "type": "text", "nullable": true },
+        "result": { "type": "text", "nullable": false, "default": "success", "indexed": true, "enum": ["success", "failure"] },
+        "session_id": { "type": "text", "nullable": false, "indexed": true },
+        "ip_address": { "type": "text", "nullable": true },
+        "details": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    },
+    "customer_notes": {
+      "group": "Platform Operations",
+      "description": "Internal staff notes on customers.",
+      "phase": 1,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "RESTRICT" },
+        "author_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "content": { "type": "text", "nullable": false },
+        "is_pinned": { "type": "boolean", "nullable": false, "default": false },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "customer_tags": {
+      "group": "Platform Operations",
+      "description": "Tag definitions.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "name": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "color": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "customer_tag_assignments": {
+      "group": "Platform Operations",
+      "description": "Junction table for customer tags.",
+      "phase": 2,
+      "uniqueConstraints": ["(customer_id, tag_id)"],
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_profiles.id", "onDelete": "CASCADE" },
+        "tag_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "customer_tags.id", "onDelete": "CASCADE" },
+        "assigned_by_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "staff_presence_log": {
+      "group": "Platform Operations",
+      "description": "Historical presence log for reporting. Phase 2.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "user_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "status": { "type": "text", "nullable": false, "enum": ["online", "away", "busy", "offline"] },
+        "started_at": { "type": "timestamptz", "nullable": false, "indexed": true },
+        "ended_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "platform_settings": {
+      "group": "Platform Operations",
+      "description": "Key-value platform configuration. Phase 2.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "key": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "value": { "type": "jsonb", "nullable": false },
+        "updated_by_id": { "type": "uuid", "nullable": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "email_templates": {
+      "group": "Platform Operations",
+      "description": "Email templates. Phase 2.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "key": { "type": "text", "nullable": false, "unique": true, "indexed": true },
+        "subject": { "type": "text", "nullable": false },
+        "body_html": { "type": "text", "nullable": false },
+        "updated_by_id": { "type": "uuid", "nullable": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "updated_at": { "type": "timestamptz", "nullable": false, "default": "now()" }
+      }
+    },
+    "escalations": {
+      "group": "Platform Operations",
+      "description": "Escalation records from shift managers / team leaders.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "customer_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "customer_profiles.id", "onDelete": "SET NULL" },
+        "raised_by_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "assigned_to_id": { "type": "uuid", "nullable": true, "indexed": true, "fk": "users.id", "onDelete": "SET NULL" },
+        "type": { "type": "text", "nullable": false, "indexed": true, "enum": ["customer", "compliance", "finance", "technical"] },
+        "priority": { "type": "text", "nullable": false, "default": "medium", "indexed": true, "enum": ["low", "medium", "high", "urgent"] },
+        "status": { "type": "text", "nullable": false, "default": "open", "indexed": true, "enum": ["open", "in_progress", "resolved", "closed"] },
+        "description": { "type": "text", "nullable": false },
+        "resolution": { "type": "text", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true },
+        "resolved_at": { "type": "timestamptz", "nullable": true }
+      }
+    },
+    "simulation_runs": {
+      "group": "Platform Operations",
+      "description": "Admin simulation lab records. Phase 2.",
+      "phase": 2,
+      "columns": {
+        "id": { "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "unique": true, "indexed": true },
+        "created_by_id": { "type": "uuid", "nullable": false, "indexed": true, "fk": "users.id", "onDelete": "RESTRICT" },
+        "scenario": { "type": "text", "nullable": false },
+        "parameters": { "type": "jsonb", "nullable": true },
+        "result": { "type": "jsonb", "nullable": true },
+        "created_at": { "type": "timestamptz", "nullable": false, "default": "now()", "indexed": true }
+      }
+    }
+  },
+  "removedFromPostgres": {
+    "login_handoff_tokens": {
+      "reason": "Stored in Valkey only. Tokens are ephemeral (~60s TTL), cryptographically random, single-use, deleted immediately on redemption. Audit records go to audit_logs.",
+      "valkeyKey": "handoff:{token_hash}",
+      "valkeyTTL": "~60 seconds"
+    }
+  },
+  "finalizedDecisions": {
+    "registrationLifecycle": "Sequential. A registrations record may exist without a users record. users/customer_profiles created only after Admin approval and successful provisioning.",
+    "firstLoginSecurity": "Secure activation/set-password link. Do NOT email plaintext passwords. users.password_hash may be NULL only before account_activated=true.",
+    "loginApi": "POST /api/v1/auth/login with { identifier, password, sourceSite }. One system supports both direct and marketing-site login.",
+    "crossDomainHandoff": "Valkey only. No PostgreSQL login_handoff_tokens table. ~60s TTL, single-use, deleted on redemption.",
+    "marketingSitesVsSources": "marketing_sites = approved auth entry-point allowlist. marketing_sources = attribution data. Separate tables.",
+    "kycStatuses": ["not_started", "in_progress", "submitted", "under_review", "additional_information_required", "verified", "rejected"],
+    "kycPlacement": "Under Profile/Settings, not primary navigation.",
+    "documentStorage": "External S3-compatible (Cloudflare R2 recommended). PostgreSQL stores keys/metadata only.",
+    "financialLedger": "Genuine double-entry. ledger_transactions → ledger_entries → accounts. Every finalized transaction must balance. No mutable balance column.",
+    "accountRequestsFKs": {
+      "registration_id": "registrations.id (NOT NULL)",
+      "provisioned_user_id": "users.id (NULL until provisioned)",
+      "requested_by_user_id": "users.id (NOT NULL)",
+      "assigned_manager_id": "users.id (NULL)",
+      "marketing_site_id": "marketing_sites.id (NOT NULL)"
+    },
+    "accountRequestAudit": "No separate account_request_audit table. Use existing immutable audit_logs.",
+    "roles": "23 canonical roles. Three-layer permission resolution: assignment-specific override → staff override → role default → deny.",
+    "newPermissions": [
+      "customer_account.request",
+      "customer_account.request_view",
+      "customer_account.approve",
+      "customer_account.reject",
+      "customer_account.provision",
+      "customer_account.invite_resend",
+      "customer_account.disable",
+      "customer_account.credentials_reset",
+      "marketing_site.view",
+      "marketing_site.manage"
     ],
-    "services": [
-        {
-            "name": "authService",
-            "file": "src/services/auth.service.ts",
-            "methods": [
-                "login",
-                "register",
-                "logout",
-                "forgotPassword"
-            ],
-            "pages": [
-                "/secure-login",
-                "/sign-up-login-screen"
-            ]
-        },
-        {
-            "name": "dashboardService",
-            "file": "src/services/dashboard.service.ts",
-            "methods": [
-                "getOverview"
-            ],
-            "pages": [
-                "/trading-dashboard"
-            ]
-        },
-        {
-            "name": "tradingService",
-            "file": "src/services/trading.service.ts",
-            "methods": [
-                "placeOrder",
-                "getOpenOrders"
-            ],
-            "pages": [
-                "/trade-trading-workspace"
-            ]
-        },
-        {
-            "name": "marketsService",
-            "file": "src/services/markets.service.ts",
-            "methods": [
-                "getInstruments",
-                "getOrderBook",
-                "getRecentTrades"
-            ],
-            "pages": [
-                "/markets",
-                "/trade-trading-workspace"
-            ]
-        },
-        {
-            "name": "marketDataService",
-            "file": "src/services/market-data.service.ts",
-            "methods": [
-                "getQuotes",
-                "getQuote",
-                "getCandles",
-                "getMovers",
-                "subscribe"
-            ],
-            "pages": [
-                "/trading-dashboard",
-                "/trade-trading-workspace",
-                "/markets",
-                "/watchlist"
-            ]
-        },
-        {
-            "name": "portfolioService",
-            "file": "src/services/portfolio.service.ts",
-            "methods": [
-                "getPositions",
-                "getAllocation",
-                "getTradeHistory"
-            ],
-            "pages": [
-                "/portfolio"
-            ]
-        },
-        {
-            "name": "financeService",
-            "file": "src/services/finance.service.ts",
-            "methods": [
-                "getBalance",
-                "getDeposits",
-                "getWithdrawals",
-                "submitDeposit",
-                "submitWithdrawal",
-                "cancelWithdrawal"
-            ],
-            "pages": [
-                "/finance",
-                "/transactions"
-            ]
-        },
-        {
-            "name": "kycService",
-            "file": "src/services/kyc.service.ts",
-            "methods": [
-                "getKYCStatus",
-                "savePersonalInfo",
-                "uploadDocument",
-                "submitKYC"
-            ],
-            "pages": [
-                "/kyc"
-            ]
-        },
-        {
-            "name": "chatService",
-            "file": "src/services/chat.service.ts",
-            "methods": [
-                "getConversations",
-                "getMessages",
-                "sendMessage",
-                "markAsRead"
-            ],
-            "pages": [
-                "/messages",
-                "/agent/messages",
-                "/admin/support/conversations"
-            ]
-        },
-        {
-            "name": "staffChatService",
-            "file": "src/services/staff-chat.service.ts",
-            "methods": [
-                "getConversations",
-                "getMessages",
-                "sendMessage",
-                "markAsRead",
-                "getPresence",
-                "updatePresence",
-                "startTyping",
-                "stopTyping"
-            ],
-            "pages": [
-                "/staff/chat"
-            ]
-        },
-        {
-            "name": "callingService",
-            "file": "src/services/calling.service.ts",
-            "methods": [
-                "initiateCall",
-                "endCall",
-                "muteCall",
-                "holdCall"
-            ],
-            "pages": [
-                "/agent/calls",
-                "/broker/calls",
-                "/ftd-broker/calls"
-            ]
-        },
-        {
-            "name": "agentService",
-            "file": "src/services/agent.service.ts",
-            "methods": [
-                "getAgents",
-                "getAgent",
-                "getOverviewStats",
-                "getAssignedCustomers",
-                "getCustomerDetail",
-                "getTasks",
-                "updateTaskStatus",
-                "getCalls",
-                "updateAgentPermissions"
-            ],
-            "pages": [
-                "/agent",
-                "/broker",
-                "/ftd-broker",
-                "/retention-broker",
-                "/admin/operations/agents"
-            ]
-        },
-        {
-            "name": "adminService",
-            "file": "src/services/admin.service.ts",
-            "methods": [
-                "getCustomers",
-                "getCustomer",
-                "assignCustomer",
-                "getAuditLogs",
-                "getAccounts",
-                "getTransactions",
-                "getDeposits",
-                "getWithdrawals",
-                "getStaff",
-                "getRoles"
-            ],
-            "pages": [
-                "/admin/customers",
-                "/admin/finance/*",
-                "/admin/system/*"
-            ]
-        },
-        {
-            "name": "marketingService",
-            "file": "src/services/marketing.service.ts",
-            "methods": [
-                "getOverview",
-                "getRegistrations",
-                "getRegistrationTimeline",
-                "getSourcePerformance"
-            ],
-            "pages": [
-                "/admin/marketing/*",
-                "/admin/registrations",
-                "/admin-dashboard"
-            ]
-        },
-        {
-            "name": "notificationService",
-            "file": "src/services/notification.service.ts",
-            "methods": [
-                "sendEmail",
-                "createInAppNotification",
-                "notifyDepositConfirmed",
-                "notifyWithdrawalStatus",
-                "notifyProfileUpdated",
-                "notifyKYCApproved",
-                "notifyKYCRejected"
-            ],
-            "pages": [
-                "/admin/customers/[id]",
-                "/admin/finance/*"
-            ]
-        },
-        {
-            "name": "platformService",
-            "file": "src/services/platform.service.ts",
-            "methods": [
-                "getAuditRecords",
-                "createAuditRecord",
-                "getAssignments",
-                "createAssignment",
-                "reassignCustomer",
-                "getTasks",
-                "createTask",
-                "updateTaskStatus",
-                "getNotifications",
-                "createNotification",
-                "markNotificationRead",
-                "getUnreadCount",
-                "getPresence",
-                "getAllPresence",
-                "updatePresence",
-                "subscribe"
-            ],
-            "pages": [
-                "/admin/*",
-                "/agent/*",
-                "/broker/*",
-                "/shift-manager",
-                "/broker-manager"
-            ]
-        }
-    ],
-    "realtime_events": [
-        {
-            "event": "message:new",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "New chat message"
-        },
-        {
-            "event": "message:read",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "Message read receipt"
-        },
-        {
-            "event": "typing:start",
-            "direction": "server_to_client",
-            "storage": "valkey",
-            "description": "User started typing"
-        },
-        {
-            "event": "typing:stop",
-            "direction": "server_to_client",
-            "storage": "valkey",
-            "description": "User stopped typing"
-        },
-        {
-            "event": "conversation:new",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "New conversation created"
-        },
-        {
-            "event": "presence:update",
-            "direction": "server_to_client",
-            "storage": "valkey",
-            "description": "Staff presence change"
-        },
-        {
-            "event": "notification:new",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "New notification"
-        },
-        {
-            "event": "assignment:new",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "New customer assignment"
-        },
-        {
-            "event": "assignment:updated",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "Assignment changed"
-        },
-        {
-            "event": "task:new",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "New task assigned"
-        },
-        {
-            "event": "task:updated",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "Task status changed"
-        },
-        {
-            "event": "quote:update",
-            "direction": "server_to_client",
-            "storage": "valkey",
-            "description": "Market price tick"
-        },
-        {
-            "event": "candle:update",
-            "direction": "server_to_client",
-            "storage": "valkey",
-            "description": "New OHLC candle"
-        },
-        {
-            "event": "trade:update",
-            "direction": "server_to_client",
-            "storage": "valkey",
-            "description": "Market trade executed"
-        },
-        {
-            "event": "market:status",
-            "direction": "server_to_client",
-            "storage": "valkey",
-            "description": "Market open/close status"
-        },
-        {
-            "event": "call:status",
-            "direction": "server_to_client",
-            "storage": "postgresql",
-            "description": "Call state change"
-        }
+    "realtimeEvents": [
+      "account_request.status_updated",
+      "account.provisioned",
+      "account.activated"
     ]
+  }
 }

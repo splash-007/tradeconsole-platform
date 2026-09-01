@@ -1,7 +1,7 @@
 // BACKEND INTEGRATION: GET/POST /api/v1/kyc/*
 
 export type KYCStepStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
-export type KYCStatus = 'not_started' | 'in_progress' | 'submitted' | 'under_review' | 'verified' | 'rejected';
+export type KYCStatus = 'not_started' | 'in_progress' | 'submitted' | 'under_review' | 'additional_information_required' | 'verified' | 'rejected';
 export type DocumentType = 'passport' | 'national_id' | 'drivers_license';
 
 export interface KYCStep {
