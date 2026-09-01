@@ -10,10 +10,10 @@ importers:
     dependencies:
       '@dhiwise/component-tagger':
         specifier: ^1.0.16
-        version: 1.0.16(next@15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.0.3(react@19.0.3))(react@19.0.3))(supports-color@8.1.1)(vite@8.2.2(@types/node@20.19.43)(jiti@1.21.7)(terser@5.51.2)(yaml@2.9.0))(webpack@5.110.2(lightningcss@1.33.0)(postcss@8.4.8))
+        version: 1.0.16(next@15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(supports-color@8.1.1)(vite@8.2.2(@types/node@20.19.43)(jiti@1.21.7)(terser@5.51.2)(yaml@2.9.0))(webpack@5.110.2(lightningcss@1.33.0)(postcss@8.4.8))
       '@heroicons/react':
         specifier: ^2.2.0
-        version: 2.2.0(react@19.0.3)
+        version: 2.2.0(react@19.1.0)
       '@tailwindcss/forms':
         specifier: ^0.5.10
         version: 0.5.11(tailwindcss@3.4.6)
@@ -25,25 +25,25 @@ importers:
         version: 5.2.1
       lucide-react:
         specifier: ^0.475.0
-        version: 0.475.0(react@19.0.3)
+        version: 0.475.0(react@19.1.0)
       next:
         specifier: 15.5.18
-        version: 15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.0.3(react@19.0.3))(react@19.0.3)
+        version: 15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react:
-        specifier: 19.0.3
-        version: 19.0.3
+        specifier: 19.1.0
+        version: 19.1.0
       react-dom:
-        specifier: 19.0.3
-        version: 19.0.3(react@19.0.3)
+        specifier: 19.1.0
+        version: 19.1.0(react@19.1.0)
       react-hook-form:
         specifier: ^7.86.0
-        version: 7.87.0(react@19.0.3)
+        version: 7.87.0(react@19.1.0)
       recharts:
         specifier: ^2.15.2
-        version: 2.15.4(react-dom@19.0.3(react@19.0.3))(react@19.0.3)
+        version: 2.15.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       sonner:
         specifier: ^1.7.4
-        version: 1.7.4(react-dom@19.0.3(react@19.0.3))(react@19.0.3)
+        version: 1.7.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3
@@ -55,11 +55,11 @@ importers:
         specifier: ^20
         version: 20.19.43
       '@types/react':
-        specifier: 19.0.3
-        version: 19.0.3
+        specifier: ^19.1.0
+        version: 19.2.18
       '@types/react-dom':
-        specifier: 19.0.3
-        version: 19.0.3(@types/react@19.0.3)
+        specifier: ^19.1.0
+        version: 19.2.5(@types/react@19.2.18)
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.29.0
         version: 8.68.0(@typescript-eslint/parser@8.68.0(eslint@9.39.5(jiti@1.21.7)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3))(eslint@9.39.5(jiti@1.21.7)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
@@ -681,13 +681,13 @@ packages:
   '@types/node@20.19.43':
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
 
-  '@types/react-dom@19.0.3':
-    resolution: {integrity: sha512-0Knk+HJiMP/qOZgMyNFamlIjw9OFCsyC2ZbigmEEyXXixgre6IQpm/4V+r3qH4GC1JPvRJKInw+on2rV6YZLeA==}
+  '@types/react-dom@19.2.5':
+    resolution: {integrity: sha512-fMPwH9v7r/pp43yUd2/Mbiex5KouJwwR3dzHkhLREUC6764VyDsqxhAxv6OFEYR1RhjOyD1naqba8ECDBe7ZQg==}
     peerDependencies:
-      '@types/react': ^19.0.0
+      '@types/react': ^19.2.0
 
-  '@types/react@19.0.3':
-    resolution: {integrity: sha512-UavfHguIjnnuq9O67uXfgy/h3SRJbidAYvNjLceB+2RIKVRBzVsh0QO+Pw6BCSQqFS9xwzKfwstXx0m6AbAREA==}
+  '@types/react@19.2.18':
+    resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
 
   '@typescript-eslint/eslint-plugin@8.68.0':
     resolution: {integrity: sha512-WASHDpCm6qO5jj9g1a+8NiW5+GCkAyLReR56/4VruYmNgfUmqpxOfZ2Yfb8xGfJPWv5Qi6LSD8sXdces3vbp/Q==}
@@ -2222,10 +2222,10 @@ packages:
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
-  react-dom@19.0.3:
-    resolution: {integrity: sha512-a7ezLfxibhu6fZBVLwy6WEd3Jn/4H8JYVO8K8GtBfRf1Pl+ox7KFoMCzAGlxLZUXo0t44YZShzhhoDH3yMVdxQ==}
+  react-dom@19.1.0:
+    resolution: {integrity: sha512-Xs1hdnE+DyKgeHJeJznQmYMIBG3TKIHJJT95Q58nHLSrElKlGQqDTR2HQ9fx5CN/Gk6Vh/kupBTDLU11/nDk/g==}
     peerDependencies:
-      react: ^19.0.3
+      react: ^19.1.0
 
   react-hook-form@7.87.0:
     resolution: {integrity: sha512-zhFzWvLxNHH+8839OnZcUxgMZw88ah2jZWDWvKWgF3Tpbnd0vKL+dlcuU3nZVWESZQjd81EW8K+wU+cYfYAc0w==}
@@ -2251,8 +2251,8 @@ packages:
       react: '>=16.6.0'
       react-dom: '>=16.6.0'
 
-  react@19.0.3:
-    resolution: {integrity: sha512-owzQanTgpB8GF7pVL6mUwZZyhKzFePi9++GkFk54i9PRU0jq+z7v9Mwg7PAZJYCiYl5YwcyQGGq5/PLkesd8nw==}
+  react@19.1.0:
+    resolution: {integrity: sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==}
     engines: {node: '>=0.10.0'}
 
   read-cache@1.0.2:
@@ -2326,8 +2326,8 @@ packages:
     resolution: {integrity: sha512-x/+Cz4YrimQxQccJf5mKEbIa1NzeCRNI5Ecl/ekmlYaampdNLPalVyIcCZNNH3MvmqBugV5TMYZXv0ljslUlaw==}
     engines: {node: '>= 0.4'}
 
-  scheduler@0.25.0:
-    resolution: {integrity: sha512-xFVuu11jh+xcO7JOAGJNOXld8/TcEHK/4CituBUeUb5hqxJLj9YuemAEuvm9gQ/+pgXYfbQuqAkiYu+u7YEsNA==}
+  scheduler@0.26.0:
+    resolution: {integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==}
 
   schema-utils@4.3.3:
     resolution: {integrity: sha512-eflK8wEtyOE6+hsaRVPxvUKYCpRgzLqDTb8krvAsRIwOGlHoSgYLgBXoubGgLd2fT41/OUYdb48v4k4WWHQurA==}
@@ -2784,13 +2784,13 @@ snapshots:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
 
-  '@dhiwise/component-tagger@1.0.16(next@15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.0.3(react@19.0.3))(react@19.0.3))(supports-color@8.1.1)(vite@8.2.2(@types/node@20.19.43)(jiti@1.21.7)(terser@5.51.2)(yaml@2.9.0))(webpack@5.110.2(lightningcss@1.33.0)(postcss@8.4.8))':
+  '@dhiwise/component-tagger@1.0.16(next@15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(supports-color@8.1.1)(vite@8.2.2(@types/node@20.19.43)(jiti@1.21.7)(terser@5.51.2)(yaml@2.9.0))(webpack@5.110.2(lightningcss@1.33.0)(postcss@8.4.8))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/parser': 7.29.8
       fast-glob: 3.3.3
       magic-string: 0.30.21
-      next: 15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.0.3(react@19.0.3))(react@19.0.3)
+      next: 15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       picomatch: 4.0.7
       unplugin: 1.16.1
       vite: 8.2.2(@types/node@20.19.43)(jiti@1.21.7)(terser@5.51.2)(yaml@2.9.0)
@@ -2865,9 +2865,9 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
-  '@heroicons/react@2.2.0(react@19.0.3)':
+  '@heroicons/react@2.2.0(react@19.1.0)':
     dependencies:
-      react: 19.0.3
+      react: 19.1.0
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -3167,11 +3167,11 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/react-dom@19.0.3(@types/react@19.0.3)':
+  '@types/react-dom@19.2.5(@types/react@19.2.18)':
     dependencies:
-      '@types/react': 19.0.3
+      '@types/react': 19.2.18
 
-  '@types/react@19.0.3':
+  '@types/react@19.2.18':
     dependencies:
       csstype: 3.2.3
 
@@ -4535,9 +4535,9 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.475.0(react@19.0.3):
+  lucide-react@0.475.0(react@19.1.0):
     dependencies:
-      react: 19.0.3
+      react: 19.1.0
 
   magic-string@0.30.21:
     dependencies:
@@ -4595,15 +4595,15 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next@15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.0.3(react@19.0.3))(react@19.0.3):
+  next@15.5.18(@babel/core@7.29.7(supports-color@8.1.1))(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       '@next/env': 15.5.18
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001810
       postcss: 8.4.31
-      react: 19.0.3
-      react-dom: 19.0.3(react@19.0.3)
-      styled-jsx: 5.1.6(@babel/core@7.29.7(supports-color@8.1.1))(react@19.0.3)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+      styled-jsx: 5.1.6(@babel/core@7.29.7(supports-color@8.1.1))(react@19.1.0)
     optionalDependencies:
       '@next/swc-darwin-arm64': 15.5.18
       '@next/swc-darwin-x64': 15.5.18
@@ -4791,37 +4791,37 @@ snapshots:
 
   queue-microtask@1.2.3: {}
 
-  react-dom@19.0.3(react@19.0.3):
+  react-dom@19.1.0(react@19.1.0):
     dependencies:
-      react: 19.0.3
-      scheduler: 0.25.0
+      react: 19.1.0
+      scheduler: 0.26.0
 
-  react-hook-form@7.87.0(react@19.0.3):
+  react-hook-form@7.87.0(react@19.1.0):
     dependencies:
-      react: 19.0.3
+      react: 19.1.0
 
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
 
-  react-smooth@4.0.4(react-dom@19.0.3(react@19.0.3))(react@19.0.3):
+  react-smooth@4.0.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       fast-equals: 5.4.1
       prop-types: 15.8.1
-      react: 19.0.3
-      react-dom: 19.0.3(react@19.0.3)
-      react-transition-group: 4.4.5(react-dom@19.0.3(react@19.0.3))(react@19.0.3)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+      react-transition-group: 4.4.5(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
-  react-transition-group@4.4.5(react-dom@19.0.3(react@19.0.3))(react@19.0.3):
+  react-transition-group@4.4.5(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       '@babel/runtime': 7.29.7
       dom-helpers: 5.2.1
       loose-envify: 1.4.0
       prop-types: 15.8.1
-      react: 19.0.3
-      react-dom: 19.0.3(react@19.0.3)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
-  react@19.0.3: {}
+  react@19.1.0: {}
 
   read-cache@1.0.2: {}
 
@@ -4833,15 +4833,15 @@ snapshots:
     dependencies:
       decimal.js-light: 2.5.1
 
-  recharts@2.15.4(react-dom@19.0.3(react@19.0.3))(react@19.0.3):
+  recharts@2.15.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
       clsx: 2.1.1
       eventemitter3: 4.0.7
       lodash: 4.18.1
-      react: 19.0.3
-      react-dom: 19.0.3(react@19.0.3)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
       react-is: 18.3.1
-      react-smooth: 4.0.4(react-dom@19.0.3(react@19.0.3))(react@19.0.3)
+      react-smooth: 4.0.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       recharts-scale: 0.4.5
       tiny-invariant: 1.3.3
       victory-vendor: 36.9.2
@@ -4934,7 +4934,7 @@ snapshots:
       es-errors: 1.3.0
       is-regex: 1.2.1
 
-  scheduler@0.25.0: {}
+  scheduler@0.26.0: {}
 
   schema-utils@4.3.3:
     dependencies:
@@ -5035,10 +5035,10 @@ snapshots:
       side-channel-map: 1.0.1
       side-channel-weakmap: 1.0.2
 
-  sonner@1.7.4(react-dom@19.0.3(react@19.0.3))(react@19.0.3):
+  sonner@1.7.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0):
     dependencies:
-      react: 19.0.3
-      react-dom: 19.0.3(react@19.0.3)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
 
   source-map-js@1.2.1: {}
 
@@ -5111,10 +5111,10 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
-  styled-jsx@5.1.6(@babel/core@7.29.7(supports-color@8.1.1))(react@19.0.3):
+  styled-jsx@5.1.6(@babel/core@7.29.7(supports-color@8.1.1))(react@19.1.0):
     dependencies:
       client-only: 0.0.1
-      react: 19.0.3
+      react: 19.1.0
     optionalDependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
 

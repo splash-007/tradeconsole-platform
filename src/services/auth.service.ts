@@ -48,16 +48,17 @@ export interface AuthUser {
   status?: 'active' | 'suspended' | 'disabled';
 }
 
-// Mock users for development — NOT exposed in production UI
+// Mock users for development — NOT required when AUTH_MODE=disabled.
+// These are only used when DATA_MODE=mock and a user manually visits the login page.
 const MOCK_USERS: { email: string; password: string; user: AuthUser }[] = [
-  { email: 'trader@cryonfx.app', password: 'Vault2026!', user: { id: 'user-001', email: 'trader@cryonfx.app', firstName: 'Alex', lastName: 'Mercer', role: 'customer', status: 'active' } },
-  { email: 'admin@cryonfx.app', password: 'Admin2026!', user: { id: 'admin-001', email: 'admin@cryonfx.app', firstName: 'Sarah', lastName: 'Chen', role: 'admin', status: 'active' } },
-  { email: 'broker@cryonfx.app', password: 'Broker2026!', user: { id: 'broker-001', email: 'broker@cryonfx.app', firstName: 'James', lastName: 'Park', role: 'broker', status: 'active', managerId: 'staff-001', managerName: 'Sarah Chen' } },
-  { email: 'affiliate@cryonfx.app', password: 'Affiliate2026!', user: { id: 'aff-001', email: 'affiliate@cryonfx.app', firstName: 'Marco', lastName: 'Rossi', role: 'affiliate', status: 'active', managerId: 'staff-010', managerName: 'Elena Vasquez' } },
-  { email: 'finance@cryonfx.app', password: 'Finance2026!', user: { id: 'fin-001', email: 'finance@cryonfx.app', firstName: 'David', lastName: 'Kim', role: 'finance', status: 'active' } },
-  { email: 'vpsales@cryonfx.app', password: 'VPSales2026!', user: { id: 'vp-001', email: 'vpsales@cryonfx.app', firstName: 'Robert', lastName: 'Chen', role: 'vp_sales', status: 'active' } },
-  { email: 'compliance@cryonfx.app', password: 'Compliance2026!', user: { id: 'cm-001', email: 'compliance@cryonfx.app', firstName: 'Lisa', lastName: 'Wang', role: 'compliance_manager', status: 'active' } },
-  { email: 'shift@cryonfx.app', password: 'Shift2026!', user: { id: 'sm-001', email: 'shift@cryonfx.app', firstName: 'Alex', lastName: 'Torres', role: 'shift_manager', status: 'active' } },
+  { email: 'trader@tradeconsole.app', password: 'Trade2026!', user: { id: 'user-001', email: 'trader@tradeconsole.app', firstName: 'Alex', lastName: 'Mercer', role: 'customer', status: 'active' } },
+  { email: 'admin@tradeconsole.app', password: 'Admin2026!', user: { id: 'admin-001', email: 'admin@tradeconsole.app', firstName: 'Sarah', lastName: 'Chen', role: 'admin', status: 'active' } },
+  { email: 'broker@tradeconsole.app', password: 'Broker2026!', user: { id: 'broker-001', email: 'broker@tradeconsole.app', firstName: 'James', lastName: 'Park', role: 'broker', status: 'active', managerId: 'staff-001', managerName: 'Sarah Chen' } },
+  { email: 'affiliate@tradeconsole.app', password: 'Affiliate2026!', user: { id: 'aff-001', email: 'affiliate@tradeconsole.app', firstName: 'Marco', lastName: 'Rossi', role: 'affiliate', status: 'active', managerId: 'staff-010', managerName: 'Elena Vasquez' } },
+  { email: 'finance@tradeconsole.app', password: 'Finance2026!', user: { id: 'fin-001', email: 'finance@tradeconsole.app', firstName: 'David', lastName: 'Kim', role: 'finance', status: 'active' } },
+  { email: 'vpsales@tradeconsole.app', password: 'VPSales2026!', user: { id: 'vp-001', email: 'vpsales@tradeconsole.app', firstName: 'Robert', lastName: 'Chen', role: 'vp_sales', status: 'active' } },
+  { email: 'compliance@tradeconsole.app', password: 'Compliance2026!', user: { id: 'cm-001', email: 'compliance@tradeconsole.app', firstName: 'Lisa', lastName: 'Wang', role: 'compliance_manager', status: 'active' } },
+  { email: 'shift@tradeconsole.app', password: 'Shift2026!', user: { id: 'sm-001', email: 'shift@tradeconsole.app', firstName: 'Alex', lastName: 'Torres', role: 'shift_manager', status: 'active' } },
 ];
 
 export const authService = {

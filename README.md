@@ -1,91 +1,90 @@
-# Next.js
+# Trade Console
 
-A modern Next.js 15 application built with TypeScript and Tailwind CSS.
+Professional trading terminal frontend — built with Next.js 15, TypeScript, and Tailwind CSS.
 
-## 🚀 Features
-
-- **Next.js 15** - Latest version with improved performance and features
-- **React 19** - Latest React version with enhanced capabilities
-- **Tailwind CSS** - Utility-first CSS framework for rapid UI development
-
-## 🛠️ Installation
-
-1. Install dependencies:
-  ```bash
-  npm install
-  # or
-  yarn install
-  ```
-
-2. Start the development server:
-  ```bash
-  npm run dev
-  # or
-  yarn dev
-  ```
-3. Open [http://localhost:4028](http://localhost:4028) with your browser to see the result.
-
-## 📁 Project Structure
+## Architecture
 
 ```
-nextjs/
-├── public/             # Static assets
-├── src/
-│   ├── app/            # App router components
-│   │   ├── layout.tsx  # Root layout component
-│   │   └── page.tsx    # Main page component
-│   ├── components/     # Reusable UI components
-│   ├── styles/         # Global styles and Tailwind configuration
-├── next.config.mjs     # Next.js configuration
-├── package.json        # Project dependencies and scripts
-├── postcss.config.js   # PostCSS configuration
-└── tailwind.config.js  # Tailwind CSS configuration
-
+Trade Console Frontend (this repo)
+        ↓ HTTPS API
+Trade Console Backend (VPS — external)
+        ↓
+PostgreSQL + Valkey
 ```
 
-## 🧩 Page Editing
+The frontend **never** connects directly to PostgreSQL. All data flows through the backend API.
 
-You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+## Repository Structure
 
-## 🎨 Styling
+```
+tradeconsole-platform/
+│
+├── src/                     ← Next.js frontend (canonical location)
+├── public/
+│
+├── backend/
+│   └── README.md            ← Reserved for VPS backend (external development)
+│
+├── database/
+│   ├── migrations/          ← PostgreSQL migrations (backend team)
+│   ├── seeds/               ← Development seed data
+│   └── README.md
+│
+├── packages/
+│   └── shared/              ← Future shared contracts (DTOs, enums, types)
+│
+├── docs/                    ← Architecture documentation
+├── infra/                   ← Docker, Nginx, deployment templates
+├── scripts/                 ← Deployment, migration, maintenance scripts
+│
+├── package.json
+├── next.config.mjs
+├── tsconfig.json
+└── .env.example
+```
 
-This project uses Tailwind CSS for styling with the following features:
-- Utility-first approach for rapid development
-- Custom theme configuration
-- Responsive design utilities
-- PostCSS and Autoprefixer integration
+## Getting Started
 
-## 📦 Available Scripts
+```bash
+cp .env.example .env.local
+# Edit .env.local with your values
 
-- `npm run dev` - Start development server on port 4028
-- `npm run build` - Build the application for production
-- `npm run start` - Start the development server
-- `npm run serve` - Start the production server
-- `npm run lint` - Run ESLint to check code quality
-- `npm run lint:fix` - Fix ESLint issues automatically
-- `npm run format` - Format code with Prettier
+pnpm install
+pnpm dev
+```
 
-## 📱 Deployment
+## Environment Variables
 
-Build the application for production:
+| Variable | Description | Default |
+|---|---|---|
+| `NEXT_PUBLIC_AUTH_MODE` | `disabled` (dev) or `api` (prod) | `disabled` |
+| `NEXT_PUBLIC_DATA_MODE` | `mock` (dev) or `api` (prod) | `mock` |
+| `NEXT_PUBLIC_API_BASE_URL` | Backend API URL | — |
+| `NEXT_PUBLIC_WS_URL` | WebSocket URL for realtime | — |
+| `NEXT_PUBLIC_DEV_ROLE` | Dev role for UI testing | `customer` |
 
-  ```bash
-  npm run build
-  ```
+## Development Mode
 
-## 📚 Learn More
+When `NEXT_PUBLIC_AUTH_MODE=disabled`:
+- All routes are directly accessible without login
+- Root `/` redirects to `/trading-dashboard`
+- Login/register UI is preserved but not required
+- **⚠️ DEVELOPMENT ONLY — do not use with real data**
 
-To learn more about Next.js, take a look at the following resources:
+## Production Mode
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial
+When `NEXT_PUBLIC_AUTH_MODE=api`:
+- Full session-based authentication via backend API
+- HTTP-only secure cookies (set by backend)
+- Role-based route protection enforced in middleware
 
-You can check out the [Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Build
 
-## 🙏 Acknowledgments
+```bash
+pnpm install
+pnpm build
+```
 
-- Built with [Rocket.new](https://rocket.new)
-- Powered by Next.js and React
-- Styled with Tailwind CSS
+## Docs
 
-Built with ❤️ on Rocket.new
+See `/docs` for full database architecture, API requirements, and role/permission model.
