@@ -1,10 +1,10 @@
 'use client';
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell
+  ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
-import { Camera, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
+import { Camera, Maximize2, Minimize2, RotateCcw, Wifi, WifiOff } from 'lucide-react';
 import { useRealTimeMarket, CandleData } from '@/hooks/useRealTimeMarket';
 
 interface Props {
@@ -26,6 +26,18 @@ const SYMBOL_MAP: Record<string, string> = {
   'ADA/USDC': 'ADA/USDC',
   'AVAX/USDC': 'AVAX/USDC',
   'DOT/USDC': 'DOT/USDC',
+  'XRP/USDC': 'XRP/USDC',
+};
+
+const BASE_PRICES: Record<string, number> = {
+  'BTC/USDC': 67842,
+  'ETH/USDC': 3542,
+  'BNB/USDC': 612,
+  'SOL/USDC': 182,
+  'ADA/USDC': 0.48,
+  'AVAX/USDC': 38.4,
+  'DOT/USDC': 7.82,
+  'XRP/USDC': 0.624,
 };
 
 function generateFallbackCandles(count: number, basePrice: number) {
@@ -40,8 +52,22 @@ function generateFallbackCandles(count: number, basePrice: number) {
     const low = Math.min(open, close) - Math.random() * price * 0.004;
     const volume = Math.random() * 800 + 100;
     const ts = new Date(now - i * 3600000);
-    const label = `${ts.getMonth() + 1}/${ts.getDate()} ${ts.getHours()}:00`;
-    candles.push({ time: label, open, close, high, low, volume, isUp: close >= open });
+    const label = `${(ts.getMonth() + 1).toString().padStart(2,'0')}/${ts.getDate().toString().padStart(2,'0')} ${ts.getHours().toString().padStart(2,'0')}:00`;
+    const isUp = close >= open;
+    candles.push({
+      time: label,
+      open,
+      close,
+      high,
+      low,
+      volume,
+      isUp,
+      bodyLow: Math.min(open, close),
+      bodyHigh: Math.max(open, close),
+      bodySize: Math.abs(close - open),
+      wickHigh: high,
+      wickLow: low,
+    });
     price = close;
   }
   return candles;
@@ -50,7 +76,7 @@ function generateFallbackCandles(count: number, basePrice: number) {
 function candleDataToChartFormat(candles: CandleData[]) {
   return candles.map(c => {
     const d = new Date(c.time * 1000);
-    const label = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:00`;
+    const label = `${(d.getMonth() + 1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:00`;
     const isUp = c.close >= c.open;
     return {
       time: label,
@@ -63,6 +89,8 @@ function candleDataToChartFormat(candles: CandleData[]) {
       bodyLow: Math.min(c.open, c.close),
       bodyHigh: Math.max(c.open, c.close),
       bodySize: Math.abs(c.close - c.open),
+      wickHigh: c.high,
+      wickLow: c.low,
     };
   });
 }
@@ -101,44 +129,61 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
   const liveQuote = mappedSymbol ? quotes[mappedSymbol] : undefined;
   const isLive = !!liveQuote;
 
-  const basePrice = symbol === 'BTC/USDC' ? 67842 : symbol === 'ETH/USDC' ? 3542 : 182;
+  const basePrice = BASE_PRICES[symbol] ?? 100;
+
+  // Container ref + measured height for reliable chart sizing
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    ro.observe(el);
+    // Initial measurement
+    setContainerHeight(el.getBoundingClientRect().height);
+    return () => ro.disconnect();
+  }, []);
 
   const chartData = useMemo(() => {
     if (liveCandles && liveCandles.length >= 2) {
       return candleDataToChartFormat(liveCandles);
     }
-    // Fallback to generated candles
-    const fallback = generateFallbackCandles(36, basePrice * 0.96);
-    return fallback.map(c => ({
-      ...c,
-      bodyLow: Math.min(c.open, c.close),
-      bodyHigh: Math.max(c.open, c.close),
-      bodySize: Math.abs(c.close - c.open),
-    }));
+    return generateFallbackCandles(36, basePrice * 0.96);
   }, [liveCandles, basePrice]);
 
   const last = chartData[chartData.length - 1];
-  // Use live price for the last close if available
   const liveClose = liveQuote?.price ?? last?.close;
   const displayLast = last ? { ...last, close: liveClose } : last;
   const changeVal = displayLast ? (displayLast.close - displayLast.open) : 0;
-  const changePct = displayLast ? ((changeVal / displayLast.open) * 100) : 0;
+  const changePct = displayLast && displayLast.open > 0 ? ((changeVal / displayLast.open) * 100) : 0;
+
+  // Compute chart heights from measured container
+  const toolbarHeight = 36; // timeframe bar
+  const ohlcBarHeight = 28; // OHLC info bar
+  const reservedHeight = toolbarHeight + ohlcBarHeight + 8; // padding
+  const availableHeight = containerHeight > reservedHeight + 60 ? containerHeight - reservedHeight : 300;
+  const mainChartHeight = Math.floor(availableHeight * 0.76);
+  const volumeChartHeight = Math.floor(availableHeight * 0.21);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="flex flex-col h-full w-full" style={{ backgroundColor: 'var(--background)' }}>
       {/* Timeframe + tools bar */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-b shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', height: `${toolbarHeight}px` }}>
         {/* Timeframes */}
         <div className="flex items-center gap-0.5">
           {TIMEFRAMES.map((tf, idx) => (
             <button
               key={`tf-${tf}-${idx}`}
               onClick={() => onTimeframeChange(tf)}
-              className={`px-2 py-1 text-xs rounded transition-all duration-150 font-medium ${
-                timeframe === tf
-                  ? 'text-gold font-bold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-              style={timeframe === tf ? { color: 'var(--primary)' } : {}}
+              className="px-2 py-1 text-xs rounded transition-all duration-150 font-medium"
+              style={timeframe === tf
+                ? { color: 'var(--primary)', fontWeight: 700 }
+                : { color: 'var(--muted-foreground)' }}
             >
               {tf}
             </button>
@@ -160,8 +205,9 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
           backgroundColor: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(245,196,0,0.08)',
           color: isLive ? '#22c55e' : 'var(--muted-foreground)',
         }}>
+          {isLive ? <Wifi size={11} /> : <WifiOff size={11} />}
           <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'}`} />
-          <span className="hidden sm:inline">{isLive ? 'Live' : 'Connecting…'}</span>
+          <span className="hidden sm:inline">{isLive ? 'Live' : 'Mock'}</span>
         </div>
 
         {/* Right icons */}
@@ -182,9 +228,9 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
       </div>
 
       {/* OHLC info bar */}
-      <div className="flex items-center gap-3 px-3 py-1 shrink-0" style={{ backgroundColor: 'var(--background)' }}>
+      <div className="flex items-center gap-3 px-3 py-1 shrink-0" style={{ backgroundColor: 'var(--background)', height: `${ohlcBarHeight}px` }}>
         <span className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
-          {symbol} · {timeframe} · CRYPTO VAULT
+          {symbol} · {timeframe} · Trade Console
         </span>
         {displayLast && (
           <>
@@ -204,64 +250,97 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         )}
       </div>
 
-      {/* Chart body */}
-      <div className="flex-1 min-h-0 px-2 pb-1">
-        <ResponsiveContainer width="100%" height="76%">
-          <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" />
-            <XAxis
-              dataKey="time"
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
-              axisLine={false}
-              tickLine={false}
-              interval={5}
-            />
-            <YAxis
-              domain={['auto', 'auto']}
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v.toFixed(0)}
-              width={52}
-              orientation="right"
-            />
-            <Tooltip content={<CustomCandleTooltip />} />
-            <Bar dataKey="bodySize" fill="transparent" stroke="transparent">
-              {chartData.map((entry, idx) => (
-                <Cell
-                  key={`cell-body-${idx}`}
-                  fill={entry.isUp ? '#22c55e' : '#ef4444'}
-                  stroke={entry.isUp ? '#22c55e' : '#ef4444'}
+      {/* Chart body — measured container */}
+      <div ref={containerRef} className="flex-1 min-h-0 px-2 pb-1 flex flex-col">
+        {/* Main candlestick chart — explicit pixel height */}
+        {mainChartHeight > 0 && (
+          <div style={{ height: mainChartHeight, width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={5}
                 />
-              ))}
-            </Bar>
-            {/* MA line — gold */}
-            <Line
-              type="monotone"
-              dataKey="close"
-              stroke="var(--primary)"
-              strokeWidth={1.5}
-              dot={false}
-              strokeOpacity={0.7}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+                <YAxis
+                  domain={['auto', 'auto']}
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v >= 1 ? v.toFixed(0) : v.toFixed(4)}
+                  width={56}
+                  orientation="right"
+                />
+                <Tooltip content={<CustomCandleTooltip />} />
 
-        {/* Volume sub-chart */}
-        <ResponsiveContainer width="100%" height="21%">
-          <ComposedChart data={chartData} margin={{ top: 2, right: 8, left: 0, bottom: 0 }}>
-            <XAxis dataKey="time" hide />
-            <YAxis hide orientation="right" width={52} />
-            <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
-              {chartData.map((entry, idx) => (
-                <Cell
-                  key={`cell-vol-${idx}`}
-                  fill={entry.isUp ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}
+                {/* Candle body bars */}
+                <Bar dataKey="bodySize" fill="transparent" stroke="transparent" minPointSize={1}>
+                  {chartData.map((entry, idx) => (
+                    <Cell
+                      key={`cell-body-${idx}`}
+                      fill={entry.isUp ? '#22c55e' : '#ef4444'}
+                      stroke={entry.isUp ? '#22c55e' : '#ef4444'}
+                    />
+                  ))}
+                </Bar>
+
+                {/* Current price reference line */}
+                {liveClose && (
+                  <ReferenceLine
+                    y={liveClose}
+                    stroke="var(--primary)"
+                    strokeDasharray="4 3"
+                    strokeWidth={1}
+                    label={{ value: liveClose.toFixed(2), position: 'right', fill: 'var(--primary)', fontSize: 9 }}
+                  />
+                )}
+
+                {/* MA line — gold */}
+                <Line
+                  type="monotone"
+                  dataKey="close"
+                  stroke="var(--primary)"
+                  strokeWidth={1.5}
+                  dot={false}
+                  strokeOpacity={0.7}
                 />
-              ))}
-            </Bar>
-          </ComposedChart>
-        </ResponsiveContainer>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Volume sub-chart — explicit pixel height */}
+        {volumeChartHeight > 0 && (
+          <div style={{ height: volumeChartHeight, width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 2, right: 8, left: 0, bottom: 0 }}>
+                <XAxis dataKey="time" hide />
+                <YAxis hide orientation="right" width={56} />
+                <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
+                  {chartData.map((entry, idx) => (
+                    <Cell
+                      key={`cell-vol-${idx}`}
+                      fill={entry.isUp ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}
+                    />
+                  ))}
+                </Bar>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Loading state when container not yet measured */}
+        {containerHeight === 0 && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border)', borderTopColor: 'var(--primary)' }} />
+              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Loading chart…</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
