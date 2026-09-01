@@ -65,6 +65,16 @@ export default function StaffShell({
   // ── Auth Guard: deny-by-default, any authenticated staff ──────────────────
   const { status: authStatus } = useAuthGuard({ anyAuthenticated: true });
 
+  // In dev mode (auth disabled), always render the staff shell
+  const authMode = process.env.NEXT_PUBLIC_AUTH_MODE || 'disabled';
+  if (authMode !== 'disabled' && (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+      </div>
+    );
+  }
+
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -243,15 +253,6 @@ export default function StaffShell({
     </div>
   );
 
-  // Show nothing while auth is being validated (prevents flash of protected content)
-  if (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended') {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
-        <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: 'var(--background)' }}>
       {/* Desktop Sidebar */}
@@ -263,7 +264,7 @@ export default function StaffShell({
           <AppLogo size={24} />
           {!collapsed && (
             <div className="min-w-0">
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
               <p className="text-xs leading-tight truncate" style={{ color: 'var(--muted-foreground)' }}>{displayName}</p>
             </div>
           )}
@@ -293,7 +294,7 @@ export default function StaffShell({
           <div className="flex items-center gap-2">
             <AppLogo size={22} />
             <div>
-              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>CryonFX</p>
+              <p className="text-xs font-bold leading-tight" style={{ color: 'var(--primary)' }}>Trade Console</p>
               <p className="text-xs leading-tight" style={{ color: 'var(--muted-foreground)' }}>{displayName}</p>
             </div>
           </div>

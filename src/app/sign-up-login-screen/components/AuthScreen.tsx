@@ -148,7 +148,7 @@ function AuthScreenInner() {
               <path d="M14 13l7 7M21 13l-7 7" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span className="text-lg font-bold tracking-tight" style={{ color: '#111827', letterSpacing: '-0.02em' }}>CryonFX</span>
+          <span className="text-lg font-bold tracking-tight" style={{ color: '#111827', letterSpacing: '-0.02em' }}>Trade Console</span>
         </div>
 
         {/* Heading */}
@@ -157,7 +157,7 @@ function AuthScreenInner() {
             {tab === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
           <p className="text-sm" style={{ color: '#6B7280' }}>
-            {tab === 'login' ? 'Sign in to your account' : 'Join CryonFX today'}
+            {tab === 'login' ? 'Sign in to your account' : 'Join Trade Console today'}
           </p>
         </div>
 
@@ -406,7 +406,7 @@ function AuthScreenInner() {
 
         {/* Footer note */}
         <p className="text-center text-xs mt-6" style={{ color: '#9CA3AF' }}>
-          © {new Date().getFullYear()} CryonFX. All rights reserved.
+          © {new Date().getFullYear()} Trade Console. All rights reserved.
         </p>
       </div>
     </div>
