@@ -401,42 +401,106 @@
 
 ---
 
-## 25. Audit Actions
+## 25. Account Request Status
 
-**PostgreSQL column**: `audit_logs.action`
+**PostgreSQL column**: `account_requests.status`  
+**Type**: `text` with CHECK constraint
 
-| Backend Value | Trigger |
-|--------------|---------|
-| `CUSTOMER_CREATED` | New customer registered |
-| `CUSTOMER_UPDATED` | Customer profile updated |
-| `CUSTOMER_STATUS_CHANGED` | Customer status changed |
-| `CUSTOMER_ASSIGNED` | Customer assigned to staff |
-| `CUSTOMER_REASSIGNED` | Customer reassigned |
-| `TASK_CREATED` | Task created |
-| `TASK_UPDATED` | Task updated |
-| `TASK_COMPLETED` | Task completed |
-| `TASK_CANCELLED` | Task cancelled |
-| `NOTE_ADDED` | Internal note added |
-| `CALL_STARTED` | Call initiated |
-| `CALL_COMPLETED` | Call ended |
-| `ROLE_ASSIGNED` | Role assigned to staff |
-| `ROLE_CHANGED` | Staff role changed |
-| `PERMISSION_CHANGED` | Permission override set |
-| `MANAGER_CHANGED` | Manager relationship changed |
-| `VERIFICATION_UPDATED` | KYC status updated |
-| `DEPOSIT_REVIEWED` | Deposit reviewed |
-| `WITHDRAWAL_REVIEWED` | Withdrawal reviewed |
-| `CHAT_ADMIN_VIEWED` | Admin viewed chat |
-| `STAFF_CREATED` | Staff account created |
-| `STAFF_DISABLED` | Staff account disabled |
-| `STAFF_REACTIVATED` | Staff account reactivated |
-| `CONVERSATION_VIEWED` | Conversation opened |
-| `SIMULATION_STARTED` | Simulation lab run |
-| `ESCALATION_CREATED` | Escalation raised |
+> This enum covers the full lifecycle of a customer account provisioning request.  
+> Verify against `users.status` and `customer_profiles.status` — these are separate concerns.
+
+| Backend Value | Display | Notes |
+|--------------|---------|-------|
+| `draft` | Draft | Request started but not submitted |
+| `pending_approval` | Pending Approval | Submitted by manager, awaiting admin review |
+| `approved` | Approved | Admin approved, provisioning not yet started |
+| `rejected` | Rejected | Admin rejected the request |
+| `provisioning` | Provisioning | Backend provisioning job in progress |
+| `provisioned` | Provisioned | Account created, invitation not yet sent |
+| `invite_sent` | Invite Sent | Account access email sent to customer |
+| `activated` | Activated | Customer completed first login |
+| `cancelled` | Cancelled | Request cancelled before completion |
+
+**No overlap with existing enums**: `users.status` uses `active | suspended | disabled`. `customer_profiles.status` uses `pending | verified | active | suspended | rejected`. These are distinct from `account_requests.status`. ✓
 
 ---
 
-## 26. Naming Convention Summary
+## 26. Account Activation State (Customer Profile)
+
+**PostgreSQL column**: `customer_profiles.activation_status` (new column — extends existing table)  
+**Type**: `text` with CHECK constraint
+
+> Tracks the customer account activation lifecycle. Separate from `customer_profiles.status` (identity/CRM status).
+
+| Backend Value | Display | Notes |
+|--------------|---------|-------|
+| `pending_approval` | Pending Approval | Account request not yet approved |
+| `approved` | Approved | Request approved, not yet provisioned |
+| `invite_sent` | Invite Sent | Access email sent |
+| `active` | Active | Customer has logged in and activated |
+| `disabled` | Disabled | Account disabled by admin |
+| `suspended` | Suspended | Temporarily suspended |
+
+---
+
+## 27. Login Handoff Token Status
+
+**Storage**: Valkey (primary, with TTL) — not stored in PostgreSQL  
+**Audit record**: `audit_logs` (event: `LOGIN_HANDOFF_CREATED`, `LOGIN_HANDOFF_REDEEMED`)
+
+| State | Description |
+|-------|-------------|
+| `valid` | Token exists in Valkey, not yet redeemed |
+| `redeemed` | Token consumed — immediately deleted from Valkey |
+| `expired` | TTL elapsed — auto-removed by Valkey |
+
+---
+
+## 28. New Audit Event Types (Account Provisioning)
+
+**PostgreSQL column**: `audit_logs.event_type`  
+**Extends existing audit event enum** — verify no duplicates before adding.
+
+| Backend Value | Trigger |
+|--------------|---------|
+| `ACCOUNT_CREATION_REQUESTED` | Manager submits account request |
+| `ACCOUNT_REQUEST_APPROVED` | Admin approves request |
+| `ACCOUNT_REQUEST_REJECTED` | Admin rejects request |
+| `CUSTOMER_ACCOUNT_PROVISIONED` | Backend provisioning completes |
+| `ACCOUNT_INVITATION_SENT` | Account access email sent |
+| `ACCOUNT_INVITATION_RESENT` | Admin resends invitation |
+| `ACCOUNT_ACTIVATED` | Customer completes first login |
+| `ACCOUNT_DISABLED` | Admin disables account |
+| `PASSWORD_RESET_INITIATED` | Password reset triggered |
+| `LOGIN_HANDOFF_CREATED` | Handoff token generated after marketing site login |
+| `LOGIN_HANDOFF_REDEEMED` | Handoff token redeemed, Trade Console session created |
+
+---
+
+## 29. New Permission Keys (Account Provisioning)
+
+**PostgreSQL table**: `permissions` (extends existing permission registry)  
+**Naming convention**: `resource.action` (snake_case) — consistent with existing pattern.
+
+| Permission Key | Description | Default Roles |
+|---------------|-------------|---------------|
+| `customer_account.request` | Submit account creation request for assigned customer | agent, broker, retention_broker, ftd_broker, desk_broker, compliance_broker |
+| `customer_account.request_view` | View own submitted account requests | (same as above) |
+| `customer_account.approve` | Approve or reject account requests | admin, super_admin |
+| `customer_account.reject` | Reject account requests | admin, super_admin |
+| `customer_account.provision` | Manual provisioning override | super_admin |
+| `customer_account.invite_resend` | Resend account access invitation | admin, super_admin |
+| `customer_account.disable` | Disable a provisioned customer account | admin, super_admin |
+| `customer_account.credentials_reset` | Reset customer access credentials | admin, super_admin |
+| `marketing_site.view` | View configured marketing sites | manager roles, admin, super_admin |
+| `marketing_site.manage` | Create/update/deactivate marketing sites | super_admin |
+
+> **Scope restriction**: `customer_account.request` applies only to customers assigned to the requesting manager. Existing team/assignment scope continues to apply.  
+> **No duplicate check**: Reviewed existing permissions in `ROLE_PERMISSION_DATABASE_MODEL.md` — no equivalent permissions exist. ✓
+
+---
+
+## 30. Naming Convention Summary
 
 | Context | Convention | Example |
 |---------|-----------|---------|

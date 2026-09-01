@@ -3,29 +3,29 @@
 @tailwind utilities;
 
 :root {
-  --background: #070707;
-  --foreground: #F1F1F1;
-  --primary: #F5C400;
-  --primary-foreground: #070707;
-  --secondary: #111313;
-  --secondary-foreground: #A0A0A0;
-  --accent: #F5C400;
-  --accent-foreground: #070707;
-  --muted: #1A1C1C;
+  --background: #FFFFFF;
+  --foreground: #111313;
+  --primary: #D4A800;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #4B5563;
+  --accent: #D4A800;
+  --accent-foreground: #FFFFFF;
+  --muted: #F3F4F6;
   --muted-foreground: #6B7280;
-  --card: #0D0E0E;
-  --card-foreground: #F1F1F1;
-  --border: #1F2020;
-  --input: #161818;
-  --ring: #F5C400;
+  --card: #FFFFFF;
+  --card-foreground: #111313;
+  --border: #E5E7EB;
+  --input: #F9FAFB;
+  --ring: #D4A800;
   --radius: 6px;
   --font-sans: var(--font-ibm-plex-sans), sans-serif;
   --font-mono: var(--font-ibm-plex-mono), monospace;
-  --positive: #22C55E;
-  --negative: #EF4444;
-  --warning: #F59E0B;
-  --panel: #111313;
-  --panel-border: #1F2020;
+  --positive: #16A34A;
+  --negative: #DC2626;
+  --warning: #D97706;
+  --panel: #F9FAFB;
+  --panel-border: #E5E7EB;
 }
 
 .light {

@@ -219,3 +219,91 @@ Will the shift manager have a scheduling feature (assign staff to specific shift
 
 ### Q20: Audit Log Retention Policy
 How long should audit logs be retained? (Legal requirement may vary by jurisdiction)
+
+---
+
+## ACCOUNT PROVISIONING — New Open Questions
+
+---
+
+### Q21: Temporary Password vs Activation Link
+**Impact**: First-login security architecture, `users` table fields, email template content
+
+**Question**: For first-login access, which mechanism will be used?
+- (A) **Temporary password** — backend generates, stores only Argon2id hash, marks `mustChangePassword=true`, expires after first use or N hours
+- (B) **Activation/set-password link** — backend generates secure token, customer sets their own password on first visit, no temporary plaintext password ever transmitted
+
+**Security note**: Option A requires the temporary password to be transmitted in the account access email (plaintext in transit). Option B is preferred for security — no password is ever emailed.
+
+**Recommendation**: Option B (activation link) is preferred. If Option A is chosen: generate server-side only, store only hash, mark temporary, require change on first login, expire it, never log it, never expose via Admin APIs.
+
+**Fields to prepare regardless of choice:**
+```
+mustChangePassword: boolean
+accountActivated: boolean
+activationTokenExpiresAt: timestamp (Option B)
+passwordExpiresAt: timestamp (Option A)
+```
+
+---
+
+### Q22: Provisioning Trigger — Immediate vs Async Job
+**Impact**: Backend architecture, frontend status polling, UX after approval
+
+**Question**: When Admin approves an account request, does provisioning occur:
+- (A) **Synchronously** — immediately on approval API response
+- (B) **Asynchronously** — via background job queue (status transitions: `approved` → `provisioning` → `provisioned`)
+
+**Recommendation**: Option B (async job) for production. The `provisioning` status exists in the enum to support this. Frontend should poll or use WebSocket `account_request.status_updated` event.
+
+---
+
+### Q23: Which Manager Roles Can Request Accounts
+**Impact**: `customer_account.request` permission assignment, RBAC configuration
+
+**Question**: Which staff roles should be permitted to submit account creation requests?
+- All roles with customer/lead access (agent, broker, retention_broker, ftd_broker, etc.)?
+- Only specific senior roles (desk_manager, team_leader, conversion_manager)?
+- Configurable per team/office?
+
+**Recommendation**: Grant `customer_account.request` to all roles that have customer assignment scope (agent, broker, retention_broker, ftd_broker, desk_broker, compliance_broker). Restrict to assigned customers only — existing team/assignment scope must continue to apply.
+
+---
+
+### Q24: Admin vs Super Admin Approval Authority
+**Impact**: `customer_account.approve` permission assignment
+
+**Question**: Can regular Admin approve account requests, or is this Super Admin only?
+
+**Recommendation**: Both Admin and Super Admin should be able to approve/reject. Super Admin additionally gets `customer_account.provision` (manual provisioning override) and `customer_account.disable` / `customer_account.credentials_reset`.
+
+---
+
+### Q25: Marketing Sites — New Table vs Extend Existing
+**Impact**: Schema design, whether `marketing_sources` table is sufficient
+
+**Question**: The existing `marketing_sources` table tracks lead attribution sources. Should marketing sites (with `domain`, `login_url`, `brand_config`) be:
+- (A) A new `marketing_sites` table (separate from attribution sources)
+- (B) Extended columns on the existing `marketing_sources` table
+
+**Recommendation**: Option A — new `marketing_sites` table. Marketing sources are attribution/analytics data. Marketing sites are authentication entry points with security implications (approved domain allowlist). These are different concerns and should not be conflated.
+
+---
+
+### Q26: Login Handoff Token Storage
+**Impact**: New `login_handoff_tokens` table design
+
+**Question**: Should handoff tokens be stored in:
+- (A) PostgreSQL `login_handoff_tokens` table (with TTL cleanup job)
+- (B) Valkey/Redis with TTL (auto-expires, no cleanup needed)
+
+**Recommendation**: Option B (Valkey) for handoff tokens — they are ephemeral (~30–60s), high-frequency, and benefit from automatic TTL expiry. Audit records of redemption events go to PostgreSQL `audit_logs`.
+
+---
+
+### Q27: Account Access Email — Branding
+**Impact**: Email template system, `marketing_sites` brand configuration
+
+**Question**: Should account access emails be branded per marketing site (CryonFX branding for cryonfx.com customers, TradeHub branding for tradehub.io customers)?
+
+**Recommendation**: Yes. The `marketing_sites` table should include a `brand_config` reference (logo URL, brand name, colors). The email template system should resolve branding from the customer's associated marketing site.

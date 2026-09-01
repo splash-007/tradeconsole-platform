@@ -2,6 +2,8 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowDownLeft, ArrowUpRight, RefreshCw, Search, Download, TrendingUp, DollarSign, ArrowUpDown, Clock, CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Icon from '@/components/ui/AppIcon';
+
 
 
 type TxType = 'deposit' | 'withdrawal' | 'trade_buy' | 'trade_sell' | 'fee';

@@ -7,7 +7,7 @@ import { financeService, DepositRequest, WithdrawalRequest } from '@/services/fi
 import { PageHeader, Card, ActionButton, StatusBadge } from '@/components/admin/AdminUI';
 import AssetControlPanel from '@/components/agent/AssetControlPanel';
 
-import { Shield, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Shield, ArrowDownLeft, ArrowUpRight, UserPlus, Globe, X } from 'lucide-react';
 
 const AGENT_ID = 'agent-001';
 const ONLINE_DOT: Record<string, string> = { online: '#22c55e', away: '#f59e0b', offline: '#6b7280' };
@@ -19,6 +19,11 @@ const TIMELINE = [
   { time: '15:09', event: 'Call ended — Connected (4:32)', actor: 'System' },
   { time: '15:32', event: 'Customer sent message', actor: 'Alex Morgan' },
   { time: '15:34', event: 'Agent replied', actor: 'Sarah Chen' },
+];
+
+const MARKETING_SITES = [
+  { id: 'site-001', name: 'CryonFX', domain: 'cryonfx.com', loginUrl: 'https://cryonfx.com/login' },
+  { id: 'site-002', name: 'TradeHub', domain: 'tradehub.io', loginUrl: 'https://tradehub.io/login' },
 ];
 
 export default function AgentCustomerDetailContent({ customerId }: { customerId: string }) {
@@ -36,6 +41,14 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
   const [deposits, setDeposits] = useState<DepositRequest[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [financeTab, setFinanceTab] = useState<'deposits' | 'withdrawals'>('deposits');
+
+  // Request Account modal state
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    selectedSiteId: '',
+    requestReason: '',
+  });
+  const [requestSubmitted, setRequestSubmitted] = useState(false);
 
   useEffect(() => {
     agentService.getCustomerDetail(customerId, AGENT_ID).then(c => {
@@ -88,6 +101,18 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
     setInternalNote('');
   };
 
+  const handleSubmitAccountRequest = () => {
+    if (!requestForm.selectedSiteId || !requestForm.requestReason.trim()) return;
+    // Frontend contract: POST /api/v1/account-requests
+    // Body: { customerId, marketingSiteId, requestReason, requestingManagerId }
+    setRequestSubmitted(true);
+    setTimeout(() => {
+      setShowRequestModal(false);
+      setRequestSubmitted(false);
+      setRequestForm({ selectedSiteId: '', requestReason: '' });
+    }, 1500);
+  };
+
   if (loading || !customer) return <div className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Loading...</div>;
 
   const CALL_STATE_LABELS: Record<CallState, string> = {
@@ -104,15 +129,27 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
     { id: 'assets', label: 'Assets' },
   ];
 
+  const selectedSite = MARKETING_SITES.find(s => s.id === requestForm.selectedSiteId);
+
   return (
     <div className="space-y-4">
       <PageHeader
         title={`${customer.firstName} ${customer.lastName}`}
         subtitle={`${customer.country} · ${customer.registrationSource || '—'} · Assigned ${customer.assignedDate}`}
         actions={
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ONLINE_DOT[customer.onlineStatus] }} />
-            <span className="text-xs capitalize" style={{ color: 'var(--muted-foreground)' }}>{customer.onlineStatus}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: ONLINE_DOT[customer.onlineStatus] }} />
+              <span className="text-xs capitalize" style={{ color: 'var(--muted-foreground)' }}>{customer.onlineStatus}</span>
+            </div>
+            <button
+              onClick={() => setShowRequestModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-colors hover:bg-primary/10"
+              style={{ borderColor: 'var(--primary)', color: 'var(--primary)' }}
+            >
+              <UserPlus size={12} />
+              Request Account
+            </button>
           </div>
         }
       />
@@ -349,6 +386,119 @@ export default function AgentCustomerDetailContent({ customerId }: { customerId:
           </Card>
         </div>
       </div>
+
+      {/* Request Account Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded border shadow-xl"
+            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2">
+                <UserPlus size={14} style={{ color: 'var(--primary)' }} />
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Request Account Creation</h3>
+              </div>
+              <button onClick={() => setShowRequestModal(false)} className="p-1 rounded hover:bg-black/5" style={{ color: 'var(--muted-foreground)' }}>
+                <X size={14} />
+              </button>
+            </div>
+
+            {requestSubmitted ? (
+              <div className="p-6 text-center">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(22,163,74,0.1)' }}>
+                  <span style={{ color: '#16A34A', fontSize: 20 }}>✓</span>
+                </div>
+                <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Request Submitted</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Pending admin approval</p>
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
+                {/* Customer summary */}
+                <div className="p-3 rounded border text-xs" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
+                  <div className="font-semibold mb-1" style={{ color: 'var(--foreground)' }}>{customer.firstName} {customer.lastName}</div>
+                  <div style={{ color: 'var(--muted-foreground)' }}>{customer.country} · {customer.registrationSource || 'Direct'}</div>
+                </div>
+
+                {/* Marketing site selector */}
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
+                    Login / Customer Source <span style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <p className="text-xs mb-2" style={{ color: 'var(--muted-foreground)' }}>
+                    Select the marketing site the customer will use to log in. Must be a configured site.
+                  </p>
+                  <div className="space-y-1.5">
+                    {MARKETING_SITES.map(site => (
+                      <button
+                        key={site.id}
+                        onClick={() => setRequestForm(f => ({ ...f, selectedSiteId: site.id }))}
+                        className="w-full text-left p-3 rounded border transition-all text-xs"
+                        style={{
+                          borderColor: requestForm.selectedSiteId === site.id ? 'var(--primary)' : 'var(--border)',
+                          backgroundColor: requestForm.selectedSiteId === site.id ? 'rgba(212,168,0,0.06)' : 'var(--card)',
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Globe size={12} style={{ color: requestForm.selectedSiteId === site.id ? 'var(--primary)' : 'var(--muted-foreground)' }} />
+                          <div>
+                            <div className="font-semibold" style={{ color: 'var(--foreground)' }}>{site.name}</div>
+                            <div style={{ color: 'var(--muted-foreground)' }}>{site.domain}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedSite && (
+                    <p className="text-xs mt-1.5" style={{ color: 'var(--muted-foreground)' }}>
+                      Customer login URL: <span className="font-mono">{selectedSite.loginUrl}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Request reason */}
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--foreground)' }}>
+                    Request Reason <span style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <textarea
+                    className="w-full text-xs p-2 rounded border resize-none outline-none"
+                    style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                    rows={3}
+                    placeholder="Explain why this customer is ready for account creation..."
+                    value={requestForm.requestReason}
+                    onChange={e => setRequestForm(f => ({ ...f, requestReason: e.target.value }))}
+                  />
+                </div>
+
+                <div className="p-2 rounded text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.06)', color: 'var(--muted-foreground)' }}>
+                  This request will be sent to Admin for approval. You cannot create active customer accounts directly.
+                </div>
+
+                <div className="flex gap-2 justify-end pt-1">
+                  <button
+                    onClick={() => setShowRequestModal(false)}
+                    className="px-3 py-1.5 rounded text-xs border"
+                    style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitAccountRequest}
+                    disabled={!requestForm.selectedSiteId || !requestForm.requestReason.trim()}
+                    className="px-3 py-1.5 rounded text-xs font-medium transition-opacity"
+                    style={{
+                      backgroundColor: 'var(--primary)',
+                      color: 'var(--primary-foreground)',
+                      opacity: (!requestForm.selectedSiteId || !requestForm.requestReason.trim()) ? 0.5 : 1,
+                    }}
+                  >
+                    Submit Request
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

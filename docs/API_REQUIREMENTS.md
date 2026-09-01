@@ -329,6 +329,192 @@
 
 ---
 
+## Admin — Account Requests (Customer Account Provisioning)
+
+> Permission required: `customer_account.request_view` (view), `customer_account.approve` / `customer_account.reject` (actions)
+
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| GET | `/admin/account-requests` | List all account requests (filterable by status) | admin, super_admin |
+| GET | `/admin/account-requests/:id` | Get account request detail + approval history | admin, super_admin |
+| POST | `/admin/account-requests/:id/approve` | Approve request → triggers provisioning | admin, super_admin |
+| POST | `/admin/account-requests/:id/reject` | Reject request with reason | admin, super_admin |
+| POST | `/admin/account-requests/:id/resend-invitation` | Resend account access email | admin, super_admin |
+| POST | `/admin/account-requests/:id/disable` | Disable provisioned account | admin, super_admin |
+| POST | `/admin/account-requests/:id/reset-access` | Reset customer access credentials | admin, super_admin |
+
+### Account Request — Create (Manager)
+
+> Permission required: `customer_account.request`
+
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| POST | `/account-requests` | Submit account creation request for a lead/customer | manager roles |
+| GET | `/account-requests` | List own submitted requests | manager roles |
+
+### Create Request Body
+```json
+{
+  "customerId": "string",
+  "marketingSiteId": "string",
+  "requestReason": "string"
+}
+```
+> `requestingManagerId` is resolved server-side from the authenticated session.  
+> `marketingSiteId` must reference a configured, active `marketing_sites` record.  
+> Frontend must NOT allow arbitrary domain text entry.
+
+### Approve Response (triggers backend provisioning)
+```json
+{
+  "data": {
+    "requestId": "string",
+    "status": "approved",
+    "provisioningTriggered": true,
+    "username": "string",
+    "mustChangePassword": true,
+    "accountActivated": false
+  }
+}
+```
+
+---
+
+## Marketing Site Configuration
+
+> Permission required: `marketing_site.manage` (admin/super_admin)
+
+| Method | Endpoint | Description | Roles |
+|--------|----------|-------------|-------|
+| GET | `/admin/marketing-sites` | List all configured marketing sites | admin, super_admin |
+| POST | `/admin/marketing-sites` | Create new marketing site | super_admin |
+| PATCH | `/admin/marketing-sites/:id` | Update marketing site | super_admin |
+| DELETE | `/admin/marketing-sites/:id` | Deactivate marketing site | super_admin |
+
+### Marketing Site Object
+```json
+{
+  "id": "string",
+  "name": "CryonFX",
+  "domain": "cryonfx.com",
+  "loginUrl": "https://cryonfx.com/login",
+  "status": "active",
+  "brandConfig": {},
+  "createdAt": "string",
+  "updatedAt": "string"
+}
+```
+> Backend must validate `loginUrl` against an approved-domain allowlist.  
+> Frontend must never accept arbitrary redirect URLs.
+
+---
+
+## Cross-Domain Login Handoff
+
+> These endpoints support the marketing-site → Trade Console seamless login flow.  
+> Marketing websites authenticate against the Trade Console API — they do NOT maintain their own auth database.
+
+### Step 1 — Marketing Site Login
+```
+POST /api/v1/auth/login
+```
+**Request:**
+```json
+{
+  "username": "string",
+  "password": "string",
+  "sourceSite": "cryonfx.com"
+}
+```
+> `sourceSite` is used for attribution and to resolve the approved redirect domain.  
+> Backend validates credentials against the central Trade Console user/session system.  
+> Backend does NOT trust an arbitrary redirect URL from the request body.
+
+**Success Response:**
+```json
+{
+  "data": {
+    "handoffUrl": "https://app.tradeconsole.com/auth/handoff?token=<short_lived_token>"
+  }
+}
+```
+> The `handoffUrl` is constructed server-side from the approved domain configuration.  
+> The token is cryptographically random, single-use, short-lived (~30–60 seconds), stored hashed.
+
+**Login Error Codes:**
+| Code | Meaning |
+|------|---------|
+| `invalid_credentials` | Username or password incorrect |
+| `account_pending` | Account not yet activated |
+| `account_disabled` | Account has been disabled |
+| `activation_required` | Customer must complete activation |
+| `password_change_required` | Temporary password must be changed |
+| `rate_limited` | Too many attempts |
+
+> Do NOT reveal whether a username exists.
+
+---
+
+### Step 2 — Handoff Token Redemption (Trade Console)
+```
+GET /auth/handoff?token=<token>
+```
+> This is a Trade Console frontend route that calls the backend to redeem the token.
+
+**Backend behavior:**
+1. Validate token exists, is not expired, is not already redeemed
+2. Mark token as redeemed (immediately invalid after this point)
+3. Create secure HttpOnly session cookie (`cv_session_token`)
+4. Create audit record: `LOGIN_HANDOFF_REDEEMED`
+5. Redirect customer to their dashboard
+
+**Token Security Requirements:**
+- Cryptographically random (minimum 32 bytes)
+- Short-lived: 30–60 seconds
+- Single-use: invalidated immediately on redemption
+- Stored hashed (not plaintext) in backend
+- Bound to authenticated user/session attempt
+- Protected against replay attacks
+- Auditable
+
+> Do NOT put passwords or permanent session tokens in redirect URLs.
+
+---
+
+## Account Provisioning Contract
+
+On approval, the backend will:
+1. Create/activate `users` record
+2. Create `customer_profiles` record if required
+3. Assign `Customer` role
+4. Associate source/affiliate/campaign attribution
+5. Associate assigned manager
+6. Generate unique username (backend responsibility — frontend must NOT generate authoritative usernames)
+7. Generate first-login access (temporary password or activation link — TBD, see Open Questions)
+8. Create audit records
+9. Trigger account access email with login URL from `marketing_sites.login_url`
+
+**Account flags returned by provisioning API:**
+```json
+{
+  "username": "string",
+  "mustChangePassword": true,
+  "accountActivated": false
+}
+```
+
+---
+
+## WebSocket Events (Account Provisioning)
+
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `account_request.status_updated` | Server → Client | Account request status changed |
+| `account.provisioned` | Server → Client | Customer account provisioned |
+| `account.activated` | Server → Client | Customer completed first login |
+
+---
+
 ## WebSocket Events
 
 | Event | Direction | Description |

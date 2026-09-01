@@ -346,6 +346,87 @@
 
 ---
 
+## Admin Pages (continued)
+
+### `/admin/account-requests`
+**Service**: `adminService` (future: `accountRequestService`)
+
+| API Endpoint | DB Tables |
+|-------------|-----------|
+| GET `/admin/account-requests` | `account_requests`, `users`, `customer_profiles`, `marketing_sites`, `staff_profiles` |
+| GET `/admin/account-requests/:id` | `account_requests`, `account_request_audit` |
+| POST `/admin/account-requests/:id/approve` | `account_requests`, `users`, `customer_profiles`, `audit_logs` |
+| POST `/admin/account-requests/:id/reject` | `account_requests`, `audit_logs` |
+| POST `/admin/account-requests/:id/resend-invitation` | `account_requests`, `audit_logs` |
+| POST `/admin/account-requests/:id/disable` | `users`, `audit_logs` |
+| POST `/admin/account-requests/:id/reset-access` | `users`, `audit_logs` |
+
+---
+
+## Agent / Manager Pages (continued)
+
+### `/agent/customers/[id]` — Request Account Action
+**Service**: `agentService` (future: `accountRequestService`)
+
+| API Endpoint | DB Tables |
+|-------------|-----------|
+| POST `/account-requests` | `account_requests`, `audit_logs` |
+| GET `/admin/marketing-sites` (active only) | `marketing_sites` |
+
+**Frontend contract:**
+- Manager selects from configured `marketing_sites` (active only)
+- Manager provides `requestReason`
+- `requestingManagerId` resolved server-side from session
+- Frontend does NOT allow arbitrary domain text entry
+- Manager cannot create active customer login accounts directly
+
+---
+
+## Marketing Site Login Handoff Flow
+
+### `cryonfx.com/login` (Marketing Site — external)
+> Marketing site is NOT a separate auth system. It is a branded login entry point only.
+
+| Step | Action | Notes |
+|------|--------|-------|
+| 1 | Customer submits credentials on marketing site | Marketing site calls Trade Console API |
+| 2 | `POST /api/v1/auth/login` with `sourceSite` | Trade Console validates credentials |
+| 3 | Backend generates short-lived handoff token | Cryptographically random, ~30–60s TTL |
+| 4 | Backend returns `handoffUrl` | URL constructed server-side from approved domain config |
+| 5 | Browser redirects to `/auth/handoff?token=...` | Trade Console frontend route |
+| 6 | Trade Console backend redeems token | Token immediately invalidated |
+| 7 | Secure HttpOnly session cookie created | `cv_session_token` |
+| 8 | Customer redirected to dashboard | No second login required |
+
+**DB Tables involved:** `users`, `login_handoff_tokens` (new), `sessions`, `audit_logs`
+
+---
+
+### `/auth/handoff` (Trade Console — new route)
+**Service**: `authService`
+
+| API Endpoint | DB Tables |
+|-------------|-----------|
+| GET `/auth/handoff?token=...` (internal backend call) | `login_handoff_tokens`, `sessions`, `audit_logs` |
+
+---
+
+## Admin — Marketing Site Management
+
+### `/admin/marketing-sites` (future page)
+**Service**: `adminService` (future: `marketingSiteService`)
+
+| API Endpoint | DB Tables |
+|-------------|-----------|
+| GET `/admin/marketing-sites` | `marketing_sites` |
+| POST `/admin/marketing-sites` | `marketing_sites` |
+| PATCH `/admin/marketing-sites/:id` | `marketing_sites` |
+| DELETE `/admin/marketing-sites/:id` | `marketing_sites` |
+
+> Backend must enforce approved-domain allowlist for `loginUrl` values.
+
+---
+
 ## Staff Workspace Pages
 
 ### `/agent` (and all role variants: `/broker`, `/ftd-broker`, etc.)
