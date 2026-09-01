@@ -3,19 +3,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, ChevronDown, ArrowDownToLine, ArrowUpFromLine, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History } from 'lucide-react';
+import { Bell, ChevronDown, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History, Bot, Activity, ArrowUpFromLine } from 'lucide-react';
 import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
-  { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
-  { label: 'Watchlist', href: '/watchlist', icon: Star },
+  { label: 'Trading Bot', href: '/trading-bot', icon: Bot },
+  { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Transactions', href: '/transactions', icon: History },
-  { label: 'Messages', href: '/messages', icon: MessageSquare },
+  { label: 'Watchlist', href: '/watchlist', icon: Star },
   { label: 'Funds', href: '/finance', icon: Wallet },
-  { label: 'Academy', href: '#', icon: BookOpen },
+  { label: 'News & Learn', href: '#', icon: BookOpen },
+  { label: 'Support', href: '/messages', icon: MessageSquare },
 ];
 
 interface ClientNotification {
@@ -187,20 +188,6 @@ export default function TopNav() {
 
           {/* Right actions */}
           <div className="flex items-center gap-1">
-            {/* Deposit/Withdraw — desktop only */}
-            <div className="hidden md:flex items-center gap-1 mr-1">
-              <Link href="/finance" className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all duration-150 active:scale-95"
-                style={{ backgroundColor: 'var(--positive)', color: '#fff' }}>
-                <ArrowDownToLine size={12} />
-                Deposit
-              </Link>
-              <Link href="/finance" className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all duration-150 hover:bg-muted active:scale-95"
-                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
-                <ArrowUpFromLine size={12} />
-                Withdraw
-              </Link>
-            </div>
-
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
@@ -347,10 +334,7 @@ export default function TopNav() {
           {/* Deposit/Withdraw mobile */}
           <div className="flex gap-2 mt-3">
             <Link href="/finance" onClick={() => setDrawerOpen(false)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-semibold" style={{ backgroundColor: 'var(--positive)', color: '#fff' }}>
-              <ArrowDownToLine size={12} /> Deposit
-            </Link>
-            <Link href="/finance" onClick={() => setDrawerOpen(false)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
-              <ArrowUpFromLine size={12} /> Withdraw
+              Funds
             </Link>
           </div>
         </div>

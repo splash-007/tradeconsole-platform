@@ -1,124 +1,145 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { marketsService, MarketInstrument } from '@/services/markets.service';
-import { Search, TrendingUp, TrendingDown, ArrowUpDown, ArrowUp, ArrowDown, Wifi } from 'lucide-react';
+import { watchlistService } from '@/services/watchlist.service';
+import { Search, TrendingUp, TrendingDown, Star, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useRealTimeMarket } from '@/hooks/useRealTimeMarket';
-import MiniCandleChart from '@/components/trading/MiniCandleChart';
 
-const CATEGORIES = ['All', 'Crypto', 'Forex', 'Indices', 'Commodities'] as const;
-type SortField = 'symbol' | 'lastPrice' | 'changePct24h' | 'volume24h' | 'marketCap';
-type SortDir = 'asc' | 'desc';
+type CategoryKey = 'forex' | 'indices' | 'commodities' | 'metals' | 'energy' | 'shares' | 'crypto';
 
-// Symbols that have Binance live feed
-const LIVE_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'SOL/USDC', 'BNB/USDC', 'XRP/USDC', 'ADA/USDC', 'AVAX/USDC', 'DOT/USDC'];
+const CATEGORIES: { key: CategoryKey; label: string; icon: string }[] = [
+  { key: 'forex', label: 'Forex', icon: '💱' },
+  { key: 'indices', label: 'Indices', icon: '📊' },
+  { key: 'commodities', label: 'Commodities', icon: '🌾' },
+  { key: 'metals', label: 'Metals', icon: '🥇' },
+  { key: 'energy', label: 'Energy', icon: '⚡' },
+  { key: 'shares', label: 'Shares', icon: '🏢' },
+  { key: 'crypto', label: 'Cryptocurrencies', icon: '₿' },
+];
+
+const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }> = {
+  open: { label: 'Open', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+  closed: { label: 'Closed', color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
+  'pre-market': { label: 'Pre-Market', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  'after-hours': { label: 'After Hours', color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
+};
+
+function formatPrice(price: number, category: CategoryKey): string {
+  if (category === 'forex') return price.toFixed(4);
+  if (price >= 10000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (price >= 100) return price.toFixed(2);
+  if (price >= 1) return price.toFixed(3);
+  return price.toFixed(5);
+}
+
+function formatVolume(v: number): string {
+  if (v === 0) return '—';
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${v.toLocaleString()}`;
+}
+
+function SymbolBadge({ symbol, category }: { symbol: string; category: CategoryKey }) {
+  const abbr = symbol.split('/')[0].slice(0, 3).toUpperCase();
+  const colors: Record<CategoryKey, string> = {
+    forex: '#3b82f6',
+    indices: '#8b5cf6',
+    commodities: '#f59e0b',
+    metals: '#F5C400',
+    energy: '#f97316',
+    shares: '#22c55e',
+    crypto: '#F5C400',
+  };
+  return (
+    <div
+      className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
+      style={{ backgroundColor: `${colors[category]}18`, color: colors[category], border: `1px solid ${colors[category]}30` }}
+    >
+      {abbr}
+    </div>
+  );
+}
 
 export default function MarketsContent() {
   const [instruments, setInstruments] = useState<MarketInstrument[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<string>('All');
+  const [activeCategory, setActiveCategory] = useState<CategoryKey>('forex');
   const [search, setSearch] = useState('');
-  const [sortField, setSortField] = useState<SortField>('volume24h');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
-
-  // Real-time market feed
-  const { quotes, candles } = useRealTimeMarket(LIVE_SYMBOLS);
-  const isLive = Object.keys(quotes).length > 0;
+  const [watchedSymbols, setWatchedSymbols] = useState<string[]>([]);
 
   useEffect(() => {
     marketsService.getInstruments().then(data => {
       setInstruments(data);
       setLoading(false);
     });
+    setWatchedSymbols(watchlistService.getWatchlist());
   }, []);
 
-  // Merge live quotes into instruments
-  const mergedInstruments = useMemo(() => {
-    return instruments.map(inst => {
-      const live = quotes[inst.symbol];
-      if (!live) return inst;
-      return {
-        ...inst,
-        lastPrice: live.price,
-        change24h: live.change24h,
-        changePct24h: live.changePct24h,
-        high24h: live.high24h,
-        low24h: live.low24h,
-        volume24h: live.volume24h,
-      };
-    });
-  }, [instruments, quotes]);
+  const toggleWatch = (symbol: string) => {
+    watchlistService.toggle(symbol);
+    setWatchedSymbols(watchlistService.getWatchlist());
+  };
 
   const filtered = useMemo(() => {
-    let data = [...mergedInstruments];
-    if (category !== 'All') data = data.filter(i => i.category === category.toLowerCase());
-    if (search) data = data.filter(i => i.symbol.toLowerCase().includes(search.toLowerCase()));
-    data.sort((a, b) => {
-      const av = a[sortField] as number | string;
-      const bv = b[sortField] as number | string;
-      if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv as string) : (bv as string).localeCompare(av);
-      return sortDir === 'asc' ? (av as number) - (bv as number) : (bv as number) - (av as number);
-    });
+    let data = instruments.filter(i => i.category === activeCategory);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      data = data.filter(i => i.symbol.toLowerCase().includes(q) || i.name.toLowerCase().includes(q));
+    }
     return data;
-  }, [mergedInstruments, category, search, sortField, sortDir]);
+  }, [instruments, activeCategory, search]);
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortField(field); setSortDir('desc'); }
-  };
-
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown size={11} style={{ color: 'var(--muted-foreground)' }} />;
-    return sortDir === 'asc' ? <ArrowUp size={11} style={{ color: 'var(--primary)' }} /> : <ArrowDown size={11} style={{ color: 'var(--primary)' }} />;
-  };
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    instruments.forEach(i => { counts[i.category] = (counts[i.category] || 0) + 1; });
+    return counts;
+  }, [instruments]);
 
   return (
     <div className="py-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Markets</h1>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{instruments.length} instruments · Updated live</p>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+            {instruments.length} instruments across {CATEGORIES.length} asset classes
+          </p>
         </div>
-        {/* Live feed indicator */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-          style={{
-            backgroundColor: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${isLive ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
-            color: isLive ? '#22c55e' : 'var(--muted-foreground)',
-          }}>
-          <Wifi size={11} />
-          <span>{isLive ? 'Live Feed' : 'Connecting…'}</span>
-          {isLive && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        {/* Category tabs */}
-        <div className="flex items-center gap-1 p-1 rounded-lg" style={{ backgroundColor: 'var(--muted)' }}>
-          {CATEGORIES.map(cat => (
-            <button
-              key={`mkt-cat-${cat}`}
-              onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-all ${category === cat ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Search */}
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search symbol..."
-            className="w-full pl-8 pr-3 py-2 rounded-md text-xs border focus:outline-none"
+            placeholder="Search instruments…"
+            className="pl-8 pr-3 py-2 rounded-md text-xs border focus:outline-none w-52"
             style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
           />
         </div>
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
+        {CATEGORIES.map(cat => (
+          <button
+            key={cat.key}
+            onClick={() => setActiveCategory(cat.key)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0"
+            style={{
+              backgroundColor: activeCategory === cat.key ? 'rgba(245,196,0,0.15)' : 'var(--card)',
+              color: activeCategory === cat.key ? 'var(--primary)' : 'var(--muted-foreground)',
+              border: `1px solid ${activeCategory === cat.key ? 'rgba(245,196,0,0.4)' : 'var(--border)'}`,
+            }}
+          >
+            <span>{cat.icon}</span>
+            <span>{cat.label}</span>
+            {categoryCounts[cat.key] && (
+              <span className="px-1.5 py-0.5 rounded text-xs" style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)', fontSize: '10px' }}>
+                {categoryCounts[cat.key]}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Table */}
@@ -126,168 +147,141 @@ export default function MarketsContent() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {[
-                  { label: '#', field: null, align: 'left' },
-                  { label: 'Symbol', field: 'symbol' as SortField, align: 'left' },
-                  { label: 'Last Price', field: 'lastPrice' as SortField, align: 'right' },
-                  { label: '24h Change', field: 'changePct24h' as SortField, align: 'right' },
-                  { label: '24h High', field: null, align: 'right' },
-                  { label: '24h Low', field: null, align: 'right' },
-                  { label: '24h Volume', field: 'volume24h' as SortField, align: 'right' },
-                  { label: 'Market Cap', field: 'marketCap' as SortField, align: 'right' },
-                  { label: 'Live Chart', field: null, align: 'center' },
-                  { label: 'Action', field: null, align: 'center' },
-                ].map(({ label, field, align }) => (
-                  <th
-                    key={`mkt-th-${label}`}
-                    onClick={field ? () => handleSort(field) : undefined}
-                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider whitespace-nowrap ${field ? 'cursor-pointer hover:bg-muted select-none' : ''} text-${align}`}
-                    style={{ color: 'var(--muted-foreground)' }}
-                  >
-                    <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''}`}>
-                      {label}
-                      {field && <SortIcon field={field} />}
-                    </div>
-                  </th>
-                ))}
+              <tr style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--muted)' }}>
+                <th className="px-3 py-2.5 text-left w-8" style={{ color: 'var(--muted-foreground)', fontSize: '11px' }}>★</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Instrument</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Symbol</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Price</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>24h Change</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--muted-foreground)' }}>Bid</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--muted-foreground)' }}>Ask</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>High</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>Low</th>
+                <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden xl:table-cell" style={{ color: 'var(--muted-foreground)' }}>Volume</th>
+                <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--muted-foreground)' }}>Status</th>
+                <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 8 }, (_, i) => (
-                  <tr key={`mkt-sk-${i}`} className="animate-pulse" style={{ borderBottom: '1px solid var(--border)' }}>
-                    {Array.from({ length: 10 }, (_, j) => (
-                      <td key={`mkt-sk-cell-${i}-${j}`} className="px-4 py-3">
-                        <div className="h-4 rounded" style={{ backgroundColor: 'var(--muted)', width: j === 0 ? '24px' : '80px' }} />
+                Array.from({ length: 6 }, (_, i) => (
+                  <tr key={`sk-${i}`} className="animate-pulse" style={{ borderBottom: '1px solid var(--border)' }}>
+                    {Array.from({ length: 12 }, (_, j) => (
+                      <td key={j} className="px-3 py-3">
+                        <div className="h-3.5 rounded" style={{ backgroundColor: 'var(--muted)', width: j === 1 ? '120px' : '60px' }} />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center">
+                  <td colSpan={12} className="px-4 py-12 text-center">
                     <Search size={24} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />
                     <p className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>No instruments found</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Try adjusting your search or filter</p>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Try adjusting your search</p>
                   </td>
                 </tr>
               ) : (
-                filtered.map((inst, idx) => {
+                filtered.map(inst => {
                   const isPos = inst.changePct24h >= 0;
-                  const liveCandles = candles[inst.symbol];
-                  const hasLiveFeed = LIVE_SYMBOLS.includes(inst.symbol);
-
+                  const isWatched = watchedSymbols.includes(inst.symbol);
+                  const statusStyle = STATUS_STYLES[inst.status] || STATUS_STYLES.closed;
                   return (
                     <tr
-                      key={`mkt-row-${inst.id}`}
-                      className="hover:bg-muted transition-colors"
+                      key={inst.id}
+                      className="hover:bg-white/[0.02] transition-colors"
                       style={{ borderBottom: '1px solid var(--border)' }}
                     >
-                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--muted-foreground)' }}>{idx + 1}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                            style={{ backgroundColor: 'var(--muted)', color: 'var(--primary)' }}>
-                            {inst.baseCurrency.slice(0, 2)}
-                          </div>
+                      {/* Star */}
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => toggleWatch(inst.symbol)}
+                          className="p-1 rounded transition-colors hover:bg-white/10"
+                          title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
+                        >
+                          <Star
+                            size={13}
+                            fill={isWatched ? 'var(--primary)' : 'none'}
+                            style={{ color: isWatched ? 'var(--primary)' : 'var(--muted-foreground)' }}
+                          />
+                        </button>
+                      </td>
+                      {/* Instrument */}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <SymbolBadge symbol={inst.symbol} category={inst.category} />
                           <div>
-                            <div className="flex items-center gap-1">
-                              <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</p>
-                              {hasLiveFeed && (
-                                <div className="w-1.5 h-1.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: isLive ? '#22c55e' : 'var(--muted-foreground)', opacity: isLive ? 1 : 0.4 }} />
-                              )}
-                            </div>
-                            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{inst.baseCurrency}</p>
+                            <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
+                            <p className="text-xs" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{inst.baseCurrency}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-semibold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-                          ${inst.lastPrice < 10 ? inst.lastPrice.toFixed(4) : inst.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {/* Symbol */}
+                      <td className="px-3 py-3 text-right hidden sm:table-cell">
+                        <span className="text-xs font-mono font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</span>
+                      </td>
+                      {/* Price */}
+                      <td className="px-3 py-3 text-right">
+                        <span className="text-xs font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
+                          {formatPrice(inst.lastPrice, inst.category)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold tabular-nums ${isPos ? 'bg-positive-subtle text-positive' : 'bg-negative-subtle text-negative'}`}>
+                      {/* 24h Change */}
+                      <td className="px-3 py-3 text-right">
+                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold tabular-nums`}
+                          style={{
+                            backgroundColor: isPos ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                            color: isPos ? '#22c55e' : '#ef4444',
+                          }}>
                           {isPos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                           {isPos ? '+' : ''}{inst.changePct24h.toFixed(2)}%
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-                          ${inst.high24h.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {/* Bid */}
+                      <td className="px-3 py-3 text-right hidden md:table-cell">
+                        <span className="text-xs tabular-nums font-mono" style={{ color: '#22c55e' }}>
+                          {formatPrice(inst.bid, inst.category)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-                          ${inst.low24h.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {/* Ask */}
+                      <td className="px-3 py-3 text-right hidden md:table-cell">
+                        <span className="text-xs tabular-nums font-mono" style={{ color: '#ef4444' }}>
+                          {formatPrice(inst.ask, inst.category)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      {/* High */}
+                      <td className="px-3 py-3 text-right hidden lg:table-cell">
                         <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-                          {inst.volume24h >= 1e9 ? `$${(inst.volume24h / 1e9).toFixed(2)}B` : inst.volume24h >= 1e6 ? `$${(inst.volume24h / 1e6).toFixed(0)}M` : `$${inst.volume24h.toLocaleString()}`}
+                          {formatPrice(inst.high24h, inst.category)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      {/* Low */}
+                      <td className="px-3 py-3 text-right hidden lg:table-cell">
+                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
+                          {formatPrice(inst.low24h, inst.category)}
+                        </span>
+                      </td>
+                      {/* Volume */}
+                      <td className="px-3 py-3 text-right hidden xl:table-cell">
                         <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--muted-foreground)' }}>
-                          {inst.marketCap > 0 ? (inst.marketCap >= 1e12 ? `$${(inst.marketCap / 1e12).toFixed(2)}T` : inst.marketCap >= 1e9 ? `$${(inst.marketCap / 1e9).toFixed(1)}B` : '—') : '—'}
+                          {formatVolume(inst.volume24h)}
                         </span>
                       </td>
-                      {/* Live Candlestick Chart Column */}
-                      <td className="px-2 py-2">
-                        <div className="flex items-center justify-center" style={{ width: 88, height: 40 }}>
-                          {hasLiveFeed && liveCandles && liveCandles.length >= 2 ? (
-                            <MiniCandleChart
-                              candles={liveCandles}
-                              width={88}
-                              height={40}
-                              showTooltip
-                            />
-                          ) : hasLiveFeed ? (
-                            // Loading skeleton for live symbols
-                            <div className="flex items-end gap-px w-full h-full px-1">
-                              {Array.from({ length: 10 }, (_, i) => (
-                                <div
-                                  key={`ld-${inst.id}-${i}`}
-                                  className="flex-1 rounded-sm animate-pulse"
-                                  style={{
-                                    height: `${40 + Math.sin(i * 1.3) * 30}%`,
-                                    backgroundColor: isPos ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            // Non-crypto instruments: static sparkline fallback
-                            <div className="flex items-end gap-px w-full h-full px-1">
-                              {inst.sparkline.map((v, i, arr) => {
-                                const min = Math.min(...arr);
-                                const max = Math.max(...arr);
-                                const pct = max === min ? 50 : ((v - min) / (max - min)) * 80 + 10;
-                                const barIsUp = i > 0 ? v >= arr[i - 1] : true;
-                                return (
-                                  <div
-                                    key={`sp-${inst.id}-${i}`}
-                                    className="flex-1 rounded-sm"
-                                    style={{
-                                      height: `${pct}%`,
-                                      backgroundColor: barIsUp ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)',
-                                    }}
-                                  />
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                      {/* Status */}
+                      <td className="px-3 py-3 text-center hidden md:table-cell">
+                        <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: statusStyle.bg, color: statusStyle.color }}>
+                          {statusStyle.label}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      {/* Action */}
+                      <td className="px-3 py-3 text-center">
                         <Link
                           href="/trade-trading-workspace"
-                          className="px-3 py-1.5 rounded text-xs font-semibold transition-all hover:opacity-80 active:scale-95 inline-block"
-                          style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition-all hover:opacity-90"
+                          style={{ backgroundColor: 'rgba(245,196,0,0.12)', color: 'var(--primary)', border: '1px solid rgba(245,196,0,0.25)' }}
                         >
                           Trade
+                          <ExternalLink size={9} />
                         </Link>
                       </td>
                     </tr>
