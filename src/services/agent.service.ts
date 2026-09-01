@@ -97,25 +97,25 @@ export interface AgentOverviewStats {
 
 const MOCK_AGENTS: Agent[] = [
   {
-    id: 'agent-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@tradeconsole.net',
+    id: 'agent-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@cryonfx.app',
     role: 'agent', status: 'online', assignedCustomers: 24, openTasks: 8, callsToday: 6,
     unreadConversations: 3, lastActive: '2026-08-27 14:40',
     permissions: { canViewEmail: false, canViewPhone: false, canViewCountry: true, canViewAccountData: true, canViewTransactions: false, canViewVerification: true, canCallCustomer: true, canChatWithCustomer: true, canAddInternalNotes: true }
   },
   {
-    id: 'agent-002', firstName: 'James', lastName: 'Park', email: 'james.park@tradeconsole.net',
+    id: 'agent-002', firstName: 'James', lastName: 'Park', email: 'james.park@cryonfx.app',
     role: 'agent', status: 'busy', assignedCustomers: 18, openTasks: 5, callsToday: 4,
     unreadConversations: 1, lastActive: '2026-08-27 14:35',
     permissions: { canViewEmail: true, canViewPhone: false, canViewCountry: true, canViewAccountData: true, canViewTransactions: true, canViewVerification: true, canCallCustomer: true, canChatWithCustomer: true, canAddInternalNotes: true }
   },
   {
-    id: 'agent-003', firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@tradeconsole.net',
+    id: 'agent-003', firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@cryonfx.app',
     role: 'agent', status: 'away', assignedCustomers: 12, openTasks: 3, callsToday: 2,
     unreadConversations: 0, lastActive: '2026-08-27 13:20',
     permissions: { canViewEmail: false, canViewPhone: false, canViewCountry: true, canViewAccountData: false, canViewTransactions: false, canViewVerification: false, canCallCustomer: true, canChatWithCustomer: true, canAddInternalNotes: true }
   },
   {
-    id: 'agent-004', firstName: 'David', lastName: 'Kim', email: 'david.kim@tradeconsole.net',
+    id: 'agent-004', firstName: 'David', lastName: 'Kim', email: 'david.kim@cryonfx.app',
     role: 'senior_agent', status: 'offline', assignedCustomers: 31, openTasks: 12, callsToday: 0,
     unreadConversations: 5, lastActive: '2026-08-27 09:15',
     permissions: { canViewEmail: true, canViewPhone: true, canViewCountry: true, canViewAccountData: true, canViewTransactions: true, canViewVerification: true, canCallCustomer: true, canChatWithCustomer: true, canAddInternalNotes: true }

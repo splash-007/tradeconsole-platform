@@ -1,184 +1,91 @@
-# Trade Console Platform
+# Next.js
 
-Trade Console is a full-stack trading and CRM platform for forex/crypto brokerages.
+A modern Next.js 15 application built with TypeScript and Tailwind CSS.
 
-This repository is structured as a **pnpm monorepo**.
+## 🚀 Features
 
----
+- **Next.js 15** - Latest version with improved performance and features
+- **React 19** - Latest React version with enhanced capabilities
+- **Tailwind CSS** - Utility-first CSS framework for rapid UI development
 
-## Repository Structure
+## 🛠️ Installation
+
+1. Install dependencies:
+  ```bash
+  npm install
+  # or
+  yarn install
+  ```
+
+2. Start the development server:
+  ```bash
+  npm run dev
+  # or
+  yarn dev
+  ```
+3. Open [http://localhost:4028](http://localhost:4028) with your browser to see the result.
+
+## 📁 Project Structure
 
 ```
-tradeconsole-platform/
-│
-├── apps/
-│   ├── web/                  # Trade Console frontend (Next.js 15 / React 19)
-│   └── api/                  # Trade Console backend API (imported separately)
-│
-├── packages/
-│   └── shared/               # Shared contracts, DTOs, schemas, enums
-│
-├── docs/                     # Architecture, database & API documentation
-│   ├── DATABASE_RECOMMENDATION.md
-│   ├── DATABASE_TABLES_AND_FIELDS.md
-│   ├── DATABASE_RELATIONSHIPS.md
-│   ├── ROLE_PERMISSION_DATABASE_MODEL.md
-│   ├── API_REQUIREMENTS.md
-│   ├── FRONTEND_BACKEND_MAPPING.md
-│   ├── ENUMS_AND_STATUSES.md
-│   ├── REALTIME_REQUIREMENTS.md
-│   ├── DATABASE_OPEN_QUESTIONS.md
-│   └── database-reference.json
-│
-├── infra/                    # Deployment & infrastructure configuration
-│
-├── .github/
-│   └── workflows/            # CI/CD workflows (configured separately)
-│
-├── pnpm-workspace.yaml       # pnpm workspace definition
-├── package.json              # Root workspace package
-├── .gitignore
-└── README.md
+nextjs/
+├── public/             # Static assets
+├── src/
+│   ├── app/            # App router components
+│   │   ├── layout.tsx  # Root layout component
+│   │   └── page.tsx    # Main page component
+│   ├── components/     # Reusable UI components
+│   ├── styles/         # Global styles and Tailwind configuration
+├── next.config.mjs     # Next.js configuration
+├── package.json        # Project dependencies and scripts
+├── postcss.config.js   # PostCSS configuration
+└── tailwind.config.js  # Tailwind CSS configuration
+
 ```
 
----
+## 🧩 Page Editing
 
-## Applications
+You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
 
-### `apps/web` — Trade Console Web Application
+## 🎨 Styling
 
-Rocket-built customer, staff and admin web application.
+This project uses Tailwind CSS for styling with the following features:
+- Utility-first approach for rapid development
+- Custom theme configuration
+- Responsive design utilities
+- PostCSS and Autoprefixer integration
 
-Built with Next.js 15, React 19, TypeScript, and Tailwind CSS.
+## 📦 Available Scripts
 
-Includes:
-- Customer trading dashboard, markets, portfolio, watchlist
-- Admin Panel with full CRM, operations, finance, compliance, marketing
-- Staff role dashboards (Broker, Agent, Manager, Compliance, Finance, etc.)
-- Real-time market data via Binance WebSocket + CoinGecko
-- Internal staff chat and customer support chat
-- KYC / verification flows
-- Role-based access control (23 roles)
+- `npm run dev` - Start development server on port 4028
+- `npm run build` - Build the application for production
+- `npm run start` - Start the development server
+- `npm run serve` - Start the production server
+- `npm run lint` - Run ESLint to check code quality
+- `npm run lint:fix` - Fix ESLint issues automatically
+- `npm run format` - Format code with Prettier
 
-### `apps/api` — Trade Console Backend API
+## 📱 Deployment
 
-Trade Console Node.js / TypeScript backend — imported separately.
+Build the application for production:
 
-See `apps/api/README.md`.
+  ```bash
+  npm run build
+  ```
 
----
+## 📚 Learn More
 
-## Packages
+To learn more about Next.js, take a look at the following resources:
 
-### `packages/shared` — Shared Contracts
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial
 
-Will contain DTOs, Zod schemas, role/permission constants, enums, and API contracts shared between frontend and backend.
+You can check out the [Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-See `packages/shared/README.md`.
+## 🙏 Acknowledgments
 
----
+- Built with [Rocket.new](https://rocket.new)
+- Powered by Next.js and React
+- Styled with Tailwind CSS
 
-## Documentation
-
-All architecture and database documentation lives in `/docs`.
-
-Key documents:
-- `DATABASE_RECOMMENDATION.md` — 62-table PostgreSQL architecture overview
-- `DATABASE_TABLES_AND_FIELDS.md` — Complete field definitions for all tables
-- `API_REQUIREMENTS.md` — Full REST API specification
-- `ROLE_PERMISSION_DATABASE_MODEL.md` — 23 roles, 3-layer permission model
-- `FRONTEND_BACKEND_MAPPING.md` — Every page mapped to its API calls and DB tables
-
----
-
-## Infrastructure
-
-Deployment configuration lives in `/infra`.
-
-See `infra/README.md` for planned contents.
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm 9+
-
-Install pnpm if not already installed:
-
-```bash
-npm install -g pnpm
-```
-
-### Install dependencies
-
-```bash
-pnpm install
-```
-
-### Start the frontend (development)
-
-```bash
-pnpm dev
-```
-
-This starts the Trade Console web application at [http://localhost:4028](http://localhost:4028).
-
-### Build the frontend
-
-```bash
-pnpm build
-```
-
-### Additional workspace scripts
-
-```bash
-pnpm dev:web          # Start frontend dev server
-pnpm build:web        # Build frontend for production
-pnpm start:web        # Start frontend production server
-pnpm lint:web         # Lint frontend
-pnpm type-check:web   # TypeScript check frontend
-```
-
----
-
-## Environment Variables
-
-Copy the example environment file and configure for your environment:
-
-```bash
-cp apps/web/.env.example apps/web/.env.local
-```
-
-Key variables:
-
-| Variable | Purpose |
-|---|---|
-| `NEXT_PUBLIC_API_BASE_URL` | Trade Console backend API URL |
-| `NEXT_PUBLIC_APP_BASE_URL` | Frontend application URL |
-| `NEXT_PUBLIC_DATA_MODE` | `mock` for development, `api` for production |
-
-**Never commit `.env` files with real secrets.**
-
----
-
-## Technology Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend framework | Next.js 15 |
-| UI library | React 19 |
-| Language | TypeScript 5 |
-| Styling | Tailwind CSS 3 |
-| Charts | Recharts, Lightweight Charts |
-| Real-time market data | Binance WebSocket, CoinGecko API |
-| Backend (planned) | Node.js / TypeScript |
-| Database (planned) | PostgreSQL 17 |
-| Cache / Presence (planned) | Valkey |
-| Infrastructure | Ubuntu VPS, Docker, Nginx |
-
----
-
-Built with [Rocket.new](https://rocket.new)
+Built with ❤️ on Rocket.new
