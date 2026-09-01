@@ -10,7 +10,8 @@ import RecentTradesPanel from './RecentTradesPanel';
 import MarketOverviewPanel from './MarketOverviewPanel';
 import TopMoversPanel from './TopMoversPanel';
 import LiveOrdersPanel from '@/components/trading/LiveOrdersPanel';
-import { marketsService, MarketInstrument, OrderBook as OrderBookType, RecentTrade } from '@/services/markets.service';
+import { marketsService, MarketInstrument } from '@/services/markets.service';
+import { marketDataService, NormalizedOrderBook, NormalizedTrade } from '@/services/market-data.service';
 import { LayoutGrid, ChevronDown, ChevronUp, Search, BookOpen, TrendingUp, BarChart2, List } from 'lucide-react';
 
 interface AssetCategory {
@@ -46,11 +47,18 @@ const MOCK_PRICES: Record<string, { price: number; change: number }> = {
 
 type MobileTab = 'chart' | 'order' | 'book' | 'info';
 
+// Map workspace display symbols to market-data service symbols
+function toServiceSymbol(displaySymbol: string): string {
+  // e.g. "BTC/USDC" → "BTC-USD" for the market-data service
+  const base = displaySymbol.split('/')[0];
+  return `${base}-USD`;
+}
+
 export default function TradingWorkspace() {
   const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDC');
   const [instruments, setInstruments] = useState<MarketInstrument[]>([]);
-  const [orderBook, setOrderBook] = useState<OrderBookType | null>(null);
-  const [recentTrades, setRecentTrades] = useState<RecentTrade[]>([]);
+  const [orderBook, setOrderBook] = useState<NormalizedOrderBook | null>(null);
+  const [recentTrades, setRecentTrades] = useState<NormalizedTrade[]>([]);
   const [selectedTool, setSelectedTool] = useState('cursor');
   const [timeframe, setTimeframe] = useState('1H');
   const [showLiveOrders, setShowLiveOrders] = useState(true);
@@ -66,12 +74,15 @@ export default function TradingWorkspace() {
   }, []);
 
   useEffect(() => {
-    marketsService.getOrderBook(selectedSymbol).then(setOrderBook);
-    marketsService.getRecentTrades(selectedSymbol).then(setRecentTrades);
+    const svcSymbol = toServiceSymbol(selectedSymbol);
+    // Load order book and recent trades via centralized market-data service
+    marketDataService.getOrderBook(svcSymbol).then(ob => setOrderBook(ob));
+    marketDataService.getRecentTrades(svcSymbol).then(rt => setRecentTrades(rt));
+
     const interval = setInterval(async () => {
       const [ob, rt] = await Promise.all([
-        marketsService.getOrderBook(selectedSymbol),
-        marketsService.getRecentTrades(selectedSymbol),
+        marketDataService.getOrderBook(svcSymbol),
+        marketDataService.getRecentTrades(svcSymbol),
       ]);
       setOrderBook(ob);
       setRecentTrades(rt);
@@ -259,7 +270,13 @@ export default function TradingWorkspace() {
 
           {/* Order Book */}
           <div className="shrink-0 flex flex-col border-l" style={{ width: '200px', borderColor: 'var(--border)' }}>
-            {orderBook && <OrderBook orderBook={orderBook} currentPrice={currentInstrument?.lastPrice || 0} />}
+            {orderBook && (
+              <OrderBook
+                orderBook={orderBook}
+                currentPrice={currentInstrument?.lastPrice || 0}
+                symbol={selectedSymbol}
+              />
+            )}
           </div>
 
           {/* Order Form */}
@@ -325,7 +342,11 @@ export default function TradingWorkspace() {
             <div className="flex flex-col">
               {orderBook && (
                 <div style={{ minHeight: '300px' }}>
-                  <OrderBook orderBook={orderBook} currentPrice={currentInstrument?.lastPrice || 0} />
+                  <OrderBook
+                    orderBook={orderBook}
+                    currentPrice={currentInstrument?.lastPrice || 0}
+                    symbol={selectedSymbol}
+                  />
                 </div>
               )}
               <div className="border-t" style={{ borderColor: 'var(--border)', minHeight: '200px' }}>
