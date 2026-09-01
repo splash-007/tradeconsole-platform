@@ -1,6 +1,290 @@
-// BACKEND INTEGRATION: POST /api/v1/notifications/email
-// Email notification service for customer-facing events triggered by admin actions
+// NOTIFICATION SERVICE
+// Frontend abstraction for the platform-wide notification system.
+// Handles in-app notifications with read/dismiss distinction.
+//
+// IMPORTANT DESIGN PRINCIPLES:
+// - READ ≠ DISMISSED
+//   READ: The user has seen the notification.
+//   DISMISSED: The user intentionally removed it from their active feed.
+//   Historical record is ALWAYS retained regardless of read/dismiss state.
+//
+// - Notification state is USER-SPECIFIC.
+//   Admin A reading notification X does NOT mark it read for Admin B.
+//
+// Future API:
+//   GET  /api/v1/notifications
+//   GET  /api/v1/notifications/unread-count
+//   POST /api/v1/notifications/:id/read
+//   POST /api/v1/notifications/:id/dismiss
+//   POST /api/v1/notifications/read-all
 
+export type NotificationSeverity = 'info' | 'success' | 'warning' | 'critical';
+export type NotificationCategory =
+  | 'account' |'security' |'trading' |'kyc' |'finance' |'support' |'system' |'dividend';
+
+export type NotificationType =
+  | 'deposit_confirmed' |'withdrawal_pending' |'withdrawal_approved' |'withdrawal_rejected' |'profile_updated' |'kyc_approved' |'kyc_rejected' |'kyc_submitted' |'account_activated' |'account_suspended' |'security_login' |'security_password_changed' |'trade_filled' |'trade_cancelled' |'support_message' |'support_ticket_updated' |'dividend_eligible' |'dividend_paid' |'dividend_rejected' |'system_maintenance' |'system_announcement';
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  category: NotificationCategory;
+  severity: NotificationSeverity;
+  title: string;
+  message: string;
+  source?: string;
+  relatedEntity?: string;
+  createdAt: string;
+  // Per-user state — never global
+  readAt: string | null;       // null = unread
+  dismissedAt: string | null;  // null = not dismissed from active feed
+  // Historical record is ALWAYS retained
+}
+
+export interface NotificationFilters {
+  status?: 'all' | 'unread' | 'read' | 'dismissed';
+  category?: NotificationCategory | 'all';
+  severity?: NotificationSeverity | 'all';
+  page?: number;
+  limit?: number;
+}
+
+export interface NotificationState {
+  notifications: AppNotification[];
+  unreadCount: number;
+}
+
+const NOTIF_STATE_KEY = 'tc-notification-state';
+
+// Mock notifications — represent what the backend will return
+const INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif-001',
+    userId: 'cust-001',
+    type: 'deposit_confirmed',
+    category: 'finance',
+    severity: 'success',
+    title: 'Deposit Confirmed',
+    message: '$2,500 USDC deposit has been confirmed and credited to your account.',
+    createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
+    readAt: null,
+    dismissedAt: null,
+  },
+  {
+    id: 'notif-002',
+    userId: 'cust-001',
+    type: 'kyc_submitted',
+    category: 'kyc',
+    severity: 'info',
+    title: 'KYC Documents Submitted',
+    message: 'Your identity documents are under review. This usually takes 24–48 hours.',
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    readAt: null,
+    dismissedAt: null,
+  },
+  {
+    id: 'notif-003',
+    userId: 'cust-001',
+    type: 'withdrawal_pending',
+    category: 'finance',
+    severity: 'warning',
+    title: 'Withdrawal Processing',
+    message: 'Your withdrawal of $500 USDC is being processed. Expected: 1–3 business days.',
+    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+    readAt: null,
+    dismissedAt: null,
+  },
+  {
+    id: 'notif-004',
+    userId: 'cust-001',
+    type: 'trade_filled',
+    category: 'trading',
+    severity: 'success',
+    title: 'Order Filled',
+    message: 'Buy order for 0.05 BTC at $67,842 has been fully filled.',
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+    readAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    dismissedAt: null,
+  },
+  {
+    id: 'notif-005',
+    userId: 'cust-001',
+    type: 'kyc_approved',
+    category: 'kyc',
+    severity: 'success',
+    title: 'Identity Verified',
+    message: 'Your KYC verification is complete. Full trading access is now enabled.',
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+    readAt: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString(),
+    dismissedAt: null,
+  },
+  {
+    id: 'notif-006',
+    userId: 'cust-001',
+    type: 'security_login',
+    category: 'security',
+    severity: 'warning',
+    title: 'New Login Detected',
+    message: 'New login detected from Chrome on Windows. If this was not you, secure your account immediately.',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    readAt: null,
+    dismissedAt: null,
+  },
+  {
+    id: 'notif-007',
+    userId: 'cust-001',
+    type: 'support_message',
+    category: 'support',
+    severity: 'info',
+    title: 'Support Reply',
+    message: 'Your support agent has replied to your conversation.',
+    source: 'support',
+    relatedEntity: 'conv-001',
+    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+    readAt: null,
+    dismissedAt: null,
+  },
+];
+
+function loadState(): AppNotification[] {
+  if (typeof window === 'undefined') return INITIAL_NOTIFICATIONS;
+  try {
+    const stored = localStorage.getItem(NOTIF_STATE_KEY);
+    if (stored) {
+      const parsed: AppNotification[] = JSON.parse(stored);
+      // Merge stored state (read/dismiss) with initial notifications
+      return INITIAL_NOTIFICATIONS.map(n => {
+        const stored_n = parsed.find(p => p.id === n.id);
+        if (stored_n) {
+          return { ...n, readAt: stored_n.readAt, dismissedAt: stored_n.dismissedAt };
+        }
+        return n;
+      });
+    }
+  } catch {}
+  return INITIAL_NOTIFICATIONS;
+}
+
+function saveState(notifications: AppNotification[]): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    // Only persist the per-user state fields (readAt, dismissedAt)
+    const stateOnly = notifications.map(n => ({
+      id: n.id,
+      readAt: n.readAt,
+      dismissedAt: n.dismissedAt,
+    }));
+    localStorage.setItem(NOTIF_STATE_KEY, JSON.stringify(stateOnly));
+  } catch {}
+}
+
+export const notificationService = {
+  /**
+   * Get all notifications (including dismissed — history is always retained).
+   * BACKEND INTEGRATION: GET /api/v1/notifications
+   */
+  getNotifications(filters?: NotificationFilters): AppNotification[] {
+    const all = loadState();
+    if (!filters || filters.status === 'all') return all;
+    return all.filter(n => {
+      if (filters.status === 'unread') return !n.readAt;
+      if (filters.status === 'read') return !!n.readAt;
+      if (filters.status === 'dismissed') return !!n.dismissedAt;
+      return true;
+    }).filter(n => {
+      if (filters.category && filters.category !== 'all') return n.category === filters.category;
+      return true;
+    });
+  },
+
+  /**
+   * Get active (non-dismissed) notifications for the notification feed.
+   */
+  getActiveNotifications(): AppNotification[] {
+    return loadState().filter(n => !n.dismissedAt);
+  },
+
+  /**
+   * Get unread count (active, non-dismissed unread notifications).
+   * BACKEND INTEGRATION: GET /api/v1/notifications/unread-count
+   */
+  getUnreadCount(): number {
+    return loadState().filter(n => !n.readAt && !n.dismissedAt).length;
+  },
+
+  /**
+   * Mark a notification as read.
+   * READ ≠ DISMISSED. History is retained.
+   * BACKEND INTEGRATION: POST /api/v1/notifications/:id/read
+   */
+  markRead(id: string): AppNotification[] {
+    const notifications = loadState().map(n =>
+      n.id === id && !n.readAt
+        ? { ...n, readAt: new Date().toISOString() }
+        : n
+    );
+    saveState(notifications);
+    return notifications;
+  },
+
+  /**
+   * Mark all active notifications as read.
+   * BACKEND INTEGRATION: POST /api/v1/notifications/read-all
+   */
+  markAllRead(): AppNotification[] {
+    const now = new Date().toISOString();
+    const notifications = loadState().map(n =>
+      !n.readAt ? { ...n, readAt: now } : n
+    );
+    saveState(notifications);
+    return notifications;
+  },
+
+  /**
+   * Dismiss a notification from the active feed.
+   * DISMISSED ≠ DELETED. The notification remains in history.
+   * BACKEND INTEGRATION: POST /api/v1/notifications/:id/dismiss
+   */
+  dismiss(id: string): AppNotification[] {
+    const notifications = loadState().map(n =>
+      n.id === id
+        ? {
+            ...n,
+            dismissedAt: new Date().toISOString(),
+            // Auto-mark as read when dismissed
+            readAt: n.readAt ?? new Date().toISOString(),
+          }
+        : n
+    );
+    saveState(notifications);
+    return notifications;
+  },
+
+  /**
+   * Mark a support notification as read when the conversation is opened.
+   * Prevents the same support message from appearing as new after being read.
+   */
+  markSupportNotificationRead(conversationId: string): void {
+    const notifications = loadState().map(n =>
+      n.type === 'support_message' && n.relatedEntity === conversationId && !n.readAt
+        ? { ...n, readAt: new Date().toISOString() }
+        : n
+    );
+    saveState(notifications);
+  },
+
+  /**
+   * Get unread support notification count.
+   */
+  getUnreadSupportCount(): number {
+    return loadState().filter(n =>
+      n.category === 'support' && !n.readAt && !n.dismissedAt
+    ).length;
+  },
+};
+
+// Legacy email notification types — kept for backward compatibility
 export type EmailNotificationType =
   | 'deposit_confirmed' |'withdrawal_pending' |'withdrawal_approved' |'withdrawal_rejected' |'profile_updated' |'kyc_approved' |'kyc_rejected' |'account_activated' |'account_suspended';
 
@@ -18,7 +302,6 @@ export interface NotificationResult {
   error?: string;
 }
 
-// In-app notification record
 export interface InAppNotification {
   id: string;
   userId: string;
@@ -28,205 +311,3 @@ export interface InAppNotification {
   read: boolean;
   createdAt: string;
 }
-
-const EMAIL_TEMPLATES: Record<EmailNotificationType, { subject: string; body: (data: Record<string, string | number>, name: string) => string }> = {
-  deposit_confirmed: {
-    subject: '✅ Deposit Confirmed — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour deposit of ${data.amount} ${data.currency || 'USDC'} has been confirmed and credited to your account.\n\nTransaction ID: ${data.txId || 'N/A'}\n\nYou can now use these funds for trading.\n\nBest regards,\nCryonFX Team`,
-  },
-  withdrawal_pending: {
-    subject: '🔄 Withdrawal Pending — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour withdrawal request of ${data.amount} ${data.currency || 'USDC'} is currently pending review.\n\nExpected processing time: 1–3 business days.\n\nWe will notify you once it has been processed.\n\nBest regards,\nCryonFX Team`,
-  },
-  withdrawal_approved: {
-    subject: '✅ Withdrawal Approved — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour withdrawal of ${data.amount} ${data.currency || 'USDC'} has been approved and is being processed.\n\nExpected arrival: 1–2 business days.\n\nBest regards,\nCryonFX Team`,
-  },
-  withdrawal_rejected: {
-    subject: '❌ Withdrawal Rejected — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nUnfortunately your withdrawal request of ${data.amount} ${data.currency || 'USDC'} has been rejected.\n\nReason: ${data.reason || 'Please contact support for details.'}\n\nPlease contact our support team if you have any questions.\n\nBest regards,\nCryonFX Team`,
-  },
-  profile_updated: {
-    subject: '📝 Profile Updated — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour account profile has been updated by our team.\n\nUpdated fields: ${data.fields || 'Account information'}\n\nIf you did not request this change, please contact support immediately.\n\nBest regards,\nCryonFX Team`,
-  },
-  kyc_approved: {
-    subject: '🎉 KYC Approved — Account Fully Activated',
-    body: (data, name) => `Hi ${name},\n\nCongratulations! Your identity verification (KYC) has been approved by our compliance team.\n\nYour CryonFX account is now fully activated with complete trading access.\n\nYou can now:\n• Trade all available instruments\n• Make deposits and withdrawals\n• Access all platform features\n\nWelcome to CryonFX!\n\nBest regards,\nCryonFX Compliance Team`,
-  },
-  kyc_rejected: {
-    subject: '⚠️ KYC Requires Attention — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nWe were unable to verify your identity documents.\n\nReason: ${data.reason || 'Documents could not be verified.'}\n\nPlease re-submit your KYC with clear, valid documents. If you need assistance, contact our support team.\n\nBest regards,\nCryonFX Compliance Team`,
-  },
-  account_activated: {
-    subject: '✅ Account Activated — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour CryonFX account has been activated. You now have full access to the platform.\n\nBest regards,\nCryonFX Team`,
-  },
-  account_suspended: {
-    subject: '⚠️ Account Suspended — CryonFX',
-    body: (data, name) => `Hi ${name},\n\nYour CryonFX account has been temporarily suspended.\n\nReason: ${data.reason || 'Please contact support for details.'}\n\nPlease contact our support team to resolve this.\n\nBest regards,\nCryonFX Team`,
-  },
-};
-
-export const notificationService = {
-  /**
-   * Send email notification to customer
-   * BACKEND INTEGRATION: POST /api/v1/notifications/email
-   */
-  async sendEmail(payload: EmailNotificationPayload): Promise<NotificationResult> {
-    const template = EMAIL_TEMPLATES[payload.type];
-    if (!template) return { success: false, error: 'Unknown notification type' };
-
-    const emailData = {
-      to: payload.customerEmail,
-      subject: template.subject,
-      body: template.body(payload.data || {}, payload.customerName),
-    };
-
-    // BACKEND INTEGRATION: Replace with actual email API call
-    // e.g., await fetch('/api/v1/notifications/email', { method: 'POST', body: JSON.stringify(emailData) })
-    console.log('[Email Notification]', emailData);
-    return { success: true, messageId: `msg-${Date.now()}` };
-  },
-
-  /**
-   * Create in-app notification for customer
-   * BACKEND INTEGRATION: POST /api/v1/notifications/in-app
-   */
-  async createInAppNotification(
-    userId: string,
-    type: EmailNotificationType,
-    title: string,
-    message: string
-  ): Promise<NotificationResult> {
-    // BACKEND INTEGRATION: POST /api/v1/notifications/in-app
-    const notification: InAppNotification = {
-      id: `notif-${Date.now()}`,
-      userId,
-      type,
-      title,
-      message,
-      read: false,
-      createdAt: new Date().toISOString(),
-    };
-    console.log('[In-App Notification]', notification);
-    return { success: true };
-  },
-
-  /**
-   * Notify customer of deposit confirmation (called by admin when confirming deposit)
-   */
-  async notifyDepositConfirmed(customer: { id: string; email: string; name: string }, amount: number, currency = 'USDC'): Promise<void> {
-    await Promise.all([
-      this.sendEmail({
-        customerId: customer.id,
-        customerEmail: customer.email,
-        customerName: customer.name,
-        type: 'deposit_confirmed',
-        data: { amount, currency, txId: `TXN-${Date.now()}` },
-      }),
-      this.createInAppNotification(
-        customer.id,
-        'deposit_confirmed',
-        'Deposit Confirmed',
-        `Your deposit of ${amount} ${currency} has been confirmed and credited to your account.`
-      ),
-    ]);
-  },
-
-  /**
-   * Notify customer of withdrawal status change (called by admin)
-   */
-  async notifyWithdrawalStatus(
-    customer: { id: string; email: string; name: string },
-    status: 'pending' | 'approved' | 'rejected',
-    amount: number,
-    currency = 'USDC',
-    reason?: string
-  ): Promise<void> {
-    const type: EmailNotificationType = status === 'pending' ? 'withdrawal_pending' : status === 'approved' ? 'withdrawal_approved' : 'withdrawal_rejected';
-    const titles: Record<string, string> = {
-      pending: 'Withdrawal Pending',
-      approved: 'Withdrawal Approved',
-      rejected: 'Withdrawal Rejected',
-    };
-    await Promise.all([
-      this.sendEmail({
-        customerId: customer.id,
-        customerEmail: customer.email,
-        customerName: customer.name,
-        type,
-        data: { amount, currency, reason: reason || '' },
-      }),
-      this.createInAppNotification(
-        customer.id,
-        type,
-        titles[status],
-        `Your withdrawal of ${amount} ${currency} is ${status}.`
-      ),
-    ]);
-  },
-
-  /**
-   * Notify customer of profile update by admin
-   */
-  async notifyProfileUpdated(customer: { id: string; email: string; name: string }, fields: string): Promise<void> {
-    await Promise.all([
-      this.sendEmail({
-        customerId: customer.id,
-        customerEmail: customer.email,
-        customerName: customer.name,
-        type: 'profile_updated',
-        data: { fields },
-      }),
-      this.createInAppNotification(
-        customer.id,
-        'profile_updated',
-        'Profile Updated',
-        `Your account profile has been updated: ${fields}.`
-      ),
-    ]);
-  },
-
-  /**
-   * Notify customer of KYC approval — account fully activated
-   */
-  async notifyKYCApproved(customer: { id: string; email: string; name: string }): Promise<void> {
-    await Promise.all([
-      this.sendEmail({
-        customerId: customer.id,
-        customerEmail: customer.email,
-        customerName: customer.name,
-        type: 'kyc_approved',
-        data: {},
-      }),
-      this.createInAppNotification(
-        customer.id,
-        'kyc_approved',
-        '🎉 Account Fully Activated!',
-        'Your KYC has been approved. Your account is now fully activated with complete trading access.'
-      ),
-    ]);
-  },
-
-  /**
-   * Notify customer of KYC rejection
-   */
-  async notifyKYCRejected(customer: { id: string; email: string; name: string }, reason: string): Promise<void> {
-    await Promise.all([
-      this.sendEmail({
-        customerId: customer.id,
-        customerEmail: customer.email,
-        customerName: customer.name,
-        type: 'kyc_rejected',
-        data: { reason },
-      }),
-      this.createInAppNotification(
-        customer.id,
-        'kyc_rejected',
-        'KYC Requires Attention',
-        `Your KYC submission requires attention: ${reason}`
-      ),
-    ]);
-  },
-};

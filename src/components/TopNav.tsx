@@ -3,8 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, ChevronDown, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History, Bot, Activity, ArrowUpFromLine } from 'lucide-react';
+import { Bell, ChevronDown, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History, Bot, Activity, CheckCheck, ExternalLink } from 'lucide-react';
 import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
+import { notificationService, AppNotification } from '@/services/notification.service';
+import { preferencesService } from '@/services/preferences.service';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
@@ -19,93 +21,72 @@ const NAV_ITEMS = [
   { label: 'Support', href: '/messages', icon: MessageSquare },
 ];
 
-interface ClientNotification {
-  id: string;
-  type: 'deposit' | 'withdrawal' | 'kyc' | 'trade' | 'system';
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-}
-
-const CLIENT_NOTIFICATIONS: ClientNotification[] = [
-  { id: 'cn-001', type: 'deposit', title: 'Deposit Confirmed', message: '$2,500 USDC deposit has been confirmed and credited to your account', time: '2 min ago', read: false },
-  { id: 'cn-002', type: 'kyc', title: 'KYC Verification Pending', message: 'Your identity documents are under review. This usually takes 24-48 hours', time: '1 hr ago', read: false },
-  { id: 'cn-003', type: 'withdrawal', title: 'Withdrawal Processing', message: 'Your withdrawal of $500 USDC is being processed. Expected: 1-3 business days', time: '3 hrs ago', read: false },
-  { id: 'cn-004', type: 'trade', title: 'Order Filled', message: 'Buy order for 0.05 BTC at $67,842 has been fully filled', time: '5 hrs ago', read: true },
-  { id: 'cn-005', type: 'kyc', title: 'KYC Completed', message: 'Your identity verification is complete. Full trading access is now enabled', time: '1 day ago', read: true },
-  { id: 'cn-006', type: 'system', title: 'Security Alert', message: 'New login detected from Chrome on Windows. If this was not you, secure your account', time: '2 days ago', read: true },
-];
-
-const NOTIF_ICONS: Record<string, React.ElementType> = {
-  deposit: DollarSign,
-  withdrawal: ArrowUpFromLine,
-  kyc: Shield,
-  trade: TrendingUp,
-  system: AlertCircle,
-};
-
-const NOTIF_COLORS: Record<string, string> = {
-  deposit: '#22c55e',
-  withdrawal: '#f59e0b',
+const CATEGORY_COLORS: Record<string, string> = {
+  finance: '#22c55e',
+  trading: '#F5C400',
   kyc: '#3b82f6',
-  trade: '#F5C400',
-  system: '#ef4444',
+  security: '#ef4444',
+  support: '#8b5cf6',
+  account: '#06b6d4',
+  system: '#6b7280',
+  dividend: '#f59e0b',
 };
 
-const NOTIF_STORAGE_KEY = 'cv-client-notifs-read';
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  finance: DollarSign,
+  trading: TrendingUp,
+  kyc: Shield,
+  security: AlertCircle,
+  support: MessageSquare,
+  account: Settings,
+  system: AlertCircle,
+  dividend: Star,
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  info: 'Info',
+  success: 'Success',
+  warning: 'Warning',
+  critical: 'Critical',
+};
+
+type NotifTab = 'recent' | 'unread' | 'important';
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 export default function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { status: authStatus } = useCustomerAuthGuard();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false); // default light
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notifications, setNotifications] = useState<ClientNotification[]>(CLIENT_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notifTab, setNotifTab] = useState<NotifTab>('recent');
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
+  // Initialize theme (default: light)
   useEffect(() => {
-    // Load persisted read state — once seen, never show as unread again
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(NOTIF_STORAGE_KEY);
-        if (saved) {
-          const readIds: string[] = JSON.parse(saved);
-          setNotifications(CLIENT_NOTIFICATIONS.map(n => ({ ...n, read: readIds.includes(n.id) ? true : n.read })));
-        }
-      } catch {}
-    }
-  }, []);
-
-  const persistReadState = (notifs: ClientNotification[]) => {
-    if (typeof localStorage !== 'undefined') {
-      const readIds = notifs.filter(n => n.read).map(n => n.id);
-      localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(readIds));
-    }
-  };
-
-  useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('cv-theme') : null;
-    const dark = saved !== 'light';
+    const theme = preferencesService.getTheme();
+    const dark = theme === 'dark';
     setIsDark(dark);
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('light', !dark);
-    }
+    preferencesService.applyTheme(dark ? 'dark' : 'light');
   }, []);
 
-  const toggleTheme = () => {
-    const next = !isDark;
-    setIsDark(next);
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('light', !next);
-    }
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('cv-theme', next ? 'dark' : 'light');
-    }
-  };
+  // Load notifications
+  useEffect(() => {
+    setNotifications(notificationService.getActiveNotifications());
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -118,40 +99,42 @@ export default function TopNav() {
 
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.readAt).length;
+  const supportUnread = notificationService.getUnreadSupportCount();
 
-  const markAllRead = () => {
-    setNotifications(prev => {
-      const next = prev.map(n => ({ ...n, read: true }));
-      persistReadState(next);
-      return next;
-    });
+  const toggleTheme = () => {
+    const next = preferencesService.toggleTheme();
+    setIsDark(next === 'dark');
   };
 
-  const markRead = (id: string) => {
-    setNotifications(prev => {
-      const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
-      persistReadState(next);
-      return next;
-    });
+  const handleMarkRead = (id: string) => {
+    const updated = notificationService.markRead(id);
+    setNotifications(updated.filter(n => !n.dismissedAt));
   };
 
-  // Mark all as read when panel opens
-  const handleNotifOpen = () => {
-    const next = !notifOpen;
-    setNotifOpen(next);
-    if (next && unreadCount > 0) {
-      // Mark all read when panel is opened
-      setTimeout(() => markAllRead(), 1500);
-    }
+  const handleMarkAllRead = () => {
+    const updated = notificationService.markAllRead();
+    setNotifications(updated.filter(n => !n.dismissedAt));
   };
+
+  const handleDismiss = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    // DISMISSED ≠ DELETED — history is retained
+    const updated = notificationService.dismiss(id);
+    setNotifications(updated.filter(n => !n.dismissedAt));
+  };
+
+  const filteredNotifs = (() => {
+    if (notifTab === 'unread') return notifications.filter(n => !n.readAt);
+    if (notifTab === 'important') return notifications.filter(n => n.severity === 'critical' || n.severity === 'warning');
+    return notifications.slice(0, 8);
+  })();
 
   const handleLogout = async () => {
     setProfileOpen(false);
     await performLogout(router);
   };
 
-  // In dev mode (auth disabled), always render the nav
   const authMode = process.env.NEXT_PUBLIC_AUTH_MODE || 'disabled';
   if (authMode !== 'disabled' && (authStatus === 'loading' || authStatus === 'unauthenticated' || authStatus === 'forbidden' || authStatus === 'suspended')) {
     return null;
@@ -164,24 +147,28 @@ export default function TopNav() {
           {/* Logo */}
           <Link href="/trading-dashboard" className="flex items-center gap-2 shrink-0">
             <AppLogo size={28} />
-            <span className="font-semibold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--primary)' }}>
-              Trade Console
-            </span>
+            <span className="font-semibold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--primary)' }}>Trade Console</span>
           </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-0.5 ml-2">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={`nav-${item.label}`}
-                href={item.href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all duration-150 ${
-                  pathname === item.href ? 'bg-primary-subtle text-gold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const isSupport = item.label === 'Support';
+              return (
+                <Link
+                  key={`nav-${item.label}`}
+                  href={item.href}
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all duration-150 ${pathname === item.href ? 'bg-primary-subtle text-gold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                >
+                  {item.label}
+                  {isSupport && supportUnread > 0 && (
+                    <span className="w-4 h-4 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '9px' }}>
+                      {supportUnread}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="flex-1" />
@@ -191,56 +178,114 @@ export default function TopNav() {
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
-                onClick={handleNotifOpen}
+                onClick={() => setNotifOpen(!notifOpen)}
                 className="p-2 rounded hover:bg-muted transition-colors relative"
                 style={{ color: 'var(--muted-foreground)' }}
               >
                 <Bell size={15} />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '9px' }}>
-                    {unreadCount}
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-1 w-96 max-w-[calc(100vw-1rem)] rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                  {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Notifications</p>
                       {unreadCount > 0 && <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{unreadCount} unread</p>}
                     </div>
-                    {unreadCount > 0 && (
-                      <button onClick={markAllRead} className="text-xs" style={{ color: 'var(--primary)' }}>Mark all read</button>
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-muted transition-colors" style={{ color: 'var(--primary)' }}>
+                          <CheckCheck size={11} /> Mark all read
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
+                    {(['recent', 'unread', 'important'] as NotifTab[]).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setNotifTab(tab)}
+                        className="flex-1 py-2 text-xs font-medium capitalize transition-colors"
+                        style={{ color: notifTab === tab ? 'var(--primary)' : 'var(--muted-foreground)', borderBottom: notifTab === tab ? '2px solid var(--primary)' : '2px solid transparent' }}
+                      >
+                        {tab}
+                        {tab === 'unread' && unreadCount > 0 && (
+                          <span className="ml-1 px-1 rounded-full text-xs font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '9px' }}>{unreadCount}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Notification list */}
+                  <div className="max-h-80 overflow-y-auto no-scrollbar">
+                    {filteredNotifs.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <Bell size={20} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />
+                        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                          {notifTab === 'unread' ? 'No unread notifications' : notifTab === 'important' ? 'No important notifications' : 'No notifications'}
+                        </p>
+                      </div>
+                    ) : (
+                      filteredNotifs.map(n => {
+                        const NIcon = CATEGORY_ICONS[n.category] || Bell;
+                        const color = CATEGORY_COLORS[n.category] || '#6b7280';
+                        return (
+                          <div
+                            key={n.id}
+                            onClick={() => handleMarkRead(n.id)}
+                            className="group flex items-start gap-3 px-4 py-3 border-b cursor-pointer hover:bg-muted transition-colors"
+                            style={{ borderColor: 'var(--border)', backgroundColor: !n.readAt ? 'rgba(212,168,0,0.03)' : 'transparent' }}
+                          >
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${color}18` }}>
+                              <NIcon size={12} style={{ color }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{n.title}</p>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {!n.readAt && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />}
+                                  {/* Dismiss button — hides from feed but retains in history */}
+                                  <button
+                                    onClick={e => handleDismiss(n.id, e)}
+                                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted transition-all"
+                                    style={{ color: 'var(--muted-foreground)' }}
+                                    title="Dismiss (removes from feed, history retained)"
+                                  >
+                                    <X size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{n.message}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs opacity-60" style={{ color: 'var(--muted-foreground)' }}>{timeAgo(n.createdAt)}</span>
+                                <span className="text-xs px-1.5 py-0.5 rounded capitalize" style={{ backgroundColor: `${color}15`, color }}>
+                                  {n.category}
+                                </span>
+                                {n.severity === 'critical' && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>Critical</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
-                  <div className="max-h-72 overflow-y-auto no-scrollbar">
-                    {notifications.map(n => {
-                      const NIcon = NOTIF_ICONS[n.type] || Bell;
-                      return (
-                        <div
-                          key={n.id}
-                          onClick={() => markRead(n.id)}
-                          className="flex items-start gap-3 px-4 py-3 border-b cursor-pointer hover:bg-white/3 transition-colors"
-                          style={{ borderColor: 'var(--border)', backgroundColor: n.read ? 'transparent' : 'rgba(245,196,0,0.03)' }}
-                        >
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${NOTIF_COLORS[n.type]}18` }}>
-                            <NIcon size={12} style={{ color: NOTIF_COLORS[n.type] }} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs font-semibold truncate" style={{ color: 'var(--foreground)' }}>{n.title}</p>
-                              {!n.read && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: 'var(--primary)' }} />}
-                            </div>
-                            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{n.message}</p>
-                            <p className="text-xs mt-1 opacity-60" style={{ color: 'var(--muted-foreground)' }}>{n.time}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="px-4 py-2 border-t" style={{ borderColor: 'var(--border)' }}>
-                    <button className="w-full text-xs text-center py-1" style={{ color: 'var(--primary)' }}>View all notifications</button>
+
+                  {/* Footer */}
+                  <div className="px-4 py-2.5 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Dismissed items remain in history</p>
+                    <Link href="/notifications" onClick={() => setNotifOpen(false)} className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--primary)' }}>
+                      View all <ExternalLink size={10} />
+                    </Link>
                   </div>
                 </div>
               )}
@@ -249,128 +294,106 @@ export default function TopNav() {
             {/* Day/Night Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded hover:bg-muted transition-colors hidden sm:flex"
+              className="p-2 rounded hover:bg-muted transition-colors"
               style={{ color: 'var(--muted-foreground)' }}
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
 
-            {/* Profile — desktop */}
-            <div className="relative hidden lg:block" ref={profileRef}>
+            {/* Profile */}
+            <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded hover:bg-muted transition-colors ml-1 border"
-                style={{ borderColor: 'var(--border)' }}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-muted transition-colors"
+                style={{ color: 'var(--foreground)' }}
               >
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>A</div>
-                <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Main Account</span>
+                <span className="text-xs font-medium hidden sm:block">Alex M.</span>
                 <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
               </button>
+
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-xl z-50 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                  <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Alex Morgan</p>
+                <div className="absolute right-0 top-full mt-1 w-52 rounded-lg border shadow-xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                  <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Alex Morgan</p>
                     <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>alex.morgan@email.com</p>
                   </div>
                   <div className="py-1">
-                    <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5" style={{ color: 'var(--foreground)' }}>
-                      <Settings size={13} /> Profile Settings
-                    </Link>
-                    <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-white/5" style={{ color: '#ef4444' }}>
-                      <LogOut size={13} /> Logout
+                    {[
+                      { label: 'Profile & Settings', href: '/settings', icon: Settings },
+                      { label: 'Notifications', href: '/notifications', icon: Bell },
+                      { label: 'Security', href: '/settings', icon: Shield },
+                    ].map(item => (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                        style={{ color: 'var(--foreground)' }}
+                      >
+                        <item.icon size={13} style={{ color: 'var(--muted-foreground)' }} />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                  <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                      style={{ color: 'var(--negative)' }}
+                    >
+                      <LogOut size={13} />
+                      Sign Out
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Mobile hamburger */}
+            {/* Mobile menu */}
             <button
-              className="lg:hidden p-2 rounded hover:bg-muted"
-              style={{ color: 'var(--muted-foreground)' }}
               onClick={() => setDrawerOpen(!drawerOpen)}
-              aria-label="Toggle navigation menu"
+              className="lg:hidden p-2 rounded hover:bg-muted transition-colors"
+              style={{ color: 'var(--muted-foreground)' }}
             >
-              {drawerOpen ? <X size={18} /> : <Menu size={18} />}
+              {drawerOpen ? <X size={16} /> : <Menu size={16} />}
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile Drawer Overlay */}
+      {/* Mobile drawer */}
       {drawerOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/60"
-          onClick={() => setDrawerOpen(false)}
-        />
-      )}
-
-      {/* Mobile Drawer */}
-      <div
-        className={`lg:hidden fixed top-0 right-0 h-full z-50 flex flex-col transition-transform duration-300 ease-in-out ${drawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ width: '280px', backgroundColor: 'var(--card)', borderLeft: '1px solid var(--border)' }}
-      >
-        {/* Drawer header */}
-        <div className="flex items-center justify-between px-4 h-12 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <AppLogo size={22} />
-            <span className="text-sm font-bold" style={{ color: 'var(--primary)' }}>Trade Console</span>
-          </div>
-          <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* User info */}
-        <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>A</div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Alex Morgan</p>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>alex.morgan@email.com</p>
+        <div className="lg:hidden fixed inset-0 z-40 flex" onClick={() => setDrawerOpen(false)}>
+          <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
+          <div className="relative ml-auto w-72 h-full border-l overflow-y-auto animate-slide-up" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }} onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+              <span className="font-semibold text-sm" style={{ color: 'var(--primary)' }}>Trade Console</span>
+              <button onClick={() => setDrawerOpen(false)} style={{ color: 'var(--muted-foreground)' }}><X size={16} /></button>
+            </div>
+            <nav className="p-3 space-y-0.5">
+              {NAV_ITEMS.map(item => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-colors ${pathname === item.href ? 'bg-primary-subtle text-gold' : 'hover:bg-muted'}`}
+                  style={{ color: pathname === item.href ? 'var(--primary)' : 'var(--foreground)' }}
+                >
+                  <item.icon size={15} style={{ color: pathname === item.href ? 'var(--primary)' : 'var(--muted-foreground)' }} />
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium hover:bg-muted transition-colors" style={{ color: 'var(--negative)' }}>
+                <LogOut size={15} />
+                Sign Out
+              </button>
             </div>
           </div>
-          {/* Deposit/Withdraw mobile */}
-          <div className="flex gap-2 mt-3">
-            <Link href="/finance" onClick={() => setDrawerOpen(false)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-semibold" style={{ backgroundColor: 'var(--positive)', color: '#fff' }}>
-              Funds
-            </Link>
-          </div>
         </div>
-
-        {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto py-2 no-scrollbar">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={`drawer-${item.label}`}
-              href={item.href}
-              onClick={() => setDrawerOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all ${
-                pathname === item.href ? 'text-gold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-              style={{ backgroundColor: pathname === item.href ? 'rgba(245,196,0,0.08)' : undefined }}
-            >
-              <item.icon size={16} className="shrink-0" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Drawer footer */}
-        <div className="border-t p-3 space-y-1" style={{ borderColor: 'var(--border)' }}>
-          <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-colors hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
-            {isDark ? <Sun size={15} /> : <Moon size={15} />}
-            {isDark ? 'Light Mode' : 'Dark Mode'}
-          </button>
-          <Link href="/settings" onClick={() => setDrawerOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-colors hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}>
-            <Settings size={15} /> Profile Settings
-          </Link>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm transition-colors hover:bg-muted" style={{ color: '#ef4444' }}>
-            <LogOut size={15} /> Logout
-          </button>
-        </div>
-      </div>
+      )}
     </>
   );
 }
