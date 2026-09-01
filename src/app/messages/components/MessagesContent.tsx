@@ -87,7 +87,7 @@ export default function MessagesContent() {
     <div className="py-4">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Messages</h1>
+          <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Support</h1>
           <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Chat with your assigned support agent</p>
         </div>
       </div>
