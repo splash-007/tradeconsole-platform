@@ -9,7 +9,9 @@ import PortfolioChart from './PortfolioChart';
 import TopMovers from './TopMovers';
 import RecentActivity from './RecentActivity';
 import MarketSummary from './MarketSummary';
-import { DollarSign, Shield, ArrowUpFromLine, X, TrendingUp, Bell, Zap, CheckCircle2 } from 'lucide-react';
+import { DollarSign, Shield, ArrowUpFromLine, X, TrendingUp, Bell, Zap, CheckCircle2, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { kycService, KYCStatus } from '@/services/kyc.service';
 
 interface ClientNotification {
   id: string;
@@ -61,6 +63,9 @@ export default function DashboardContent() {
   const [instruments, setInstruments] = useState<MarketInstrument[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
+  // KYC state — structured for future API fields: kycStatus, kycRequired, kycCompletedAt
+  const [kycStatus, setKycStatus] = useState<KYCStatus>('not_started');
+  const [kycRequired] = useState<boolean>(true); // Will come from API: kycRequired field
   const [notifications, setNotifications] = useState<ClientNotification[]>(() => {
     // Load persisted read state on init
     if (typeof window !== 'undefined') {
@@ -85,10 +90,12 @@ export default function DashboardContent() {
       dashboardService.getOverview(),
       marketsService.getInstruments(),
       portfolioService.getPositions(),
-    ]).then(([ov, inst, pos]) => {
+      kycService.getKYCStatus('cust-001'),
+    ]).then(([ov, inst, pos, kyc]) => {
       setOverview(ov);
       setInstruments(inst);
       setPositions(pos);
+      setKycStatus(kyc.status);
       setLoading(false);
       const now = new Date();
       setLastUpdated(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`);
@@ -192,6 +199,24 @@ export default function DashboardContent() {
           <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{isLive ? 'Live P&L' : 'Connecting…'}</span>
         </div>
       </div>
+
+      {/* KYC mandatory notice — shown when verification is incomplete */}
+      {kycRequired && kycStatus !== 'verified' && kycStatus !== 'submitted' && kycStatus !== 'under_review' && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded border" style={{ backgroundColor: 'rgba(245,158,11,0.05)', borderColor: 'rgba(245,158,11,0.2)' }}>
+          <AlertTriangle size={13} className="shrink-0" style={{ color: '#f59e0b' }} />
+          <div className="flex-1 min-w-0">
+            <span className="text-xs font-semibold" style={{ color: '#f59e0b' }}>Identity verification required</span>
+            <span className="text-xs ml-2" style={{ color: 'var(--muted-foreground)' }}>Complete your verification to unlock all account functionality.</span>
+          </div>
+          <Link
+            href="/settings?tab=kyc"
+            className="text-xs px-3 py-1.5 rounded font-semibold shrink-0 transition-all hover:opacity-90"
+            style={{ backgroundColor: '#f59e0b', color: '#000' }}
+          >
+            Complete Verification
+          </Link>
+        </div>
+      )}
 
       {/* Premium Notification Stack */}
       {visibleNotifs.length > 0 && (

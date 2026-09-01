@@ -15,7 +15,6 @@ const NAV_ITEMS = [
   { label: 'Transactions', href: '/transactions', icon: History },
   { label: 'Messages', href: '/messages', icon: MessageSquare },
   { label: 'Funds', href: '/finance', icon: Wallet },
-  { label: 'KYC', href: '/kyc', icon: Shield },
   { label: 'Academy', href: '#', icon: BookOpen },
 ];
 
@@ -218,7 +217,7 @@ export default function TopNav() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Notifications</p>

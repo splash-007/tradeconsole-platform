@@ -1,12 +1,16 @@
 'use client';
-import React, { useState } from 'react';
-import { User, Shield, Bell, Eye, EyeOff, Smartphone, Key, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Phone, Globe, Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Shield, Bell, Eye, EyeOff, Smartphone, Key, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Phone, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck } from 'lucide-react';
 
-type Tab = 'profile' | 'security' | 'notifications' | 'preferences';
+import KYCVerificationFlow from '@/components/kyc/KYCVerificationFlow';
+import { kycService, KYCStatus } from '@/services/kyc.service';
+
+type Tab = 'profile' | 'security' | 'kyc' | 'notifications' | 'preferences';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: 'profile', label: 'Profile', icon: User },
+  { id: 'profile', label: 'Personal Information', icon: User },
   { id: 'security', label: 'Security', icon: Shield },
+  { id: 'kyc', label: 'Identity Verification', icon: FileCheck },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'preferences', label: 'Preferences', icon: Eye },
 ];
@@ -52,8 +56,81 @@ const COUNTRIES = [
   'Brazil', 'Mexico', 'Netherlands', 'Sweden', 'Switzerland', 'Other',
 ];
 
-export default function SettingsContent() {
-  const [activeTab, setActiveTab] = useState<Tab>('profile');
+// KYC status display config — ready for API fields: kycStatus, kycRequired, kycCompletedAt
+interface KYCStatusConfig {
+  label: string;
+  color: string;
+  bg: string;
+  border: string;
+  icon: React.ElementType;
+  description: string;
+}
+
+const KYC_STATUS_CONFIG: Record<KYCStatus, KYCStatusConfig> = {
+  not_started: {
+    label: 'Not Started',
+    color: '#6b7280',
+    bg: 'rgba(107,114,128,0.08)',
+    border: 'rgba(107,114,128,0.2)',
+    icon: AlertCircle,
+    description: 'Identity verification has not been started.',
+  },
+  in_progress: {
+    label: 'In Progress',
+    color: '#f59e0b',
+    bg: 'rgba(245,158,11,0.08)',
+    border: 'rgba(245,158,11,0.2)',
+    icon: RefreshCw,
+    description: 'Your verification is partially completed. Continue to finish.',
+  },
+  submitted: {
+    label: 'Pending Review',
+    color: '#3b82f6',
+    bg: 'rgba(59,130,246,0.08)',
+    border: 'rgba(59,130,246,0.2)',
+    icon: Clock,
+    description: 'Documents submitted. Our compliance team is reviewing your application.',
+  },
+  under_review: {
+    label: 'Pending Review',
+    color: '#3b82f6',
+    bg: 'rgba(59,130,246,0.08)',
+    border: 'rgba(59,130,246,0.2)',
+    icon: Clock,
+    description: 'Your application is under active review. Expected: 1–2 business days.',
+  },
+  verified: {
+    label: 'Verified',
+    color: '#22c55e',
+    bg: 'rgba(34,197,94,0.08)',
+    border: 'rgba(34,197,94,0.2)',
+    icon: CheckCircle,
+    description: 'Identity verification complete. Full account access is enabled.',
+  },
+  rejected: {
+    label: 'Rejected',
+    color: '#ef4444',
+    bg: 'rgba(239,68,68,0.08)',
+    border: 'rgba(239,68,68,0.2)',
+    icon: XCircle,
+    description: 'Verification was not approved. Please review the reason and resubmit.',
+  },
+};
+
+// This interface mirrors what the real API will return
+// Backend fields: kycStatus, kycRequired, kycCompletedAt
+interface AccountKYCState {
+  kycStatus: KYCStatus;
+  kycRequired: boolean;
+  kycCompletedAt: string | null;
+}
+
+interface SettingsContentProps {
+  initialTab?: Tab;
+}
+
+export default function SettingsContent({ initialTab }: SettingsContentProps) {
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab || 'profile');
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
@@ -62,6 +139,27 @@ export default function SettingsContent() {
   const [pwSaved, setPwSaved] = useState(false);
   const [pwError, setPwError] = useState('');
   const [sessions, setSessions] = useState(MOCK_SESSIONS);
+
+  // KYC state — structured to match future API response shape
+  const [kycState, setKycState] = useState<AccountKYCState>({
+    kycStatus: 'not_started',
+    kycRequired: true,
+    kycCompletedAt: null,
+  });
+  const [kycLoading, setKycLoading] = useState(true);
+
+  useEffect(() => {
+    // BACKEND INTEGRATION: GET /api/v1/kyc/:customerId
+    // Response will include: { kycStatus, kycRequired, kycCompletedAt, ... }
+    kycService.getKYCStatus('cust-001').then(data => {
+      setKycState({
+        kycStatus: data.status,
+        kycRequired: true, // Will come from API: kycRequired field
+        kycCompletedAt: data.reviewedAt, // Will come from API: kycCompletedAt field
+      });
+      setKycLoading(false);
+    });
+  }, []);
 
   // Profile fields
   const [firstName, setFirstName] = useState('Alex');
@@ -99,20 +197,42 @@ export default function SettingsContent() {
     setSessions(prev => prev.filter(s => s.current));
   };
 
-  const inputCls = "w-full px-3 py-2 rounded-lg text-sm border focus:outline-none focus:ring-1 focus:ring-yellow-500/30 transition-colors";
+  const inputCls = "w-full px-3 py-2 rounded text-sm border focus:outline-none focus:ring-1 focus:ring-yellow-500/30 transition-colors";
   const inputStyle = { backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' };
+
+  const kycStatusConfig = KYC_STATUS_CONFIG[kycState.kycStatus];
+  const KycStatusIcon = kycStatusConfig.icon;
+  const kycIncomplete = kycState.kycRequired && kycState.kycStatus !== 'verified';
 
   return (
     <div className="py-4 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Settings &amp; Security</h1>
-        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Manage your account settings and security preferences</p>
+      <div className="mb-5">
+        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Profile &amp; Settings</h1>
+        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Manage your account information, security, and verification</p>
       </div>
+
+      {/* KYC mandatory notice — shown when verification is incomplete */}
+      {kycIncomplete && kycState.kycStatus !== 'submitted' && kycState.kycStatus !== 'under_review' && (
+        <div className="mb-5 flex items-start gap-3 px-4 py-3 rounded border" style={{ backgroundColor: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.25)' }}>
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: '#f59e0b' }} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold" style={{ color: '#f59e0b' }}>Identity verification required</p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Complete your verification to unlock all account functionality.</p>
+          </div>
+          <button
+            onClick={() => setActiveTab('kyc')}
+            className="text-xs px-3 py-1.5 rounded font-semibold shrink-0 transition-all hover:opacity-90"
+            style={{ backgroundColor: '#f59e0b', color: '#000' }}
+          >
+            Complete Verification
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
         {/* Sidebar tabs */}
-        <div className="sm:w-48 shrink-0">
-          <div className="rounded-xl border overflow-hidden flex sm:flex-col" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="sm:w-52 shrink-0">
+          <div className="rounded border overflow-hidden flex sm:flex-col" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             {TABS.map(tab => (
               <button
                 key={tab.id}
@@ -120,8 +240,11 @@ export default function SettingsContent() {
                 className={`flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 sm:gap-3 px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-left transition-colors border-r sm:border-r-0 sm:border-b last:border-0 hover:bg-white/5 ${activeTab === tab.id ? 'bg-primary-subtle' : ''}`}
                 style={{ borderColor: 'rgba(255,255,255,0.05)', color: activeTab === tab.id ? 'var(--primary)' : 'var(--muted-foreground)' }}
               >
-                <tab.icon size={15} />
+                <tab.icon size={14} />
                 <span className="hidden sm:inline">{tab.label}</span>
+                {tab.id === 'kyc' && kycIncomplete && (
+                  <span className="hidden sm:inline ml-auto w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />
+                )}
               </button>
             ))}
           </div>
@@ -130,11 +253,11 @@ export default function SettingsContent() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {activeTab === 'profile' && (
-            <div className="rounded-xl border p-4 sm:p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-              <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Profile Information</h2>
+            <div className="rounded border p-4 sm:p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Personal Information</h2>
 
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold"
+                <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold"
                   style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
                   {firstName.charAt(0)}
                 </div>
@@ -182,7 +305,6 @@ export default function SettingsContent() {
                   />
                 </div>
 
-                {/* Phone with country code */}
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>
                     <Phone size={11} className="inline mr-1" />
@@ -192,7 +314,7 @@ export default function SettingsContent() {
                     <select
                       value={phoneCode}
                       onChange={e => setPhoneCode(e.target.value)}
-                      className="text-sm px-2 py-2 rounded-lg border focus:outline-none shrink-0"
+                      className="text-sm px-2 py-2 rounded border focus:outline-none shrink-0"
                       style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)', width: '90px' }}
                     >
                       {COUNTRY_CODES.map((c, i) => (
@@ -203,7 +325,6 @@ export default function SettingsContent() {
                       type="tel"
                       value={phoneNumber}
                       onChange={e => {
-                        // Numbers only
                         const val = e.target.value.replace(/\D/g, '');
                         setPhoneNumber(val);
                       }}
@@ -216,7 +337,6 @@ export default function SettingsContent() {
                   </div>
                 </div>
 
-                {/* Country dropdown */}
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>
                     <Globe size={11} className="inline mr-1" />
@@ -242,19 +362,112 @@ export default function SettingsContent() {
                 <div className="flex-1" />
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95"
+                  className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95"
                   style={{ backgroundColor: 'var(--primary)', color: '#000' }}
                 >
-                  Save Profile
+                  Save Changes
                 </button>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'kyc' && (
+            <div className="space-y-4">
+              {/* KYC Status Header */}
+              <div className="rounded border p-4 sm:p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Identity Verification</h2>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                      KYC verification is required for all accounts. Complete your verification to unlock full trading access.
+                    </p>
+                  </div>
+                  {/* Status badge */}
+                  <div
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold shrink-0"
+                    style={{ backgroundColor: kycStatusConfig.bg, border: `1px solid ${kycStatusConfig.border}`, color: kycStatusConfig.color }}
+                  >
+                    <KycStatusIcon size={11} />
+                    {kycStatusConfig.label}
+                  </div>
+                </div>
+
+                {/* Status description */}
+                <div className="flex items-start gap-2.5 px-3 py-2.5 rounded text-xs" style={{ backgroundColor: kycStatusConfig.bg, border: `1px solid ${kycStatusConfig.border}` }}>
+                  <KycStatusIcon size={12} className="mt-0.5 shrink-0" style={{ color: kycStatusConfig.color }} />
+                  <span style={{ color: 'var(--muted-foreground)' }}>{kycStatusConfig.description}</span>
+                  {kycState.kycCompletedAt && (
+                    <span className="ml-auto shrink-0 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                      Completed: {kycState.kycCompletedAt}
+                    </span>
+                  )}
+                </div>
+
+                {/* Verification steps overview */}
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { label: 'Personal Info', done: kycState.kycStatus !== 'not_started' },
+                    { label: 'Address', done: kycState.kycStatus !== 'not_started' && kycState.kycStatus !== 'in_progress' },
+                    { label: 'Documents', done: ['submitted', 'under_review', 'verified'].includes(kycState.kycStatus) },
+                    { label: 'Review', done: kycState.kycStatus === 'verified' },
+                  ].map((step, i) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded text-xs" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}>
+                      <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: step.done ? 'rgba(34,197,94,0.15)' : 'rgba(107,114,128,0.15)' }}>
+                        {step.done
+                          ? <CheckCircle size={10} style={{ color: '#22c55e' }} />
+                          : <span className="text-xs font-bold" style={{ color: '#6b7280', fontSize: '9px' }}>{i + 1}</span>
+                        }
+                      </div>
+                      <span style={{ color: step.done ? 'var(--foreground)' : 'var(--muted-foreground)' }}>{step.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Show KYC form if not yet submitted/verified */}
+              {(kycState.kycStatus === 'not_started' || kycState.kycStatus === 'in_progress' || kycState.kycStatus === 'rejected') && (
+                <div className="rounded border p-4 sm:p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                  <KYCVerificationFlow
+                    onComplete={() => {
+                      setKycState(prev => ({ ...prev, kycStatus: 'submitted' }));
+                    }}
+                    isFirstLogin={false}
+                  />
+                </div>
+              )}
+
+              {/* Pending review state */}
+              {(kycState.kycStatus === 'submitted' || kycState.kycStatus === 'under_review') && (
+                <div className="rounded border p-5 text-center" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    <Clock size={20} style={{ color: '#3b82f6' }} />
+                  </div>
+                  <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Documents Under Review</h3>
+                  <p className="text-xs max-w-sm mx-auto" style={{ color: 'var(--muted-foreground)' }}>
+                    Your identity documents have been submitted and are being reviewed by our compliance team. This typically takes 1–2 business days. You will be notified by email once the review is complete.
+                  </p>
+                </div>
+              )}
+
+              {/* Verified state */}
+              {kycState.kycStatus === 'verified' && (
+                <div className="rounded border p-5 text-center" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                    <CheckCircle size={20} style={{ color: '#22c55e' }} />
+                  </div>
+                  <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Identity Verified</h3>
+                  <p className="text-xs max-w-sm mx-auto" style={{ color: 'var(--muted-foreground)' }}>
+                    Your identity has been successfully verified. Full account access is enabled.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'security' && (
             <div className="space-y-4">
               {/* Change Password */}
-              <div className="rounded-xl border p-4 sm:p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="rounded border p-4 sm:p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-2">
                   <Lock size={15} style={{ color: 'var(--primary)' }} />
                   <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Change Password</h2>
@@ -264,12 +477,12 @@ export default function SettingsContent() {
                 </p>
 
                 {pwError && (
-                  <div className="p-3 rounded-lg text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444' }}>
+                  <div className="p-3 rounded text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444' }}>
                     {pwError}
                   </div>
                 )}
                 {pwSaved && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}>
+                  <div className="flex items-center gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e' }}>
                     <Check size={12} /> Password updated successfully
                   </div>
                 )}
@@ -329,7 +542,7 @@ export default function SettingsContent() {
                 </div>
                 <button
                   onClick={handlePasswordChange}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95"
+                  className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95"
                   style={{ backgroundColor: 'var(--primary)', color: '#000' }}
                 >
                   Update Password
@@ -337,18 +550,18 @@ export default function SettingsContent() {
               </div>
 
               {/* 2FA */}
-              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(245,196,0,0.12)' }}>
-                      <Smartphone size={16} style={{ color: 'var(--primary)' }} />
+                    <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(245,196,0,0.1)' }}>
+                      <Smartphone size={15} style={{ color: 'var(--primary)' }} />
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Two-Factor Authentication</h3>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
                         Add an extra layer of security using a TOTP authenticator app (e.g. Google Authenticator, Authy).
                       </p>
-                      <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full font-semibold ${twoFaEnabled ? 'text-positive' : 'text-negative'}`}
+                      <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded font-semibold ${twoFaEnabled ? 'text-positive' : 'text-negative'}`}
                         style={{ backgroundColor: twoFaEnabled ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }}>
                         {twoFaEnabled ? '● Enabled' : '● Disabled'}
                       </span>
@@ -356,7 +569,7 @@ export default function SettingsContent() {
                   </div>
                   <button
                     onClick={() => setTwoFaEnabled(!twoFaEnabled)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:bg-muted shrink-0"
+                    className="px-3 py-1.5 rounded text-xs font-semibold border transition-all hover:bg-muted shrink-0"
                     style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
                   >
                     {twoFaEnabled ? 'Disable' : 'Enable'}
@@ -365,29 +578,29 @@ export default function SettingsContent() {
               </div>
 
               {/* API Keys */}
-              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-3 mb-4">
-                  <Key size={16} style={{ color: 'var(--primary)' }} />
+                  <Key size={15} style={{ color: 'var(--primary)' }} />
                   <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>API Keys</h3>
                 </div>
-                <div className="rounded-lg border p-3 flex items-center justify-between gap-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
+                <div className="rounded border p-3 flex items-center justify-between gap-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Main API Key</p>
-                    <p className="text-xs font-mono mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>cv_••••••••••••••••••••••••••••••••</p>
+                    <p className="text-xs font-mono mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>tc_••••••••••••••••••••••••••••••••</p>
                   </div>
                   <button className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0"
                     style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
                     Reveal
                   </button>
                 </div>
-                <button className="mt-3 text-xs px-3 py-1.5 rounded-lg border transition-all hover:bg-muted"
+                <button className="mt-3 text-xs px-3 py-1.5 rounded border transition-all hover:bg-muted"
                   style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
                   + Generate New Key
                 </button>
               </div>
 
               {/* Active Sessions */}
-              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <Monitor size={15} style={{ color: 'var(--primary)' }} />
@@ -404,8 +617,8 @@ export default function SettingsContent() {
                   {sessions.map((session, idx) => (
                     <div key={`sess-${idx}`} className="flex items-center justify-between py-3 border-b last:border-b-0 gap-3" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--muted)' }}>
-                          <Monitor size={14} style={{ color: 'var(--muted-foreground)' }} />
+                        <div className="w-7 h-7 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--muted)' }}>
+                          <Monitor size={13} style={{ color: 'var(--muted-foreground)' }} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: 'var(--foreground)' }}>{session.device}</p>
@@ -420,7 +633,7 @@ export default function SettingsContent() {
                         </div>
                       </div>
                       {session.current ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-semibold text-positive shrink-0" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>Current</span>
+                        <span className="text-xs px-2 py-0.5 rounded font-semibold text-positive shrink-0" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>Current</span>
                       ) : (
                         <button onClick={() => revokeSession(idx)} className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0" style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}>
                           <LogOut size={12} />
@@ -432,7 +645,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Login History */}
-              <div className="rounded-xl border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-center gap-2 mb-1">
                   <History size={15} style={{ color: 'var(--primary)' }} />
                   <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Login Activity</h3>
@@ -475,7 +688,7 @@ export default function SettingsContent() {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="rounded-xl border p-4 sm:p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="rounded border p-4 sm:p-6 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Notification Preferences</h2>
               {[
                 { label: 'Trade Executions', desc: 'Get notified when your orders are filled', defaultOn: true },
@@ -491,7 +704,7 @@ export default function SettingsContent() {
           )}
 
           {activeTab === 'preferences' && (
-            <div className="rounded-xl border p-4 sm:p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="rounded border p-4 sm:p-6 space-y-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Display Preferences</h2>
               <div className="space-y-4">
                 {[
@@ -513,7 +726,7 @@ export default function SettingsContent() {
               </div>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 rounded-lg text-sm font-semibold transition-all active:scale-95"
+                className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95"
                 style={{ backgroundColor: 'var(--primary)', color: '#000' }}
               >
                 Save Preferences
