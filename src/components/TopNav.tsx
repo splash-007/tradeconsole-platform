@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { label: 'Transactions', href: '/transactions', icon: History },
   { label: 'Watchlist', href: '/watchlist', icon: Star },
   { label: 'Funds', href: '/finance', icon: Wallet },
-  { label: 'News & Learn', href: '#', icon: BookOpen },
+  { label: 'News & Learn', href: '/news-learn', icon: BookOpen },
   { label: 'Support', href: '/messages', icon: MessageSquare },
 ];
 

@@ -24,6 +24,116 @@ const STATUS_STYLES: Record<string, { label: string; color: string; bg: string }
   'after-hours': { label: 'After Hours', color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)' },
 };
 
+// Asset icon mapping — recognizable logos/symbols per instrument
+const ASSET_ICONS: Record<string, { type: 'img' | 'text' | 'flag'; value: string; bg?: string; color?: string }> = {
+  // Crypto — CoinGecko-style icons via public CDN
+  'BTC/USDT': { type: 'img', value: 'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
+  'ETH/USDT': { type: 'img', value: 'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
+  'SOL/USDT': { type: 'img', value: 'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
+  'XRP/USDT': { type: 'img', value: 'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png' },
+  'BNB/USDT': { type: 'img', value: 'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png' },
+  // Shares — company logos
+  'AAPL': { type: 'text', value: '🍎', bg: '#f3f4f6', color: '#111' },
+  'MSFT': { type: 'text', value: '⊞', bg: '#e8f0fe', color: '#0078d4' },
+  'NVDA': { type: 'text', value: 'N', bg: '#76b900', color: '#fff' },
+  'TSLA': { type: 'text', value: 'T', bg: '#cc0000', color: '#fff' },
+  'AMZN': { type: 'text', value: 'a', bg: '#ff9900', color: '#000' },
+  'GOOGL': { type: 'text', value: 'G', bg: '#4285f4', color: '#fff' },
+  // Forex — flag emoji pairs
+  'EUR/USD': { type: 'flag', value: '🇪🇺' },
+  'GBP/USD': { type: 'flag', value: '🇬🇧' },
+  'USD/JPY': { type: 'flag', value: '🇯🇵' },
+  'AUD/USD': { type: 'flag', value: '🇦🇺' },
+  'USD/CHF': { type: 'flag', value: '🇨🇭' },
+  // Metals
+  'XAU/USD': { type: 'text', value: 'Au', bg: '#fbbf24', color: '#000' },
+  'XAG/USD': { type: 'text', value: 'Ag', bg: '#9ca3af', color: '#fff' },
+  'XPT/USD': { type: 'text', value: 'Pt', bg: '#e5e7eb', color: '#374151' },
+  'XPD/USD': { type: 'text', value: 'Pd', bg: '#d1d5db', color: '#374151' },
+  // Energy
+  'WTI/USD': { type: 'text', value: '🛢', bg: '#1f2937', color: '#f59e0b' },
+  'BRENT/USD': { type: 'text', value: '⛽', bg: '#1f2937', color: '#f59e0b' },
+  'NATGAS': { type: 'text', value: '🔥', bg: '#fef3c7', color: '#d97706' },
+  // Indices
+  'SPX500': { type: 'text', value: 'S&P', bg: '#1d4ed8', color: '#fff' },
+  'NAS100': { type: 'text', value: 'NDX', bg: '#7c3aed', color: '#fff' },
+  'DJI30': { type: 'text', value: 'DJI', bg: '#0369a1', color: '#fff' },
+  'DAX40': { type: 'text', value: 'DAX', bg: '#000', color: '#f59e0b' },
+  'FTSE100': { type: 'text', value: 'FT', bg: '#dc2626', color: '#fff' },
+  // Commodities
+  'WHEAT': { type: 'text', value: '🌾', bg: '#fef9c3', color: '#854d0e' },
+  'COFFEE': { type: 'text', value: '☕', bg: '#78350f', color: '#fef3c7' },
+  'SUGAR': { type: 'text', value: '🍬', bg: '#fce7f3', color: '#9d174d' },
+  'COTTON': { type: 'text', value: '🌿', bg: '#f0fdf4', color: '#166534' },
+  'CORN': { type: 'text', value: '🌽', bg: '#fef9c3', color: '#854d0e' },
+};
+
+function AssetIcon({ symbol, category }: { symbol: string; category: CategoryKey }) {
+  const icon = ASSET_ICONS[symbol];
+  const categoryColors: Record<CategoryKey, { bg: string; color: string }> = {
+    forex: { bg: '#eff6ff', color: '#1d4ed8' },
+    indices: { bg: '#f5f3ff', color: '#7c3aed' },
+    commodities: { bg: '#fefce8', color: '#854d0e' },
+    metals: { bg: '#fef9c3', color: '#854d0e' },
+    energy: { bg: '#fff7ed', color: '#c2410c' },
+    shares: { bg: '#f0fdf4', color: '#166534' },
+    crypto: { bg: '#fffbeb', color: '#b45309' },
+  };
+
+  if (icon?.type === 'img') {
+    return (
+      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+        <img
+          src={icon.value}
+          alt={symbol}
+          className="w-6 h-6 object-contain"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            if (target.parentElement) {
+              target.parentElement.innerHTML = `<span style="font-size:11px;font-weight:700;color:#b45309">${symbol.split('/')[0].slice(0,3)}</span>`;
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (icon?.type === 'flag') {
+    return (
+      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-lg" style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+        {icon.value}
+      </div>
+    );
+  }
+
+  if (icon?.type === 'text') {
+    const isEmoji = icon.value.length <= 2 && /\p{Emoji}/u.test(icon.value);
+    return (
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+        style={{ backgroundColor: icon.bg || '#f3f4f6', border: '1px solid rgba(0,0,0,0.08)' }}
+      >
+        <span style={{ fontSize: isEmoji ? '16px' : '10px', fontWeight: 700, color: icon.color || '#374151', lineHeight: 1 }}>
+          {icon.value}
+        </span>
+      </div>
+    );
+  }
+
+  // Fallback: category-colored abbreviation
+  const fallback = categoryColors[category];
+  const abbr = symbol.split('/')[0].slice(0, 3).toUpperCase();
+  return (
+    <div
+      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+      style={{ backgroundColor: fallback.bg, color: fallback.color, border: `1px solid ${fallback.color}30` }}
+    >
+      {abbr}
+    </div>
+  );
+}
+
 function formatPrice(price: number, category: CategoryKey): string {
   if (category === 'forex') return price.toFixed(4);
   if (price >= 10000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -38,27 +148,6 @@ function formatVolume(v: number): string {
   if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
   if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
   return `$${v.toLocaleString()}`;
-}
-
-function SymbolBadge({ symbol, category }: { symbol: string; category: CategoryKey }) {
-  const abbr = symbol.split('/')[0].slice(0, 3).toUpperCase();
-  const colors: Record<CategoryKey, string> = {
-    forex: '#3b82f6',
-    indices: '#8b5cf6',
-    commodities: '#f59e0b',
-    metals: '#F5C400',
-    energy: '#f97316',
-    shares: '#22c55e',
-    crypto: '#F5C400',
-  };
-  return (
-    <div
-      className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-      style={{ backgroundColor: `${colors[category]}18`, color: colors[category], border: `1px solid ${colors[category]}30` }}
-    >
-      {abbr}
-    </div>
-  );
 }
 
 export default function MarketsContent() {
@@ -189,14 +278,16 @@ export default function MarketsContent() {
                   return (
                     <tr
                       key={inst.id}
-                      className="hover:bg-white/[0.02] transition-colors"
+                      className="transition-colors"
                       style={{ borderBottom: '1px solid var(--border)' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--muted)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       {/* Star */}
                       <td className="px-3 py-3">
                         <button
                           onClick={() => toggleWatch(inst.symbol)}
-                          className="p-1 rounded transition-colors hover:bg-white/10"
+                          className="p-1 rounded transition-colors"
                           title={isWatched ? 'Remove from watchlist' : 'Add to watchlist'}
                         >
                           <Star
@@ -209,7 +300,7 @@ export default function MarketsContent() {
                       {/* Instrument */}
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2.5">
-                          <SymbolBadge symbol={inst.symbol} category={inst.category} />
+                          <AssetIcon symbol={inst.symbol} category={inst.category} />
                           <div>
                             <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
                             <p className="text-xs" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{inst.baseCurrency}</p>
@@ -228,7 +319,7 @@ export default function MarketsContent() {
                       </td>
                       {/* 24h Change */}
                       <td className="px-3 py-3 text-right">
-                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold tabular-nums`}
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold tabular-nums"
                           style={{
                             backgroundColor: isPos ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
                             color: isPos ? '#22c55e' : '#ef4444',
@@ -263,7 +354,7 @@ export default function MarketsContent() {
                       </td>
                       {/* Volume */}
                       <td className="px-3 py-3 text-right hidden xl:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--muted-foreground)' }}>
+                        <span className="text-xs tabular-nums" style={{ color: 'var(--muted-foreground)' }}>
                           {formatVolume(inst.volume24h)}
                         </span>
                       </td>

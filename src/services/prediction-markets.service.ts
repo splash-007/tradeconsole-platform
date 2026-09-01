@@ -4,10 +4,39 @@
 // POST /api/v1/prediction-markets/:id/positions
 // GET  /api/v1/prediction-markets/positions
 // GET  /api/v1/prediction-markets/history
+// GET  /api/v1/prediction-markets/:id/eligibility
 
 export type PredictionCategory = 'trending' | 'finance' | 'crypto' | 'economy' | 'technology' | 'sports' | 'world';
-export type MarketStatus = 'open' | 'closed' | 'resolved' | 'pending';
+
+/**
+ * Full market lifecycle status.
+ * open → suspended → closed → resolving → resolved_yes | resolved_no | voided
+ */
+export type MarketStatus =
+  | 'open' |'suspended' |'closed' |'resolving' |'resolved_yes' |'resolved_no' |'voided';
+
 export type PositionSide = 'YES' | 'NO';
+
+/**
+ * Per-user eligibility state for a specific prediction market.
+ * The backend performs jurisdiction and compliance checks.
+ * The frontend must never assume eligibility.
+ */
+export type EligibilityStatus =
+  | 'available'           // User can participate
+  | 'unavailable'         // Market not available (e.g. not yet open)
+  | 'region_restricted'   // Jurisdiction/geo restriction
+  | 'kyc_required'        // KYC not completed
+  | 'account_restricted'  // Account has a restriction
+  | 'market_closed'       // Market is no longer accepting positions
+  | 'resolved'            // Market already resolved
+  | 'voided';             // Market voided/cancelled
+
+export interface EligibilityCheck {
+  status: EligibilityStatus;
+  message: string;
+  canParticipate: boolean;
+}
 
 export interface PredictionMarket {
   id: string;
@@ -22,10 +51,12 @@ export interface PredictionMarket {
   endsAt: string;
   status: MarketStatus;
   resolutionCriteria: string;
+  resolutionSource: string;
+  resolutionDeadline: string | null;
   yesPrice: number;
   noPrice: number;
   totalPositions: number;
-  recentActivity: {user: string;side: PositionSide;amount: number;time: string;}[];
+  recentActivity: { user: string; side: PositionSide; amount: number; time: string }[];
 }
 
 export interface UserPosition {
@@ -38,133 +69,155 @@ export interface UserPosition {
 }
 
 const MOCK_MARKETS: PredictionMarket[] = [
-{
-  id: 'pm-001',
-  title: 'Will Bitcoin exceed $100,000 by end of Q4 2026?',
-  description: 'This market resolves YES if Bitcoin (BTC) closes above $100,000 USD on any major exchange on or before December 31, 2026.',
-  category: 'crypto',
-  imageUrl: "https://images.unsplash.com/photo-1628498643518-0552fa82b979",
-  imageAlt: 'Bitcoin gold coin on dark background representing cryptocurrency market prediction',
-  yesProbability: 68,
-  noProbability: 32,
-  volume: 2840000,
-  endsAt: '2026-12-31T23:59:00Z',
-  status: 'open',
-  resolutionCriteria: 'Resolves YES if BTC/USD closing price exceeds $100,000 on Coinbase, Binance, or Kraken on or before December 31, 2026 23:59 UTC.',
-  yesPrice: 0.68,
-  noPrice: 0.32,
-  totalPositions: 4821,
-  recentActivity: [
-  { user: 'Trader_0x4f', side: 'YES', amount: 500, time: '2 min ago' },
-  { user: 'Anon_7k2', side: 'NO', amount: 200, time: '5 min ago' },
-  { user: 'CryptoHedge', side: 'YES', amount: 1200, time: '12 min ago' }]
+  {
+    id: 'pm-001',
+    title: 'Will Bitcoin exceed $100,000 by end of Q4 2026?',
+    description: 'This market resolves YES if Bitcoin (BTC) closes above $100,000 USD on any major exchange on or before December 31, 2026.',
+    category: 'crypto',
+    imageUrl: 'https://images.unsplash.com/photo-1628498643518-0552fa82b979',
+    imageAlt: 'Bitcoin gold coin on dark background representing cryptocurrency market prediction',
+    yesProbability: 68,
+    noProbability: 32,
+    volume: 2840000,
+    endsAt: '2026-12-31T23:59:00Z',
+    status: 'open',
+    resolutionCriteria: 'Resolves YES if BTC/USD closing price exceeds $100,000 on Coinbase, Binance, or Kraken on or before December 31, 2026 23:59 UTC.',
+    resolutionSource: 'Coinbase / Binance / Kraken closing price',
+    resolutionDeadline: '2027-01-07T00:00:00Z',
+    yesPrice: 0.68,
+    noPrice: 0.32,
+    totalPositions: 4821,
+    recentActivity: [
+      { user: 'Trader_0x4f', side: 'YES', amount: 500, time: '2 min ago' },
+      { user: 'Anon_7k2', side: 'NO', amount: 200, time: '5 min ago' },
+      { user: 'CryptoHedge', side: 'YES', amount: 1200, time: '12 min ago' },
+    ],
+  },
+  {
+    id: 'pm-002',
+    title: 'Will the US Federal Reserve cut rates in September 2026?',
+    description: 'Resolves YES if the FOMC announces a rate cut of 25bps or more at the September 2026 meeting.',
+    category: 'finance',
+    imageUrl: 'https://img.rocket.new/generatedImages/rocket_gen_img_1130f62cf-1772310232175.png',
+    imageAlt: 'Federal Reserve building exterior representing US monetary policy decision',
+    yesProbability: 54,
+    noProbability: 46,
+    volume: 1920000,
+    endsAt: '2026-09-20T18:00:00Z',
+    status: 'open',
+    resolutionCriteria: 'Resolves YES if the FOMC statement released at the September 2026 meeting announces a reduction in the federal funds rate target range.',
+    resolutionSource: 'Federal Reserve official FOMC statement',
+    resolutionDeadline: '2026-09-25T00:00:00Z',
+    yesPrice: 0.54,
+    noPrice: 0.46,
+    totalPositions: 3204,
+    recentActivity: [
+      { user: 'MacroTrader', side: 'YES', amount: 800, time: '8 min ago' },
+      { user: 'RateWatcher', side: 'NO', amount: 350, time: '15 min ago' },
+    ],
+  },
+  {
+    id: 'pm-003',
+    title: 'Will Ethereum complete its next major upgrade in 2026?',
+    description: 'Resolves YES if Ethereum mainnet deploys a major protocol upgrade (EIP bundle) before December 31, 2026.',
+    category: 'crypto',
+    imageUrl: 'https://img.rocket.new/generatedImages/rocket_gen_img_1730bb67c-1788295994703.png',
+    imageAlt: 'Ethereum logo glowing blue representing blockchain protocol upgrade prediction',
+    yesProbability: 82,
+    noProbability: 18,
+    volume: 980000,
+    endsAt: '2026-12-31T23:59:00Z',
+    status: 'open',
+    resolutionCriteria: 'Resolves YES if Ethereum mainnet activates a hard fork or major upgrade as announced by the Ethereum Foundation before December 31, 2026.',
+    resolutionSource: 'Ethereum Foundation official announcement',
+    resolutionDeadline: '2027-01-07T00:00:00Z',
+    yesPrice: 0.82,
+    noPrice: 0.18,
+    totalPositions: 1842,
+    recentActivity: [
+      { user: 'ETH_Dev_Fan', side: 'YES', amount: 300, time: '20 min ago' },
+    ],
+  },
+  {
+    id: 'pm-004',
+    title: 'Will global inflation (CPI) fall below 3% by end of 2026?',
+    description: 'Resolves YES if the IMF reports global average CPI inflation below 3% for calendar year 2026.',
+    category: 'economy',
+    imageUrl: 'https://images.unsplash.com/photo-1629695004567-22f2ff9609e7',
+    imageAlt: 'Rising price chart and coins representing global inflation economic prediction',
+    yesProbability: 41,
+    noProbability: 59,
+    volume: 1480000,
+    endsAt: '2027-01-31T23:59:00Z',
+    status: 'open',
+    resolutionCriteria: 'Resolves YES if the IMF World Economic Outlook (January 2027 update) reports global CPI inflation below 3% for 2026.',
+    resolutionSource: 'IMF World Economic Outlook January 2027',
+    resolutionDeadline: '2027-02-15T00:00:00Z',
+    yesPrice: 0.41,
+    noPrice: 0.59,
+    totalPositions: 2640,
+    recentActivity: [
+      { user: 'EconWatch', side: 'NO', amount: 600, time: '1 hr ago' },
+      { user: 'Macro_Bull', side: 'YES', amount: 250, time: '2 hrs ago' },
+    ],
+  },
+  {
+    id: 'pm-005',
+    title: 'Will a major AI company release AGI by end of 2027?',
+    description: 'Resolves YES if any major AI lab publicly claims and demonstrates AGI-level capability by December 31, 2027.',
+    category: 'technology',
+    imageUrl: 'https://img.rocket.new/generatedImages/rocket_gen_img_128fd8bea-1769057432011.png',
+    imageAlt: 'Artificial intelligence neural network visualization representing AGI technology prediction',
+    yesProbability: 23,
+    noProbability: 77,
+    volume: 3200000,
+    endsAt: '2027-12-31T23:59:00Z',
+    status: 'open',
+    resolutionCriteria: 'Resolves YES if a recognized AI research organization publicly demonstrates and claims AGI-level performance on a standardized benchmark suite before December 31, 2027.',
+    resolutionSource: 'Peer-reviewed publication or major AI lab official announcement',
+    resolutionDeadline: '2028-01-15T00:00:00Z',
+    yesPrice: 0.23,
+    noPrice: 0.77,
+    totalPositions: 5820,
+    recentActivity: [
+      { user: 'TechSkeptic', side: 'NO', amount: 1000, time: '30 min ago' },
+      { user: 'AIOptimist', side: 'YES', amount: 400, time: '45 min ago' },
+    ],
+  },
+  {
+    id: 'pm-006',
+    title: 'Will S&P 500 reach 6,500 before end of 2026?',
+    description: 'Resolves YES if the S&P 500 index closes at or above 6,500 on any trading day before December 31, 2026.',
+    category: 'finance',
+    imageUrl: 'https://img.rocket.new/generatedImages/rocket_gen_img_1f1e8871f-1772729899117.png',
+    imageAlt: 'Stock market trading floor with screens showing S&P 500 index performance',
+    yesProbability: 61,
+    noProbability: 39,
+    volume: 2100000,
+    endsAt: '2026-12-31T23:59:00Z',
+    status: 'open',
+    resolutionCriteria: 'Resolves YES if the S&P 500 index (SPX) closing price is at or above 6,500 on any NYSE trading day on or before December 31, 2026.',
+    resolutionSource: 'NYSE official closing price data',
+    resolutionDeadline: '2027-01-07T00:00:00Z',
+    yesPrice: 0.61,
+    noPrice: 0.39,
+    totalPositions: 3980,
+    recentActivity: [
+      { user: 'EquityBull', side: 'YES', amount: 750, time: '10 min ago' },
+      { user: 'BearCase_99', side: 'NO', amount: 500, time: '25 min ago' },
+    ],
+  },
+];
 
-},
-{
-  id: 'pm-002',
-  title: 'Will the US Federal Reserve cut rates in September 2026?',
-  description: 'Resolves YES if the FOMC announces a rate cut of 25bps or more at the September 2026 meeting.',
-  category: 'finance',
-  imageUrl: "https://img.rocket.new/generatedImages/rocket_gen_img_1130f62cf-1772310232175.png",
-  imageAlt: 'Federal Reserve building exterior representing US monetary policy decision',
-  yesProbability: 54,
-  noProbability: 46,
-  volume: 1920000,
-  endsAt: '2026-09-20T18:00:00Z',
-  status: 'open',
-  resolutionCriteria: 'Resolves YES if the FOMC statement released at the September 2026 meeting announces a reduction in the federal funds rate target range.',
-  yesPrice: 0.54,
-  noPrice: 0.46,
-  totalPositions: 3204,
-  recentActivity: [
-  { user: 'MacroTrader', side: 'YES', amount: 800, time: '8 min ago' },
-  { user: 'RateWatcher', side: 'NO', amount: 350, time: '15 min ago' }]
-
-},
-{
-  id: 'pm-003',
-  title: 'Will Ethereum complete its next major upgrade in 2026?',
-  description: 'Resolves YES if Ethereum mainnet deploys a major protocol upgrade (EIP bundle) before December 31, 2026.',
-  category: 'crypto',
-  imageUrl: "https://img.rocket.new/generatedImages/rocket_gen_img_1730bb67c-1788295994703.png",
-  imageAlt: 'Ethereum logo glowing blue representing blockchain protocol upgrade prediction',
-  yesProbability: 82,
-  noProbability: 18,
-  volume: 980000,
-  endsAt: '2026-12-31T23:59:00Z',
-  status: 'open',
-  resolutionCriteria: 'Resolves YES if Ethereum mainnet activates a hard fork or major upgrade as announced by the Ethereum Foundation before December 31, 2026.',
-  yesPrice: 0.82,
-  noPrice: 0.18,
-  totalPositions: 1842,
-  recentActivity: [
-  { user: 'ETH_Dev_Fan', side: 'YES', amount: 300, time: '20 min ago' }]
-
-},
-{
-  id: 'pm-004',
-  title: 'Will global inflation (CPI) fall below 3% by end of 2026?',
-  description: 'Resolves YES if the IMF reports global average CPI inflation below 3% for calendar year 2026.',
-  category: 'economy',
-  imageUrl: "https://images.unsplash.com/photo-1629695004567-22f2ff9609e7",
-  imageAlt: 'Rising price chart and coins representing global inflation economic prediction',
-  yesProbability: 41,
-  noProbability: 59,
-  volume: 1480000,
-  endsAt: '2027-01-31T23:59:00Z',
-  status: 'open',
-  resolutionCriteria: 'Resolves YES if the IMF World Economic Outlook (January 2027 update) reports global CPI inflation below 3% for 2026.',
-  yesPrice: 0.41,
-  noPrice: 0.59,
-  totalPositions: 2640,
-  recentActivity: [
-  { user: 'EconWatch', side: 'NO', amount: 600, time: '1 hr ago' },
-  { user: 'Macro_Bull', side: 'YES', amount: 250, time: '2 hrs ago' }]
-
-},
-{
-  id: 'pm-005',
-  title: 'Will a major AI company release AGI by end of 2027?',
-  description: 'Resolves YES if any major AI lab publicly claims and demonstrates AGI-level capability by December 31, 2027.',
-  category: 'technology',
-  imageUrl: "https://img.rocket.new/generatedImages/rocket_gen_img_128fd8bea-1769057432011.png",
-  imageAlt: 'Artificial intelligence neural network visualization representing AGI technology prediction',
-  yesProbability: 23,
-  noProbability: 77,
-  volume: 3200000,
-  endsAt: '2027-12-31T23:59:00Z',
-  status: 'open',
-  resolutionCriteria: 'Resolves YES if a recognized AI research organization publicly demonstrates and claims AGI-level performance on a standardized benchmark suite before December 31, 2027.',
-  yesPrice: 0.23,
-  noPrice: 0.77,
-  totalPositions: 5820,
-  recentActivity: [
-  { user: 'TechSkeptic', side: 'NO', amount: 1000, time: '30 min ago' },
-  { user: 'AIOptimist', side: 'YES', amount: 400, time: '45 min ago' }]
-
-},
-{
-  id: 'pm-006',
-  title: 'Will S&P 500 reach 6,500 before end of 2026?',
-  description: 'Resolves YES if the S&P 500 index closes at or above 6,500 on any trading day before December 31, 2026.',
-  category: 'finance',
-  imageUrl: "https://img.rocket.new/generatedImages/rocket_gen_img_1f1e8871f-1772729899117.png",
-  imageAlt: 'Stock market trading floor with screens showing S&P 500 index performance',
-  yesProbability: 61,
-  noProbability: 39,
-  volume: 2100000,
-  endsAt: '2026-12-31T23:59:00Z',
-  status: 'open',
-  resolutionCriteria: 'Resolves YES if the S&P 500 index (SPX) closing price is at or above 6,500 on any NYSE trading day on or before December 31, 2026.',
-  yesPrice: 0.61,
-  noPrice: 0.39,
-  totalPositions: 3980,
-  recentActivity: [
-  { user: 'EquityBull', side: 'YES', amount: 750, time: '10 min ago' },
-  { user: 'BearCase_99', side: 'NO', amount: 500, time: '25 min ago' }]
-
-}];
-
+// Mock eligibility — in production this is per-user, per-market, backend-authoritative
+const MOCK_ELIGIBILITY: Record<string, EligibilityCheck> = {
+  'pm-001': { status: 'available', message: 'You are eligible to participate in this market.', canParticipate: true },
+  'pm-002': { status: 'available', message: 'You are eligible to participate in this market.', canParticipate: true },
+  'pm-003': { status: 'kyc_required', message: 'Identity verification (KYC) is required before participating in this market.', canParticipate: false },
+  'pm-004': { status: 'available', message: 'You are eligible to participate in this market.', canParticipate: true },
+  'pm-005': { status: 'available', message: 'You are eligible to participate in this market.', canParticipate: true },
+  'pm-006': { status: 'available', message: 'You are eligible to participate in this market.', canParticipate: true },
+};
 
 export const predictionMarketsService = {
   /**
@@ -172,7 +225,7 @@ export const predictionMarketsService = {
    * BACKEND: GET /api/v1/prediction-markets
    */
   async getMarkets(category?: PredictionCategory): Promise<PredictionMarket[]> {
-    if (category) return MOCK_MARKETS.filter((m) => m.category === category);
+    if (category) return MOCK_MARKETS.filter(m => m.category === category);
     return MOCK_MARKETS;
   },
 
@@ -181,7 +234,22 @@ export const predictionMarketsService = {
    * BACKEND: GET /api/v1/prediction-markets/:id
    */
   async getMarket(id: string): Promise<PredictionMarket | null> {
-    return MOCK_MARKETS.find((m) => m.id === id) || null;
+    return MOCK_MARKETS.find(m => m.id === id) || null;
+  },
+
+  /**
+   * Check eligibility for a specific market.
+   * BACKEND: GET /api/v1/prediction-markets/:id/eligibility
+   * This is per-user, per-market. The backend performs jurisdiction and compliance checks.
+   * The frontend MUST NOT assume eligibility.
+   */
+  async checkEligibility(marketId: string): Promise<EligibilityCheck> {
+    await new Promise(r => setTimeout(r, 300));
+    return MOCK_ELIGIBILITY[marketId] || {
+      status: 'available',
+      message: 'You are eligible to participate in this market.',
+      canParticipate: true,
+    };
   },
 
   /**
@@ -190,8 +258,8 @@ export const predictionMarketsService = {
    * NOTE: Actual balance debit, locking, settlement and winnings MUST be server-authoritative.
    * This frontend call is for UI flow only — no real balance changes occur here.
    */
-  async submitPosition(_marketId: string, _side: PositionSide, _amount: number): Promise<{success: boolean;shares: number;}> {
-    await new Promise((r) => setTimeout(r, 800));
+  async submitPosition(_marketId: string, _side: PositionSide, _amount: number): Promise<{ success: boolean; shares: number }> {
+    await new Promise(r => setTimeout(r, 800));
     return { success: true, shares: _amount };
   },
 
@@ -209,5 +277,5 @@ export const predictionMarketsService = {
    */
   async getHistory(): Promise<UserPosition[]> {
     return [];
-  }
+  },
 };

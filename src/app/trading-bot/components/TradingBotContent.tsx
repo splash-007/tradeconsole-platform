@@ -3,15 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { tradingBotService, Bot, BotConfig, MarketType, BotStrategy, AnalysisResult } from '@/services/trading-bot.service';
 import { Bot as BotIcon, Play, Pause, Square, ChevronRight, ChevronDown, AlertTriangle, CheckCircle, Loader2, TrendingUp, TrendingDown, Minus, BarChart2, Zap, Info } from 'lucide-react';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 type TabKey = 'builder' | 'active' | 'paused' | 'completed';
 
 const MARKET_TYPES: { key: MarketType; label: string; desc: string; tags: string[] }[] = [
-  { key: 'SPOT', label: 'Spot', desc: 'Asset accumulation with 1× exposure. No liquidation risk from leverage.', tags: ['1× Exposure', 'No Liquidation', 'Asset Ownership'] },
+  { key: 'SPOT', label: 'Spot', desc: 'Asset accumulation with 1× exposure. No liquidation risk from leverage. Suitable for long-term strategies.', tags: ['1× Exposure', 'No Liquidation', 'Asset Ownership'] },
   { key: 'PERPETUAL_FUTURES', label: 'Perpetual Futures', desc: 'Long/Short with leverage. Margin and liquidation risk. Strong risk controls required.', tags: ['Long / Short', 'Leverage-Capable', 'Liquidation Risk'] },
-  { key: 'OPTIONS', label: 'Options', desc: 'Calls/Puts with premium-based strategies. Expiry and strike considerations apply.', tags: ['Calls / Puts', 'Premium-Based', 'Expiry / Strike'] },
+  { key: 'OPTIONS', label: 'Options', desc: 'Calls/Puts with premium-based strategies. Expiry and strike price considerations apply.', tags: ['Calls / Puts', 'Premium-Based', 'Expiry / Strike'] },
 ];
 
 const ASSET_PAIRS: Record<string, string[]> = {
@@ -30,8 +28,6 @@ const STRATEGY_LABELS: Record<BotStrategy, string> = {
 
 const RISK_COLORS = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
 const STATUS_COLORS: Record<string, string> = { active: '#22c55e', paused: '#f59e0b', completed: '#6b7280', error: '#ef4444' };
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StepIndicator({ current, total }: { current: Step; total: number }) {
   return (
@@ -119,7 +115,23 @@ function BotCard({ bot, onAction }: { bot: Bot; onAction: (id: string, action: '
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── OPTIONS-specific risk parameters ────────────────────────────────────────
+interface OptionsParams {
+  optionType: 'CALL' | 'PUT';
+  strike: string;
+  expiry: string;
+  premium: string;
+  maxLoss: string;
+}
+
+// ─── FUTURES-specific risk parameters ────────────────────────────────────────
+interface FuturesParams {
+  direction: 'LONG' | 'SHORT';
+  leverage: string;
+  stopLoss: string;
+  liquidationBuffer: string;
+  isolatedMargin: boolean;
+}
 
 export default function TradingBotContent() {
   const [tab, setTab] = useState<TabKey>('builder');
@@ -129,12 +141,29 @@ export default function TradingBotContent() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [investment, setInvestment] = useState('1000');
-  const [leverage, setLeverage] = useState('5');
   const [stopLoss, setStopLoss] = useState('3.5');
   const [deploying, setDeploying] = useState(false);
   const [deployed, setDeployed] = useState(false);
   const [bots, setBots] = useState<Bot[]>([]);
   const [configExpanded, setConfigExpanded] = useState(false);
+
+  // FUTURES-specific state
+  const [futuresParams, setFuturesParams] = useState<FuturesParams>({
+    direction: 'LONG',
+    leverage: '5',
+    stopLoss: '3.5',
+    liquidationBuffer: '10',
+    isolatedMargin: true,
+  });
+
+  // OPTIONS-specific state
+  const [optionsParams, setOptionsParams] = useState<OptionsParams>({
+    optionType: 'CALL',
+    strike: '',
+    expiry: '',
+    premium: '',
+    maxLoss: '500',
+  });
 
   useEffect(() => {
     tradingBotService.getBots().then(setBots);
@@ -155,18 +184,45 @@ export default function TradingBotContent() {
   };
 
   const handleDeploy = async () => {
-    if (!analysis) return;
+    if (!analysis && marketType !== 'OPTIONS') return;
     setDeploying(true);
     setStep(7);
-    const config: BotConfig = {
-      ...analysis.suggestedConfig,
-      parameters: {
-        ...analysis.suggestedConfig.parameters,
-        investment_amount_usdt: parseFloat(investment),
-        leverage: marketType === 'PERPETUAL_FUTURES' ? parseFloat(leverage) : undefined,
-        stop_loss_percentage: parseFloat(stopLoss),
-      },
-    };
+
+    let config: BotConfig;
+    if (marketType === 'OPTIONS') {
+      config = {
+        market_type: 'OPTIONS',
+        symbol: selectedPair.replace('/', ''),
+        bot_type: 'TECHNICAL',
+        parameters: {
+          investment_amount_usdt: parseFloat(investment),
+          stop_loss_percentage: parseFloat(optionsParams.maxLoss),
+        },
+      };
+    } else if (marketType === 'PERPETUAL_FUTURES' && analysis) {
+      config = {
+        ...analysis.suggestedConfig,
+        parameters: {
+          ...analysis.suggestedConfig.parameters,
+          investment_amount_usdt: parseFloat(investment),
+          leverage: parseFloat(futuresParams.leverage),
+          stop_loss_percentage: parseFloat(futuresParams.stopLoss),
+        },
+      };
+    } else if (analysis) {
+      config = {
+        ...analysis.suggestedConfig,
+        parameters: {
+          ...analysis.suggestedConfig.parameters,
+          investment_amount_usdt: parseFloat(investment),
+          stop_loss_percentage: parseFloat(stopLoss),
+        },
+      };
+    } else {
+      setDeploying(false);
+      return;
+    }
+
     await tradingBotService.deployBot(config);
     setDeploying(false);
     setDeployed(true);
@@ -190,6 +246,9 @@ export default function TradingBotContent() {
     { key: 'paused', label: 'Paused', count: pausedBots.length },
     { key: 'completed', label: 'Completed', count: completedBots.length },
   ];
+
+  const inputCls = "w-full px-3 py-2 rounded-md text-xs border focus:outline-none";
+  const inputStyle = { backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' };
 
   return (
     <div className="py-4 space-y-4">
@@ -239,7 +298,7 @@ export default function TradingBotContent() {
             {/* Step progress */}
             <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <StepIndicator current={step} total={7} />
-              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted-foreground)' }}>
+              <div className="flex items-center gap-1 text-xs flex-wrap" style={{ color: 'var(--muted-foreground)' }}>
                 {['Market Type', 'Asset / Pair', 'Analyze Market', 'Strategy', 'Risk Parameters', 'Review', 'Deploy'].map((s, i) => (
                   <React.Fragment key={s}>
                     <span style={{ color: step === i + 1 ? 'var(--primary)' : step > i + 1 ? 'var(--foreground)' : 'var(--muted-foreground)', fontWeight: step === i + 1 ? 600 : 400 }}>{s}</span>
@@ -297,15 +356,162 @@ export default function TradingBotContent() {
                     </button>
                   ))}
                 </div>
-                {selectedPair && step === 3 && !analyzing && !analysis && (
-                  <button
-                    onClick={handleAnalyze}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90 mt-2"
-                    style={{ backgroundColor: 'var(--primary)', color: '#000' }}
-                  >
-                    <BarChart2 size={13} />
-                    Analyze {selectedPair}
-                  </button>
+              </div>
+            )}
+
+            {/* STEP 3: Analyze — only for SPOT and FUTURES */}
+            {step >= 3 && selectedPair && marketType !== 'OPTIONS' && !analysis && !analyzing && (
+              <div className="rounded-lg border p-4 space-y-3" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Step 3 — Analyze Market</h3>
+                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                  Fetch OHLCV data, order book depth, and volatility metrics for {selectedPair} to generate a strategy recommendation.
+                </p>
+                <button
+                  onClick={handleAnalyze}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+                  style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+                >
+                  <BarChart2 size={13} />
+                  Analyze {selectedPair}
+                </button>
+              </div>
+            )}
+
+            {/* OPTIONS: Skip analysis — go directly to options-specific configuration */}
+            {step >= 3 && selectedPair && marketType === 'OPTIONS' && (
+              <div className="rounded-lg border p-4 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">⚙️</span>
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Step 3–5 — Options Configuration</h3>
+                </div>
+                <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                  <Info size={12} style={{ color: '#8b5cf6', marginTop: 1 }} />
+                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                    Options strategies use premium-based exposure. You pay a premium upfront; maximum loss is limited to the premium paid. No liquidation from leverage.
+                  </p>
+                </div>
+
+                {/* Option Type */}
+                <div>
+                  <label className="text-xs font-medium block mb-2" style={{ color: 'var(--muted-foreground)' }}>Option Type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['CALL', 'PUT'] as const).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setOptionsParams(p => ({ ...p, optionType: t }))}
+                        className="py-2.5 rounded-lg text-xs font-bold transition-all"
+                        style={{
+                          backgroundColor: optionsParams.optionType === t ? (t === 'CALL' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)') : 'var(--muted)',
+                          color: optionsParams.optionType === t ? (t === 'CALL' ? '#22c55e' : '#ef4444') : 'var(--muted-foreground)',
+                          border: `2px solid ${optionsParams.optionType === t ? (t === 'CALL' ? '#22c55e' : '#ef4444') : 'var(--border)'}`,
+                        }}
+                      >
+                        {t === 'CALL' ? '📈 CALL' : '📉 PUT'}
+                        <p className="text-xs font-normal mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                          {t === 'CALL' ? 'Profit if price rises' : 'Profit if price falls'}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Strike Price (USDT)</label>
+                    <input
+                      type="number"
+                      value={optionsParams.strike}
+                      onChange={e => setOptionsParams(p => ({ ...p, strike: e.target.value }))}
+                      placeholder="e.g. 70000"
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Expiry Date</label>
+                    <input
+                      type="date"
+                      value={optionsParams.expiry}
+                      onChange={e => setOptionsParams(p => ({ ...p, expiry: e.target.value }))}
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Premium Budget (USDT)</label>
+                    <input
+                      type="number"
+                      value={optionsParams.premium}
+                      onChange={e => setOptionsParams(p => ({ ...p, premium: e.target.value }))}
+                      placeholder="Max premium to pay"
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Max Loss (USDT)</label>
+                    <input
+                      type="number"
+                      value={optionsParams.maxLoss}
+                      onChange={e => setOptionsParams(p => ({ ...p, maxLoss: e.target.value }))}
+                      className={inputCls}
+                      style={inputStyle}
+                    />
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Maximum loss = premium paid</p>
+                  </div>
+                </div>
+
+                {/* Options config preview */}
+                <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
+                  <p className="text-xs font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Options Configuration Preview</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono">
+                    {[
+                      ['Market Type', 'OPTIONS'],
+                      ['Symbol', selectedPair],
+                      ['Option Type', optionsParams.optionType],
+                      ['Strike', optionsParams.strike ? `$${optionsParams.strike}` : '—'],
+                      ['Expiry', optionsParams.expiry || '—'],
+                      ['Premium Budget', optionsParams.premium ? `$${optionsParams.premium}` : '—'],
+                      ['Max Loss', `$${optionsParams.maxLoss}`],
+                    ].map(([k, v]) => (
+                      <React.Fragment key={k}>
+                        <span style={{ color: 'var(--muted-foreground)' }}>{k}</span>
+                        <span style={{ color: 'var(--foreground)' }}>{v}</span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <AlertTriangle size={13} style={{ color: '#ef4444', marginTop: 1 }} />
+                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                    Options involve risk. Premium is non-refundable if the option expires out-of-the-money. This is quantitative analysis, not a guarantee of returns.
+                  </p>
+                </div>
+
+                {!deployed ? (
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleDeploy}
+                      disabled={deploying || !optionsParams.strike || !optionsParams.expiry}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90 disabled:opacity-60"
+                      style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+                    >
+                      {deploying ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+                      {deploying ? 'Deploying…' : 'Deploy Options Bot'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)' }}>
+                    <CheckCircle size={16} style={{ color: '#22c55e' }} />
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: '#22c55e' }}>Options bot deployed</p>
+                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>View it in the Active Bots tab</p>
+                    </div>
+                    <button onClick={resetBuilder} className="ml-auto px-3 py-1.5 rounded text-xs font-semibold" style={{ backgroundColor: 'var(--muted)', color: 'var(--foreground)' }}>
+                      New Bot
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -316,15 +522,15 @@ export default function TradingBotContent() {
                 <Loader2 size={28} className="animate-spin" style={{ color: 'var(--primary)' }} />
                 <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Analyzing {selectedPair}…</p>
                 <div className="space-y-1 text-center">
-                  {['Fetching OHLCV data (4H / 1H)', 'Reading order book depth', 'Calculating ATR & volatility', 'Generating strategy recommendation'].map(s => (
+                  {['Fetching OHLCV data (4H / 1H)', 'Reading order book depth', 'Calculating ATR & volatility', ...(marketType === 'PERPETUAL_FUTURES' ? ['Fetching funding rate'] : []), 'Generating strategy recommendation'].map(s => (
                     <p key={s} className="text-xs" style={{ color: 'var(--muted-foreground)' }}>⟳ {s}</p>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* STEP 4+: Analysis Result */}
-            {analysis && !analyzing && (
+            {/* STEP 4+: Analysis Result (SPOT / FUTURES only) */}
+            {analysis && !analyzing && marketType !== 'OPTIONS' && (
               <>
                 {/* Data Sources */}
                 <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
@@ -393,54 +599,96 @@ export default function TradingBotContent() {
                   )}
                 </div>
 
-                {/* STEP 5: Risk Parameters */}
+                {/* STEP 5: Risk Parameters — differentiated by market type */}
                 <div className="rounded-lg border p-4 space-y-3" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="flex items-center gap-2">
                     <span className="text-base">⚠️</span>
                     <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Risk Mitigation Parameters</h3>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Investment Amount (USDT)</label>
-                      <input
-                        type="number"
-                        value={investment}
-                        onChange={e => setInvestment(e.target.value)}
-                        className="w-full px-3 py-2 rounded-md text-xs border focus:outline-none"
-                        style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                      />
-                    </div>
-                    {marketType === 'PERPETUAL_FUTURES' && (
+
+                  {/* SPOT risk params */}
+                  {marketType === 'SPOT' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Leverage (max 10×)</label>
-                        <input
-                          type="number"
-                          value={leverage}
-                          min={1}
-                          max={10}
-                          onChange={e => setLeverage(e.target.value)}
-                          className="w-full px-3 py-2 rounded-md text-xs border focus:outline-none"
-                          style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                        />
+                        <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Investment Amount (USDT)</label>
+                        <input type="number" value={investment} onChange={e => setInvestment(e.target.value)} className={inputCls} style={inputStyle} />
                       </div>
-                    )}
-                    <div>
-                      <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Stop Loss (%)</label>
-                      <input
-                        type="number"
-                        value={stopLoss}
-                        onChange={e => setStopLoss(e.target.value)}
-                        className="w-full px-3 py-2 rounded-md text-xs border focus:outline-none"
-                        style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                      />
+                      <div>
+                        <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Stop Loss (%)</label>
+                        <input type="number" value={stopLoss} onChange={e => setStopLoss(e.target.value)} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div className="sm:col-span-2 flex items-start gap-2 p-2.5 rounded" style={{ backgroundColor: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                        <Info size={11} style={{ color: '#22c55e', marginTop: 1 }} />
+                        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Spot trading: 1× exposure only. No leverage, no liquidation risk from margin. You own the underlying asset.</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-2 p-3 rounded-lg" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <AlertTriangle size={13} style={{ color: '#ef4444', marginTop: 1, shrink: 0 }} />
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                      All bot strategies involve market risk. Past performance is not indicative of future results. Never allocate more than you can afford to lose. This is quantitative analysis, not a guarantee of returns.
-                    </p>
-                  </div>
+                  )}
+
+                  {/* PERPETUAL FUTURES risk params */}
+                  {marketType === 'PERPETUAL_FUTURES' && (
+                    <div className="space-y-3">
+                      {/* Direction */}
+                      <div>
+                        <label className="text-xs font-medium block mb-2" style={{ color: 'var(--muted-foreground)' }}>Direction</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['LONG', 'SHORT'] as const).map(d => (
+                            <button
+                              key={d}
+                              onClick={() => setFuturesParams(p => ({ ...p, direction: d }))}
+                              className="py-2 rounded-lg text-xs font-bold transition-all"
+                              style={{
+                                backgroundColor: futuresParams.direction === d ? (d === 'LONG' ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.12)') : 'var(--muted)',
+                                color: futuresParams.direction === d ? (d === 'LONG' ? '#22c55e' : '#ef4444') : 'var(--muted-foreground)',
+                                border: `2px solid ${futuresParams.direction === d ? (d === 'LONG' ? '#22c55e' : '#ef4444') : 'var(--border)'}`,
+                              }}
+                            >
+                              {d === 'LONG' ? '↑ LONG' : '↓ SHORT'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Investment Amount (USDT)</label>
+                          <input type="number" value={investment} onChange={e => setInvestment(e.target.value)} className={inputCls} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Leverage (max 10×)</label>
+                          <input type="number" value={futuresParams.leverage} min={1} max={10} onChange={e => setFuturesParams(p => ({ ...p, leverage: e.target.value }))} className={inputCls} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Stop Loss (%)</label>
+                          <input type="number" value={futuresParams.stopLoss} onChange={e => setFuturesParams(p => ({ ...p, stopLoss: e.target.value }))} className={inputCls} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium block mb-1" style={{ color: 'var(--muted-foreground)' }}>Liquidation Buffer (%)</label>
+                          <input type="number" value={futuresParams.liquidationBuffer} onChange={e => setFuturesParams(p => ({ ...p, liquidationBuffer: e.target.value }))} className={inputCls} style={inputStyle} />
+                          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Bot pauses when within this % of liquidation price</p>
+                        </div>
+                      </div>
+                      {/* Isolated margin toggle */}
+                      <div className="flex items-center justify-between py-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                        <div>
+                          <p className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>Isolated Margin</p>
+                          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Limits loss to allocated amount only</p>
+                        </div>
+                        <button
+                          onClick={() => setFuturesParams(p => ({ ...p, isolatedMargin: !p.isolatedMargin }))}
+                          className="relative w-10 h-5 rounded-full transition-all duration-200 shrink-0"
+                          style={{ backgroundColor: futuresParams.isolatedMargin ? 'var(--primary)' : 'var(--muted)' }}
+                        >
+                          <span className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200" style={{ backgroundColor: futuresParams.isolatedMargin ? '#000' : 'var(--muted-foreground)', left: futuresParams.isolatedMargin ? '22px' : '2px' }} />
+                        </button>
+                      </div>
+                      <div className="flex items-start gap-2 p-2.5 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                        <AlertTriangle size={12} style={{ color: '#ef4444', marginTop: 1 }} />
+                        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+                          Futures trading with leverage amplifies both gains and losses. Liquidation risk is real. Mandatory stop loss and liquidation buffer are required for all futures bots.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {step < 6 && (
                     <button onClick={() => setStep(6)} className="px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
                       Review Configuration →
@@ -464,8 +712,15 @@ export default function TradingBotContent() {
                           ['Symbol', selectedPair],
                           ['Strategy', STRATEGY_LABELS[analysis.recommendedStrategy]],
                           ['Investment', `$${parseFloat(investment).toLocaleString()} USDT`],
-                          ...(marketType === 'PERPETUAL_FUTURES' ? [['Leverage', `${leverage}×`]] : []),
-                          ['Stop Loss', `${stopLoss}%`],
+                          ...(marketType === 'PERPETUAL_FUTURES' ? [
+                            ['Direction', futuresParams.direction],
+                            ['Leverage', `${futuresParams.leverage}×`],
+                            ['Stop Loss', `${futuresParams.stopLoss}%`],
+                            ['Liq. Buffer', `${futuresParams.liquidationBuffer}%`],
+                            ['Margin', futuresParams.isolatedMargin ? 'Isolated' : 'Cross'],
+                          ] : [
+                            ['Stop Loss', `${stopLoss}%`],
+                          ]),
                           ...(analysis.suggestedConfig.parameters.lower_bound ? [
                             ['Grid Lower', `$${analysis.suggestedConfig.parameters.lower_bound.toLocaleString()}`],
                             ['Grid Upper', `$${analysis.suggestedConfig.parameters.upper_bound?.toLocaleString()}`],
@@ -527,8 +782,11 @@ export default function TradingBotContent() {
               </div>
               <div className="p-3 rounded-lg text-xs leading-relaxed" style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}>
                 {!marketType && 'Select a market type to begin. I\'ll guide you through market selection, analysis, and strategy configuration.'}
-                {marketType && !selectedPair && `${marketType.replace('_', ' ')} selected. Now choose an asset pair to analyze.`}
-                {selectedPair && !analysis && !analyzing && `Ready to analyze ${selectedPair}. Click "Analyze" to fetch OHLCV, order book depth, and volatility data.`}
+                {marketType === 'SPOT' && !selectedPair && 'Spot selected. Choose an asset pair for accumulation or grid strategy.'}
+                {marketType === 'PERPETUAL_FUTURES' && !selectedPair && 'Perpetual Futures selected. Choose a pair. Leverage and liquidation controls will be required.'}
+                {marketType === 'OPTIONS' && !selectedPair && 'Options selected. Choose a pair. You\'ll configure Call/Put type, strike price, expiry, and premium budget.'}
+                {selectedPair && !analysis && !analyzing && marketType !== 'OPTIONS' && `Ready to analyze ${selectedPair}. Click "Analyze" to fetch OHLCV, order book depth, and volatility data.`}
+                {selectedPair && marketType === 'OPTIONS' && 'Configure your options parameters: option type (Call/Put), strike price, expiry date, and premium budget.'}
                 {analyzing && `Analyzing ${selectedPair} across multiple data sources. Identifying trend, volatility regime, and optimal strategy parameters…`}
                 {analysis && !deployed && `Analysis complete for ${selectedPair}. Trend is ${analysis.trend} with ${analysis.volatility} volatility. ${STRATEGY_LABELS[analysis.recommendedStrategy]} is recommended. Review risk parameters before deploying.`}
                 {deployed && 'Bot deployed. Monitor performance in the Active Bots tab. All recommendations are quantitative analysis — not guaranteed returns.'}

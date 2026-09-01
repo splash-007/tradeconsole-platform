@@ -1,6 +1,6 @@
 // NEW FEATURE DATABASE REQUIREMENTS
 // Trade Console — Frontend Feature Additions
-// Generated: September 2026
+// Generated: September 2026 — Updated: September 2026 (Audit Pass)
 //
 // PURPOSE:
 // This document captures every newly introduced persistent-data requirement
@@ -24,16 +24,19 @@ This document covers the persistent-data requirements introduced by the followin
 5. Prediction Markets
 6. Prediction Positions
 7. Prediction Settlement
-8. Customer Preferences
-9. Theme Preference
-10. Notification State
-11. Notification Read State
-12. Notification Dismissal
-13. Dividend Programs
-14. Dividend Eligibility
-15. Dividend Claims
-16. Dividend Payments
-17. Support Notification Integration
+8. Prediction Eligibility / Restrictions
+9. Customer Preferences
+10. Theme Preference
+11. Notification Events
+12. Per-user Notification State
+13. Notification Read State
+14. Notification Dismissal
+15. Dividend Programs
+16. Dividend Eligibility
+17. Dividend Claims
+18. Dividend Payments
+19. Support Notification Integration
+20. Support Conversation Persistence
 
 ---
 
@@ -80,7 +83,7 @@ This document covers the persistent-data requirements introduced by the followin
 - `name` — varchar(128)
 - `market_type` — enum: spot | perpetual_futures | options
 - `symbol` — varchar(32)
-- `bot_type` — enum: grid | dca | momentum | custom
+- `bot_type` — enum: grid | dca | momentum | technical | arbitrage
 - `status` — enum: draft | active | paused | stopped | error
 - `created_at` — timestamptz
 - `updated_at` — timestamptz
@@ -114,19 +117,29 @@ This document covers the persistent-data requirements introduced by the followin
 
 ## 3. Bot Configurations
 
-**Purpose:** Store the versioned configuration parameters for each bot.
+**Purpose:** Store the versioned configuration parameters for each bot. Differentiated by market type.
 
 **Required Fields:**
 - `id` — uuid, primary key
 - `bot_id` — uuid, FK → trading_bots.id
-- `leverage` — numeric(5,2), nullable
-- `lower_bound` — numeric(18,8), nullable
-- `upper_bound` — numeric(18,8), nullable
-- `grid_count` — integer, nullable
+- `market_type` — enum: spot | perpetual_futures | options
+- `leverage` — numeric(5,2), nullable (futures only)
+- `direction` — enum: long | short, nullable (futures only)
+- `isolated_margin` — boolean, nullable (futures only)
+- `liquidation_buffer_pct` — numeric(5,2), nullable (futures only)
+- `option_type` — enum: call | put, nullable (options only)
+- `strike_price` — numeric(18,8), nullable (options only)
+- `expiry_date` — date, nullable (options only)
+- `premium_budget` — numeric(18,8), nullable (options only)
+- `lower_bound` — numeric(18,8), nullable (grid strategies)
+- `upper_bound` — numeric(18,8), nullable (grid strategies)
+- `grid_count` — integer, nullable (grid strategies)
 - `investment_amount` — numeric(18,8)
 - `investment_currency` — varchar(8)
 - `stop_loss_percentage` — numeric(5,2), nullable
 - `take_profit_percentage` — numeric(5,2), nullable
+- `dca_interval` — varchar(8), nullable (DCA strategies)
+- `dca_amount` — numeric(18,8), nullable (DCA strategies)
 - `created_at` — timestamptz
 - `version` — integer, default 1
 
@@ -179,13 +192,15 @@ This document covers the persistent-data requirements introduced by the followin
 - `description` — text
 - `category` — enum: finance | crypto | economy | technology | sports | world_events | other
 - `image_url` — varchar(1024), nullable
-- `status` — enum: open | closed | resolved | cancelled
+- `status` — enum: open | suspended | closed | resolving | resolved_yes | resolved_no | voided
 - `resolution_criteria` — text
+- `resolution_source` — varchar(512)
 - `yes_probability` — numeric(5,4), default 0.5
 - `no_probability` — numeric(5,4), default 0.5
 - `total_volume` — numeric(18,8), default 0
 - `closes_at` — timestamptz
 - `resolves_at` — timestamptz, nullable
+- `resolution_deadline` — timestamptz, nullable
 - `resolved_outcome` — enum: yes | no | void, nullable
 - `created_at` — timestamptz
 - `created_by` — uuid, FK → users.id (admin/operator)
@@ -250,50 +265,84 @@ This document covers the persistent-data requirements introduced by the followin
 
 ## 7. Prediction Settlement
 
-**Purpose:** Record the settlement of prediction market positions.
+**Purpose:** Record the settlement outcome for each prediction market position.
 
 **Required Fields:**
 - `id` — uuid, primary key
-- `market_id` — uuid, FK → prediction_markets.id
 - `position_id` — uuid, FK → prediction_positions.id
+- `market_id` — uuid, FK → prediction_markets.id
 - `user_id` — uuid, FK → users.id
-- `outcome` — enum: won | lost | void
+- `outcome` — enum: won | lost | voided | refunded
+- `original_amount` — numeric(18,8)
 - `payout_amount` — numeric(18,8)
-- `currency` — varchar(8)
 - `settled_at` — timestamptz
-- `ledger_transaction_id` — uuid, FK → ledger_transactions.id
+- `ledger_entry_id` — uuid, FK → ledger_entries.id (when payout credited)
 
 **Relationships:**
-- Belongs to `prediction_markets`
 - Belongs to `prediction_positions`
-- References `ledger_transactions`
+- References `ledger_entries`
 
-**Ownership:** System-generated. Not user-modifiable.
+**Ownership:** Per-user.
 
-**Mutability:** Append-only. Immutable after creation.
+**Mutability:** Append-only. Settlement records are immutable.
 
-**Audit:** All settlements logged in `audit_logs`.
+**Audit:** All settlement events logged in `audit_logs`.
+
+**Financial Ledger:** Payout credits MUST go through the immutable financial ledger.
 
 **Storage:** PostgreSQL
 
 ---
 
-## 8. Customer Preferences
+## 8. Prediction Eligibility / Restrictions
 
-**Purpose:** Store per-user display and platform preferences.
+**Purpose:** Store per-user, per-market eligibility determinations for prediction market participation. The backend performs jurisdiction and compliance checks.
 
 **Required Fields:**
 - `id` — uuid, primary key
-- `user_id` — uuid, FK → users.id, UNIQUE
+- `user_id` — uuid, FK → users.id
+- `market_id` — uuid, FK → prediction_markets.id
+- `status` — enum: available | unavailable | region_restricted | kyc_required | account_restricted | market_closed | resolved | voided
+- `message` — text (human-readable reason)
+- `can_participate` — boolean
+- `checked_at` — timestamptz
+- `expires_at` — timestamptz, nullable (eligibility may be cached for a period)
+
+**Relationships:**
+- Belongs to `users`
+- Belongs to `prediction_markets`
+
+**Ownership:** Per-user, per-market.
+
+**Mutability:** Mutable (eligibility can change as account status changes).
+
+**Suggested API:**
+- `GET /api/v1/prediction-markets/:id/eligibility`
+
+**Security/Permissions:** Customer can only read their own eligibility. Backend performs jurisdiction checks. Frontend must never assume eligibility.
+
+**Storage:** PostgreSQL (with possible Valkey cache for short-lived eligibility results)
+
+---
+
+## 9. Customer Preferences
+
+**Purpose:** Store per-user application preferences including language, timezone, display currency, number formatting, chart preferences, and market default view.
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id (UNIQUE)
 - `language` — varchar(8), default 'en'
 - `timezone` — varchar(64), default 'UTC'
 - `display_currency` — varchar(8), default 'USD'
 - `number_format` — varchar(16), default 'en-US'
 - `market_default_view` — varchar(32), default 'all'
-- `chart_type` — varchar(32), default 'candlestick'
+- `chart_type` — enum: candlestick | line | bar | area, default 'candlestick'
 - `chart_interval` — varchar(8), default '1h'
 - `show_pnl_in_header` — boolean, default true
 - `compact_tables` — boolean, default false
+- `theme` — enum: light | dark | system, default 'light'
+- `created_at` — timestamptz
 - `updated_at` — timestamptz
 
 **Relationships:**
@@ -307,92 +356,84 @@ This document covers the persistent-data requirements introduced by the followin
 - `GET /api/v1/preferences`
 - `PUT /api/v1/preferences`
 
-**Security/Permissions:** User can only read/write their own preferences.
+**Security/Permissions:** Customer can only read/write their own preferences.
 
 **Storage:** PostgreSQL
 
 ---
 
-## 9. Theme Preference
+## 10. Theme Preference
 
-**Purpose:** Store the user's selected theme (light/dark/system).
+**Purpose:** Theme preference is part of Customer Preferences (see §9). Stored as `theme` field.
 
-**Implementation Note:** Theme preference can be stored as a field in `customer_preferences` rather than a separate table.
+**Values:** light | dark | system
 
-**Required Field (addition to customer_preferences):**
-- `theme` — enum: light | dark | system, default 'light'
+**Default:** light
 
-**Ownership:** Per-user.
+**Notes:**
+- Unauthenticated users may use browser/system preference as fallback.
+- Authenticated users load their stored preference from the backend.
+- Theme switching must be immediate (no page reload required).
+- The frontend applies the theme class to `<html>` element.
 
-**Mutability:** Mutable.
-
-**Suggested API:**
-- `POST /api/v1/preferences/theme`
-
-**Security/Permissions:** User can only read/write their own theme.
-
-**Audit:** Not required.
-
-**Storage:** PostgreSQL (as part of customer_preferences)
+**Storage:** Part of `customer_preferences` table (PostgreSQL)
 
 ---
 
-## 10. Notification State
+## 11. Notification Events
 
-**Purpose:** Store platform notifications and their per-user state.
+**Purpose:** Store notification events generated by the platform for delivery to users.
 
-**IMPORTANT DESIGN PRINCIPLE:**
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id
+- `type` — enum: deposit_confirmed | withdrawal_pending | withdrawal_approved | withdrawal_rejected | profile_updated | kyc_approved | kyc_rejected | kyc_submitted | account_activated | account_suspended | security_login | security_password_changed | trade_filled | trade_cancelled | support_message | support_ticket_updated | dividend_eligible | dividend_paid | dividend_rejected | system_maintenance | system_announcement
+- `category` — enum: account | security | trading | kyc | finance | support | system | dividend
+- `severity` — enum: info | success | warning | critical
+- `title` — varchar(256)
+- `message` — text
+- `source` — varchar(64), nullable (e.g. 'support', 'trading-engine')
+- `related_entity` — varchar(128), nullable (e.g. conversation ID, order ID)
+- `created_at` — timestamptz
+
+**Relationships:**
+- Belongs to `users`
+- Has one `notification_state` per user
+
+**Ownership:** Per-user. Notification events are user-specific.
+
+**Mutability:** Append-only. Notification events are never modified.
+
+**Storage:** PostgreSQL (event record) + Valkey (real-time delivery)
+
+---
+
+## 12. Per-user Notification State
+
+**Purpose:** Track the read/dismiss state of each notification per user. This is separate from the notification event itself to support multi-device scenarios.
+
+**CRITICAL DESIGN PRINCIPLE:**
 - READ ≠ DISMISSED
 - READ: The user has seen the notification.
 - DISMISSED: The user intentionally removed it from their active feed.
 - Historical record is ALWAYS retained regardless of read/dismiss state.
 - Notification state is USER-SPECIFIC. Admin A reading notification X does NOT mark it read for Admin B.
 
-**notifications table:**
-- `id` — uuid, primary key
-- `type` — varchar(64) (e.g. deposit_confirmed, kyc_approved, security_login)
-- `category` — enum: account | security | trading | kyc | finance | support | system | dividend
-- `severity` — enum: info | success | warning | critical
-- `title` — varchar(256)
-- `message` — text
-- `source` — varchar(64), nullable
-- `related_entity_id` — uuid, nullable
-- `related_entity_type` — varchar(64), nullable
-- `target_user_id` — uuid, nullable (null = broadcast to all)
-- `target_role` — varchar(64), nullable (null = all roles)
-- `created_at` — timestamptz
-- `expires_at` — timestamptz, nullable
-
-**Relationships:**
-- Has many `notification_user_states`
-
-**Ownership:** Platform-generated. Not user-modifiable.
-
-**Mutability:** Append-only. Notifications are never modified after creation.
-
-**Storage:** PostgreSQL
-
----
-
-## 11. Notification Read State
-
-**Purpose:** Track per-user read state for each notification.
-
-**notification_user_states table:**
+**Required Fields:**
 - `id` — uuid, primary key
 - `notification_id` — uuid, FK → notifications.id
 - `user_id` — uuid, FK → users.id
 - `read_at` — timestamptz, nullable (null = unread)
 - `dismissed_at` — timestamptz, nullable (null = not dismissed from active feed)
-- UNIQUE constraint on (notification_id, user_id)
+- `updated_at` — timestamptz
 
 **Relationships:**
 - Belongs to `notifications`
 - Belongs to `users`
 
-**Ownership:** Per-user. Each user has their own read/dismiss state.
+**Ownership:** Per-user.
 
-**Mutability:** read_at and dismissed_at are set once and never cleared.
+**Mutability:** Mutable (read_at and dismissed_at can be set, but never cleared).
 
 **Suggested API:**
 - `GET  /api/v1/notifications`
@@ -401,98 +442,107 @@ This document covers the persistent-data requirements introduced by the followin
 - `POST /api/v1/notifications/:id/dismiss`
 - `POST /api/v1/notifications/read-all`
 
-**Security/Permissions:** User can only read/update their own notification state. Admin can view all notification states for support/audit.
+**Security/Permissions:** Customer can only read/update their own notification state.
 
-**Audit:** Notification read and dismiss events should be logged in `audit_logs`.
-
-**Storage:** PostgreSQL
+**Storage:** PostgreSQL (persistent state) + Valkey (unread count cache)
 
 ---
 
-## 12. Notification Dismissal
+## 13. Notification Read State
 
-**Purpose:** See Notification Read State (section 11). Dismissal is a field on `notification_user_states`, not a separate table.
+See §12 (Per-user Notification State) — `read_at` field.
 
-**Key Constraint:** Dismissing a notification MUST NOT delete the notification or its history. The `dismissed_at` field records when the user removed it from their active feed. The notification remains visible in the Notifications history page under the "Dismissed" filter.
+**Notes:**
+- Once read, a notification must NOT return as unread after page refresh, navigation, logout/login, or another device session.
+- `read_at` is set once and never cleared.
 
 ---
 
-## 13. Dividend Programs
+## 14. Notification Dismissal
 
-**Purpose:** Store platform-configured dividend/benefit programs. Eligibility and amounts are backend-controlled. The frontend must never compute or credit amounts.
+See §12 (Per-user Notification State) — `dismissed_at` field.
 
-**dividend_programs table:**
+**Notes:**
+- Dismissing a notification hides it from the active dashboard feed.
+- Dismissed notifications MUST remain accessible in notification history.
+- `dismissed_at` is set once and never cleared.
+- Customer A dismissing a notification does NOT dismiss it for Customer B.
+- An administrator may globally withdraw a notification (separate mechanism).
+
+---
+
+## 15. Dividend Programs
+
+**Purpose:** Store dividend/benefit programs configured by administrators.
+
+**Required Fields:**
 - `id` — uuid, primary key
 - `name` — varchar(256)
 - `description` — text
-- `eligibility_criteria` — jsonb (backend-defined rules)
-- `period_type` — enum: monthly | quarterly | annual | one_time
-- `status` — enum: active | inactive | suspended
-- `created_at` — timestamptz
+- `period_start` — date
+- `period_end` — date
+- `claim_deadline` — timestamptz, nullable
+- `status` — enum: draft | active | closed | expired
 - `created_by` — uuid, FK → users.id (admin)
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
 
 **Relationships:**
-- Has many `dividend_eligibility_records`
+- Has many `dividend_eligibility` records
 - Has many `dividend_claims`
 
-**Ownership:** Platform-owned. Admin-managed.
+**Ownership:** Platform-owned. Administered by authorized staff only.
 
-**Mutability:** Mutable by admin only.
+**Mutability:** Mutable (status can change). Period and amounts are immutable after activation.
 
-**Security/Permissions:** Read: eligible customers (filtered by backend). Create/modify: admin/super_admin only.
-
-**Audit:** All program changes logged in `audit_logs`.
+**Security/Permissions:** Read: eligible customers (their own eligibility only). Create/manage: admin only.
 
 **Storage:** PostgreSQL
 
 ---
 
-## 14. Dividend Eligibility
+## 16. Dividend Eligibility
 
-**Purpose:** Store per-account eligibility evaluations for dividend programs.
+**Purpose:** Store per-user eligibility determinations for dividend programs. Eligibility is backend-controlled and never computed by the frontend.
 
-**dividend_eligibility_records table:**
+**Required Fields:**
 - `id` — uuid, primary key
 - `user_id` — uuid, FK → users.id
 - `program_id` — uuid, FK → dividend_programs.id
 - `status` — enum: not_evaluated | under_review | eligible | not_eligible | claim_available | claim_submitted | processing | paid | rejected
 - `employment_status` — enum: employed | self_employed | retired | unemployed | other, nullable
+- `eligible_amount` — numeric(18,8), nullable (backend-determined only)
+- `currency` — varchar(8), nullable
 - `evaluated_at` — timestamptz, nullable
 - `next_review_at` — timestamptz, nullable
-- `eligible_amount` — numeric(18,8), nullable (backend-calculated only)
-- `currency` — varchar(8), nullable
-- `available_from` — timestamptz, nullable
-- `claim_deadline` — timestamptz, nullable
-- `evaluated_by` — uuid, FK → users.id (admin/system), nullable
-- `notes` — text, nullable
-- `created_at` — timestamptz
-- `updated_at` — timestamptz
+- `notes` — text, nullable (internal)
 
 **Relationships:**
 - Belongs to `users`
 - Belongs to `dividend_programs`
 
-**Ownership:** System-generated. Admin-managed.
+**Ownership:** Per-user, per-program.
 
-**Mutability:** Status and amounts are mutable by admin/system only. Never by customer frontend.
+**Mutability:** Mutable (status and amount can change as eligibility is reviewed).
 
-**Security/Permissions:** Customer can read their own eligibility status (not the evaluation criteria). Admin can read/write all.
+**IMPORTANT:** The frontend MUST NOT compute or display eligibility amounts. All amounts are backend-authoritative.
 
-**Audit:** All eligibility status changes logged in `audit_logs`.
+**Suggested API:**
+- `GET /api/v1/dividends/eligibility`
 
 **Storage:** PostgreSQL
 
 ---
 
-## 15. Dividend Claims
+## 17. Dividend Claims
 
 **Purpose:** Store customer-submitted dividend claims.
 
-**dividend_claims table:**
+**Required Fields:**
 - `id` — uuid, primary key
 - `user_id` — uuid, FK → users.id
 - `program_id` — uuid, FK → dividend_programs.id
-- `eligibility_record_id` — uuid, FK → dividend_eligibility_records.id
+- `eligibility_id` — uuid, FK → dividend_eligibility.id
 - `status` — enum: submitted | under_review | approved | processing | paid | rejected | expired
 - `claimed_amount` — numeric(18,8), nullable (backend-determined)
 - `currency` — varchar(8)
@@ -500,63 +550,57 @@ This document covers the persistent-data requirements introduced by the followin
 - `declaration_accepted` — boolean, NOT NULL
 - `declaration_accepted_at` — timestamptz
 - `submitted_at` — timestamptz
-- `reviewed_at` — timestamptz, nullable
-- `reviewed_by` — uuid, FK → users.id (admin), nullable
-- `review_note` — text, nullable
-- `reference` — varchar(64), UNIQUE (generated by backend)
-- `created_at` — timestamptz
-- `updated_at` — timestamptz
+- `processed_at` — timestamptz, nullable
+- `reference` — varchar(64), unique
+- `notes` — text, nullable
 
 **Relationships:**
 - Belongs to `users`
 - Belongs to `dividend_programs`
-- Belongs to `dividend_eligibility_records`
+- Belongs to `dividend_eligibility`
 - References `accounts` (destination)
-- Has one `dividend_payment` (after approval)
 
-**Ownership:** Per-user (submitted by customer). Reviewed by admin.
+**Ownership:** Per-user.
 
-**Mutability:** Status is mutable by admin/system. Amount is set by backend only. Customer cannot modify after submission.
+**Mutability:** Status is mutable. Amount and declaration are immutable after submission.
 
 **Suggested API:**
-- `GET  /api/v1/dividends/eligibility`
-- `GET  /api/v1/dividends/programs`
 - `GET  /api/v1/dividends/claims`
 - `POST /api/v1/dividends/claims`
 - `GET  /api/v1/dividends/claims/:id`
 
-**Security/Permissions:** Customer can submit and view their own claims. Admin can review/approve/reject. Backend must validate eligibility before accepting a claim submission.
+**Security/Permissions:** Customer can only view/submit their own claims. Approval requires admin authorization. Frontend must never compute or credit amounts.
 
-**Audit:** All claim lifecycle events logged in `audit_logs`.
+**Audit:** All claim events logged in `audit_logs`.
 
 **Storage:** PostgreSQL
 
 ---
 
-## 16. Dividend Payments
+## 18. Dividend Payments
 
-**Purpose:** Record the actual payment/settlement of an approved dividend claim.
+**Purpose:** Record actual dividend payments made to customers.
 
-**dividend_payments table:**
+**Required Fields:**
 - `id` — uuid, primary key
 - `claim_id` — uuid, FK → dividend_claims.id
 - `user_id` — uuid, FK → users.id
 - `amount` — numeric(18,8)
 - `currency` — varchar(8)
-- `status` — enum: processing | completed | failed | reversed
-- `ledger_transaction_id` — uuid, FK → ledger_transactions.id
-- `processed_at` — timestamptz, nullable
-- `reference` — varchar(64), UNIQUE
-- `created_at` — timestamptz
+- `paid_at` — timestamptz
+- `ledger_entry_id` — uuid, FK → ledger_entries.id
+- `reference` — varchar(64), unique
 
 **Relationships:**
 - Belongs to `dividend_claims`
 - Belongs to `users`
-- References `ledger_transactions` (double-entry ledger)
+- References `ledger_entries`
 
-**Ownership:** System-generated. Not user-modifiable.
+**Ownership:** Per-user.
 
-**Mutability:** Append-only. Immutable after creation.
+**Mutability:** Append-only. Payment records are immutable.
+
+**Financial Ledger:** All payments MUST go through the immutable financial ledger.
 
 **Audit:** All payment events logged in `audit_logs`.
 
@@ -564,56 +608,92 @@ This document covers the persistent-data requirements introduced by the followin
 
 ---
 
-## 17. Support Notification Integration
+## 19. Support Notification Integration
 
-**Purpose:** Integrate support conversation activity with the global notification system so that unread support messages appear in the notification bell and badge.
+**Purpose:** Ensure unread support conversations generate notifications that integrate with the global notification system.
 
 **Design:**
-- When a support agent sends a message in a conversation, a notification record is created in the `notifications` table with:
-  - `category = 'support'`
-  - `type = 'support_message'`
-  - `related_entity_id = conversation_id`
-  - `related_entity_type = 'support_conversation'`
-  - `target_user_id = customer_user_id`
-- When the customer opens the conversation, the notification is marked as read via `POST /api/v1/notifications/:id/read`.
-- The same notification must NOT reappear as unread after being read.
-- Notification state is per-user. Agent A reading a notification does not affect Customer B's state.
+- When a support agent sends a message, a `support_message` notification event is created for the customer.
+- When the customer opens the conversation, the associated notification is marked as read.
+- The same notification must NOT be repeatedly generated as unread after it has been read.
+- Support unread count must be reflected in both the Support nav badge and the notification bell.
 
-**No new table required.** Uses the existing `notifications` and `notification_user_states` tables.
+**Required Fields (on notification_events):**
+- `type` = 'support_message'
+- `category` = 'support'
+- `source` = 'support'
+- `related_entity` = conversation_id
+
+**Deduplication Rule:**
+- Only one unread `support_message` notification per conversation at a time.
+- Opening a conversation marks all associated support notifications as read.
 
 **Suggested API:**
 - `POST /api/v1/notifications/:id/read` (called when conversation is opened)
 
-**Security/Permissions:** Customer can only mark their own support notifications as read.
-
-**Audit:** Support notification read events logged in `audit_logs`.
-
-**Storage:** PostgreSQL (via notifications + notification_user_states)
+**Storage:** Part of notification system (PostgreSQL + Valkey)
 
 ---
 
-## Summary Table
+## 20. Support Conversation Persistence
 
-| # | Feature | New Table(s) | Storage | Append-Only? | Per-User? |
-|---|---------|-------------|---------|--------------|-----------|
-| 1 | Watchlists | watchlist_items | PostgreSQL | No | Yes |
-| 2 | Trading Bots | trading_bots | PostgreSQL | No | Yes |
-| 3 | Bot Configurations | bot_configurations | PostgreSQL | Yes (versioned) | Yes |
-| 4 | Bot Runs | bot_runs | PostgreSQL | Yes | Yes |
-| 5 | Prediction Markets | prediction_markets | PostgreSQL | No | No (platform) |
-| 6 | Prediction Positions | prediction_positions | PostgreSQL | No | Yes |
-| 7 | Prediction Settlement | prediction_settlements | PostgreSQL | Yes | Yes |
-| 8 | Customer Preferences | customer_preferences | PostgreSQL | No | Yes |
-| 9 | Theme Preference | (field in customer_preferences) | PostgreSQL | No | Yes |
-| 10 | Notification State | notifications | PostgreSQL | Yes | No (platform) |
-| 11 | Notification Read State | notification_user_states | PostgreSQL | Yes | Yes |
-| 12 | Notification Dismissal | (field in notification_user_states) | PostgreSQL | Yes | Yes |
-| 13 | Dividend Programs | dividend_programs | PostgreSQL | No | No (platform) |
-| 14 | Dividend Eligibility | dividend_eligibility_records | PostgreSQL | No | Yes |
-| 15 | Dividend Claims | dividend_claims | PostgreSQL | No | Yes |
-| 16 | Dividend Payments | dividend_payments | PostgreSQL | Yes | Yes |
-| 17 | Support Notifications | (uses notifications tables) | PostgreSQL | Yes | Yes |
+**Purpose:** Store customer support conversations and messages for the Support (Messages) page.
+
+**Required Fields (conversations):**
+- `id` — uuid, primary key
+- `customer_id` — uuid, FK → users.id
+- `agent_id` — uuid, FK → users.id, nullable
+- `status` — enum: open | waiting | resolved | closed
+- `subject` — varchar(256), nullable
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+- `last_message_at` — timestamptz, nullable
+- `unread_count_customer` — integer, default 0
+- `unread_count_agent` — integer, default 0
+
+**Required Fields (messages):**
+- `id` — uuid, primary key
+- `conversation_id` — uuid, FK → support_conversations.id
+- `sender_id` — uuid, FK → users.id
+- `sender_type` — enum: customer | agent | system
+- `content` — text
+- `created_at` — timestamptz
+- `read_at` — timestamptz, nullable
+
+**Relationships:**
+- Conversation belongs to `users` (customer)
+- Conversation belongs to `users` (agent, nullable)
+- Message belongs to `support_conversations`
+
+**Ownership:** Per-customer conversation. Agent assigned by platform.
+
+**Mutability:** Messages are append-only. Conversation status is mutable.
+
+**Suggested API:**
+- `GET  /api/v1/support/conversations`
+- `GET  /api/v1/support/conversations/:id`
+- `POST /api/v1/support/conversations/:id/messages`
+
+**Security/Permissions:** Customer can only view their own conversations. Agents can view assigned conversations. Admin can view all.
+
+**Storage:** PostgreSQL (with Valkey for real-time message delivery)
 
 ---
 
-*Document generated: September 2026. Do NOT create SQL migrations until this document is reviewed and approved.*
+## Financial Architecture Notes
+
+**Watchlist:** PostgreSQL per-user persistence.
+
+**Preferences (including Theme):** PostgreSQL per-user persistence. Theme is part of preferences.
+
+**Notification delivery/read/dismiss:** PostgreSQL per-user state. Transient real-time delivery via Valkey / WebSocket.
+
+**Bot runtime:** PostgreSQL configuration/history + Valkey real-time/runtime state where appropriate.
+
+**Prediction positions:** PostgreSQL authoritative records. Balance allocation and settlement must integrate with the future immutable financial ledger.
+
+**Prediction eligibility:** PostgreSQL with possible Valkey cache for short-lived results.
+
+**Dividend claims/payments:** PostgreSQL + immutable financial ledger.
+
+**No frontend direct balance manipulation.** All financial operations are server-authoritative.
