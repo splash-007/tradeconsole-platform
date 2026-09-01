@@ -1,4 +1,4 @@
-# CryonFX — Realtime Requirements
+# Trade Console — Realtime Requirements
 
 ---
 
@@ -15,10 +15,12 @@
 | Market candle cache | `candles:{symbol}:{timeframe}` | 60s | From provider |
 | Order book cache | `orderbook:{symbol}` | 1s | From provider |
 | Rate limiting | `ratelimit:{ip}:{endpoint}` | 60s | Per-IP per-endpoint |
+| **Login handoff tokens** | `handoff:{token_hash}` | **~60s** | **Cryptographically random, single-use, deleted on redemption. No PostgreSQL table.** |
 | Pub/Sub channels | `channel:chat:{conversation_id}` | — | Message fan-out |
 | Pub/Sub channels | `channel:notifications:{user_id}` | — | Notification delivery |
 | Pub/Sub channels | `channel:presence` | — | Presence broadcast |
 | Pub/Sub channels | `channel:market:{symbol}` | — | Market data broadcast |
+| Pub/Sub channels | `channel:account_requests:{admin_id}` | — | Account request status updates |
 
 ### PostgreSQL
 
@@ -28,8 +30,10 @@
 | Presence history | `staff_presence_log` | Phase 2 — for reporting |
 | Messages | `messages` | Persistent chat history |
 | Notifications | `notifications` | Persistent notification inbox |
-| Audit logs | `audit_logs` | Immutable |
+| Audit logs | `audit_logs` | Immutable — includes LOGIN_HANDOFF_CREATED, LOGIN_HANDOFF_REDEEMED |
 | All business data | (all other tables) | Persistent source of truth |
+
+> **No PostgreSQL `login_handoff_tokens` table.** Handoff tokens are ephemeral (~60s TTL), stored only in Valkey, and deleted immediately on redemption. Audit records of creation and redemption go to `audit_logs`.
 
 ---
 
@@ -159,6 +163,25 @@
 
 ---
 
+### Account Provisioning (New)
+
+| Feature | Mechanism | Storage |
+|---------|-----------|---------|
+| Account request status updated | WS push to admin + requesting manager | PostgreSQL `account_requests` |
+| Account provisioned | WS push to admin + requesting manager | PostgreSQL `account_requests`, `users` |
+| Account activated | WS push to admin | PostgreSQL `users` |
+
+**WebSocket Events**:
+- `account_request.status_updated` — `{ requestId, status, updatedAt }`
+- `account.provisioned` — `{ requestId, provisionedUserId, username }`
+- `account.activated` — `{ userId, activatedAt }`
+
+**Pub/Sub channels**:
+- `channel:account_requests:{admin_id}` — Admin receives status updates
+- `channel:account_requests:{manager_id}` — Requesting manager receives status updates
+
+---
+
 ## 3. WebSocket Architecture
 
 ```
@@ -166,7 +189,7 @@ Browser Client
     │
     │ WSS connection (authenticated via session cookie)
     ▼
-CryonFX API Server (Node.js)
+Trade Console API Server (Node.js)
     │
     ├── Authenticates WS connection via session cookie
     ├── Subscribes client to relevant Valkey channels
@@ -179,7 +202,8 @@ Valkey Pub/Sub
     ├── channel:presence
     ├── channel:market:{symbol}
     ├── channel:assignments:{staff_id}
-    └── channel:tasks:{staff_id}
+    ├── channel:tasks:{staff_id}
+    └── channel:account_requests:{user_id}
 ```
 
 ---
@@ -204,6 +228,9 @@ Valkey Pub/Sub
 | `trade:update` | S→C | `{ symbol, price, amount, side, timestamp }` | Market trade |
 | `market:status` | S→C | `{ status }` | Market open/close |
 | `call:status` | S→C | `{ sessionId, customerId, state, duration }` | Call state change |
+| `account_request.status_updated` | S→C | `{ requestId, status, updatedAt }` | Account request status changed |
+| `account.provisioned` | S→C | `{ requestId, provisionedUserId, username }` | Customer account provisioned |
+| `account.activated` | S→C | `{ userId, activatedAt }` | Customer completed first login |
 
 ---
 
@@ -215,3 +242,4 @@ Valkey Pub/Sub
 | Session cleanup | Every hour | Remove expired sessions from PostgreSQL |
 | Presence cleanup | Every 60s | Expire stale Valkey presence keys |
 | Market data refresh | Every 2s | Update Valkey quote cache from provider |
+| Provisioning retry | Every 5 minutes | Retry failed provisioning jobs (check `account_requests.provisioning_attempts`) |

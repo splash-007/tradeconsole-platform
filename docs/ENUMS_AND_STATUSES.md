@@ -1,4 +1,4 @@
-# CryonFX — Enums & Status Values
+# Trade Console — Enums & Status Values
 
 > Canonical backend representations for all status values, types, and enums.  
 > All values are `snake_case` for PostgreSQL storage.  
@@ -17,7 +17,7 @@
 | `suspended` | Suspended | Temporarily blocked |
 | `disabled` | Disabled | Permanently disabled |
 
-**Inconsistency found**: `admin.service.ts` uses `suspended` and `disabled`. `auth.service.ts` uses `suspended` and `disabled`. These are consistent. ✓
+**Consistent across**: `admin.service.ts`, `auth.service.ts`. ✓
 
 ---
 
@@ -34,7 +34,7 @@
 | `suspended` | Suspended | Account suspended |
 | `rejected` | Rejected | Registration rejected |
 
-**Inconsistency found**: `admin.service.ts` uses `unverified` in `verificationStatus`. This should be `pending` in the backend. The `verificationStatus` field is separate from `customerStatus`.
+**Note**: `admin.service.ts` uses `unverified` in `verificationStatus`. This should be `pending` in the backend. The `verificationStatus` field is separate from `customerStatus`.
 
 ---
 
@@ -43,16 +43,20 @@
 **PostgreSQL column**: `verification_cases.status`  
 **Type**: `text` with CHECK constraint
 
+> KYC is mandatory but presented under Profile/Settings rather than primary navigation.  
+> Backend enforcement determines restricted actions for unverified customers.
+
 | Backend Value | Display | Notes |
 |--------------|---------|-------|
 | `not_started` | Not Started | No KYC submitted |
 | `in_progress` | In Progress | Partially filled |
 | `submitted` | Submitted | Awaiting review |
 | `under_review` | Under Review | Being reviewed |
+| `additional_information_required` | Additional Information Required | Reviewer requested more info |
 | `verified` | Verified | KYC approved |
 | `rejected` | Rejected | KYC rejected |
 
-**Source**: `kyc.service.ts` KYCStatus type — consistent across files. ✓
+**Source**: `kyc.service.ts` KYCStatus type — extended with `additional_information_required`. ✓
 
 ---
 
@@ -70,9 +74,6 @@
 | `cancelled` | Cancelled | Cancelled |
 | `overdue` | Overdue | Past due date (computed or set) |
 
-**Inconsistency found**:  
-- `agent.service.ts` uses: `pending`, `in_progress`, `completed`, `overdue`, `cancelled`  
-- `platform.service.ts` adds: `unable_to_complete`  
 **Canonical**: Use `platform.service.ts` version — it is more complete.
 
 ---
@@ -158,12 +159,7 @@
 | `unavailable` | Unavailable |
 | `missed` | Missed |
 
-**Inconsistency found**:  
-- `calling.service.ts` CallState: `idle`, `connecting`, `ringing`, `connected`, `ended`, `failed`, `unavailable`  
-- `agent.service.ts` CallStatus: `connecting`, `ringing`, `connected`, `ended`, `failed`, `unavailable`  
-- `agent.service.ts` call record status: `completed`, `missed`, `failed`  
-**Canonical for DB**: `connecting | ringing | connected | ended | failed | unavailable | missed`  
-`idle` is a frontend-only UI state — not stored in DB.
+**Note**: `idle` is a frontend-only UI state — not stored in DB.
 
 ---
 
@@ -201,10 +197,7 @@
 | `failed` | Failed | Processing failed |
 | `cancelled` | Cancelled | Cancelled by customer |
 
-**Inconsistency found**:  
-- `finance.service.ts` FinanceStatus: `pending`, `processing`, `completed`, `failed`, `cancelled`  
-- `admin.service.ts` DepositRequest.status: `pending`, `approved`, `rejected`, `processing`  
-**Canonical**: Merge both — use the full set above.
+**Canonical**: Merged from `finance.service.ts` and `admin.service.ts`.
 
 ---
 
@@ -331,11 +324,6 @@
 | `internal_team` | Team Chat | Staff team group |
 | `internal_department` | Department Chat | Department group |
 
-**Inconsistency found**:  
-- `chat.service.ts` uses no type field  
-- `staff-chat.service.ts` uses `direct`, `team`, `department` + `conversationType: 'internal'`  
-**Canonical**: Use the merged type above — single `type` column distinguishes all conversation kinds.
-
 ---
 
 ## 21. Notification Type
@@ -368,8 +356,10 @@
 | `profile_updated` | Admin updates customer profile |
 | `kyc_approved` | Compliance approves KYC |
 | `kyc_rejected` | Compliance rejects KYC |
-| `account_activated` | Admin activates account |
+| `account_activated` | Customer completes activation |
 | `account_suspended` | Admin suspends account |
+| `account_access` | Account provisioned — activation link sent |
+| `invitation_resent` | Admin resends invitation |
 
 ---
 
@@ -407,7 +397,7 @@
 **Type**: `text` with CHECK constraint
 
 > This enum covers the full lifecycle of a customer account provisioning request.  
-> Verify against `users.status` and `customer_profiles.status` — these are separate concerns.
+> Separate from `users.status` and `customer_profiles.status` — these are distinct concerns.
 
 | Backend Value | Display | Notes |
 |--------------|---------|-------|
@@ -415,10 +405,10 @@
 | `pending_approval` | Pending Approval | Submitted by manager, awaiting admin review |
 | `approved` | Approved | Admin approved, provisioning not yet started |
 | `rejected` | Rejected | Admin rejected the request |
-| `provisioning` | Provisioning | Backend provisioning job in progress |
+| `provisioning` | Provisioning | Async backend provisioning job in progress |
 | `provisioned` | Provisioned | Account created, invitation not yet sent |
-| `invite_sent` | Invite Sent | Account access email sent to customer |
-| `activated` | Activated | Customer completed first login |
+| `invite_sent` | Invite Sent | Activation email sent to customer |
+| `activated` | Activated | Customer completed first login and set password |
 | `cancelled` | Cancelled | Request cancelled before completion |
 
 **No overlap with existing enums**: `users.status` uses `active | suspended | disabled`. `customer_profiles.status` uses `pending | verified | active | suspended | rejected`. These are distinct from `account_requests.status`. ✓
@@ -427,7 +417,7 @@
 
 ## 26. Account Activation State (Customer Profile)
 
-**PostgreSQL column**: `customer_profiles.activation_status` (new column — extends existing table)  
+**PostgreSQL column**: `customer_profiles.activation_status`  
 **Type**: `text` with CHECK constraint
 
 > Tracks the customer account activation lifecycle. Separate from `customer_profiles.status` (identity/CRM status).
@@ -436,30 +426,91 @@
 |--------------|---------|-------|
 | `pending_approval` | Pending Approval | Account request not yet approved |
 | `approved` | Approved | Request approved, not yet provisioned |
-| `invite_sent` | Invite Sent | Access email sent |
-| `active` | Active | Customer has logged in and activated |
+| `invite_sent` | Invite Sent | Activation email sent |
+| `active` | Active | Customer has completed activation (set password, logged in) |
 | `disabled` | Disabled | Account disabled by admin |
 | `suspended` | Suspended | Temporarily suspended |
 
 ---
 
-## 27. Login Handoff Token Status
+## 27. Login Handoff Token State
 
-**Storage**: Valkey (primary, with TTL) — not stored in PostgreSQL  
-**Audit record**: `audit_logs` (event: `LOGIN_HANDOFF_CREATED`, `LOGIN_HANDOFF_REDEEMED`)
+**Storage**: Valkey only (no PostgreSQL table)  
+**Audit record**: `audit_logs` (events: `LOGIN_HANDOFF_CREATED`, `LOGIN_HANDOFF_REDEEMED`)
 
 | State | Description |
 |-------|-------------|
-| `valid` | Token exists in Valkey, not yet redeemed |
-| `redeemed` | Token consumed — immediately deleted from Valkey |
+| `valid` | Token exists in Valkey, not yet redeemed (~60s TTL) |
+| `redeemed` | Token consumed — immediately deleted from Valkey on redemption |
 | `expired` | TTL elapsed — auto-removed by Valkey |
+
+> **No PostgreSQL `login_handoff_tokens` table.** Tokens are ephemeral and stored only in Valkey.
 
 ---
 
-## 28. New Audit Event Types (Account Provisioning)
+## 28. Ledger Entry Type
 
-**PostgreSQL column**: `audit_logs.event_type`  
-**Extends existing audit event enum** — verify no duplicates before adding.
+**PostgreSQL column**: `ledger_entries.entry_type`  
+**Type**: `text` with CHECK constraint
+
+| Backend Value | Display | Notes |
+|--------------|---------|-------|
+| `debit` | Debit | Decreases account balance |
+| `credit` | Credit | Increases account balance |
+
+**Constraint**: Every finalized `ledger_transaction` must have balanced debits and credits (sum of debits = sum of credits).
+
+---
+
+## 29. Ledger Transaction Status
+
+**PostgreSQL column**: `ledger_transactions.status`  
+**Type**: `text` with CHECK constraint
+
+| Backend Value | Display | Notes |
+|--------------|---------|-------|
+| `pending` | Pending | Transaction created, not yet finalized |
+| `finalized` | Finalized | Balanced and committed — immutable |
+| `reversed` | Reversed | Reversed by a compensating transaction |
+
+---
+
+## 30. Account Type
+
+**PostgreSQL column**: `accounts.account_type`  
+**Type**: `text` with CHECK constraint
+
+| Backend Value | Display | Notes |
+|--------------|---------|-------|
+| `customer` | Customer | Customer financial account |
+| `system_clearing` | System Clearing | Clearing/suspense account |
+| `system_fee` | System Fee | Fee collection account |
+| `system_settlement` | System Settlement | Settlement account |
+
+---
+
+## 31. Audit Event Types
+
+**PostgreSQL column**: `audit_logs.action`  
+**Type**: `text` — `SCREAMING_SNAKE_CASE` convention
+
+### Existing Audit Events
+
+| Backend Value | Trigger |
+|--------------|---------|
+| `CUSTOMER_ASSIGNED` | Customer assigned to staff |
+| `CUSTOMER_REASSIGNED` | Customer reassigned |
+| `CUSTOMER_STATUS_CHANGED` | Customer status updated |
+| `STAFF_ROLE_CHANGED` | Staff role updated |
+| `STAFF_DISABLED` | Staff account disabled |
+| `PERMISSION_GRANTED` | Permission override added |
+| `PERMISSION_REVOKED` | Permission override removed |
+| `DEPOSIT_REVIEWED` | Deposit approved/rejected |
+| `WITHDRAWAL_REVIEWED` | Withdrawal approved/rejected |
+| `KYC_REVIEWED` | KYC case reviewed |
+| `NOTE_ADDED` | Internal note added |
+
+### Account Provisioning Audit Events (New)
 
 | Backend Value | Trigger |
 |--------------|---------|
@@ -467,9 +518,9 @@
 | `ACCOUNT_REQUEST_APPROVED` | Admin approves request |
 | `ACCOUNT_REQUEST_REJECTED` | Admin rejects request |
 | `CUSTOMER_ACCOUNT_PROVISIONED` | Backend provisioning completes |
-| `ACCOUNT_INVITATION_SENT` | Account access email sent |
+| `ACCOUNT_INVITATION_SENT` | Activation email sent |
 | `ACCOUNT_INVITATION_RESENT` | Admin resends invitation |
-| `ACCOUNT_ACTIVATED` | Customer completes first login |
+| `ACCOUNT_ACTIVATED` | Customer completes first login and sets password |
 | `ACCOUNT_DISABLED` | Admin disables account |
 | `PASSWORD_RESET_INITIATED` | Password reset triggered |
 | `LOGIN_HANDOFF_CREATED` | Handoff token generated after marketing site login |
@@ -477,30 +528,54 @@
 
 ---
 
-## 29. New Permission Keys (Account Provisioning)
+## 32. New Permission Keys
 
-**PostgreSQL table**: `permissions` (extends existing permission registry)  
+**PostgreSQL table**: `permissions`  
 **Naming convention**: `resource.action` (snake_case) — consistent with existing pattern.
 
-| Permission Key | Description | Default Roles |
-|---------------|-------------|---------------|
-| `customer_account.request` | Submit account creation request for assigned customer | agent, broker, retention_broker, ftd_broker, desk_broker, compliance_broker |
-| `customer_account.request_view` | View own submitted account requests | (same as above) |
-| `customer_account.approve` | Approve or reject account requests | admin, super_admin |
-| `customer_account.reject` | Reject account requests | admin, super_admin |
-| `customer_account.provision` | Manual provisioning override | super_admin |
-| `customer_account.invite_resend` | Resend account access invitation | admin, super_admin |
-| `customer_account.disable` | Disable a provisioned customer account | admin, super_admin |
-| `customer_account.credentials_reset` | Reset customer access credentials | admin, super_admin |
-| `marketing_site.view` | View configured marketing sites | manager roles, admin, super_admin |
-| `marketing_site.manage` | Create/update/deactivate marketing sites | super_admin |
-
-> **Scope restriction**: `customer_account.request` applies only to customers assigned to the requesting manager. Existing team/assignment scope continues to apply.  
-> **No duplicate check**: Reviewed existing permissions in `ROLE_PERMISSION_DATABASE_MODEL.md` — no equivalent permissions exist. ✓
+| Permission Key | Category | Description |
+|---------------|----------|-------------|
+| `customer_account.request` | ACCOUNT_PROVISIONING | Submit account creation request for assigned customer |
+| `customer_account.request_view` | ACCOUNT_PROVISIONING | View own submitted account requests |
+| `customer_account.approve` | ACCOUNT_PROVISIONING | Approve account requests |
+| `customer_account.reject` | ACCOUNT_PROVISIONING | Reject account requests |
+| `customer_account.provision` | ACCOUNT_PROVISIONING | Manual provisioning override |
+| `customer_account.invite_resend` | ACCOUNT_PROVISIONING | Resend account access invitation |
+| `customer_account.disable` | ACCOUNT_PROVISIONING | Disable a provisioned customer account |
+| `customer_account.credentials_reset` | ACCOUNT_PROVISIONING | Reset customer access credentials |
+| `marketing_site.view` | MARKETING | View configured marketing sites |
+| `marketing_site.manage` | MARKETING | Create/update/deactivate marketing sites |
 
 ---
 
-## 30. Naming Convention Summary
+## 33. Marketing Site Status
+
+**PostgreSQL column**: `marketing_sites.status`  
+**Type**: `text` with CHECK constraint
+
+| Backend Value | Display | Notes |
+|--------------|---------|-------|
+| `active` | Active | Approved login entry point |
+| `inactive` | Inactive | Deactivated — no longer accepted as login source |
+
+---
+
+## 34. Login Error Codes (API Response)
+
+**Used in**: `POST /api/v1/auth/login` error responses
+
+| Code | Meaning | Notes |
+|------|---------|-------|
+| `invalid_credentials` | Username or password incorrect | Do NOT reveal whether username exists |
+| `account_pending` | Account not yet activated | Provisioned but activation not complete |
+| `account_disabled` | Account has been disabled | — |
+| `activation_required` | Customer must complete activation | Activation link not yet used |
+| `password_change_required` | Password change required | — |
+| `rate_limited` | Too many attempts | — |
+
+---
+
+## 35. Naming Convention Summary
 
 | Context | Convention | Example |
 |---------|-----------|---------|
@@ -511,8 +586,8 @@
 | Enum values (API) | `snake_case` (same) | `in_progress` |
 | Frontend display | Title Case | `In Progress`, `Bank Transfer` |
 | Role keys | `snake_case` | `ftd_broker`, `compliance_manager` |
-| Permission keys | `snake_case` | `view_customer_phone` |
-| Audit actions | `SCREAMING_SNAKE_CASE` | `CUSTOMER_ASSIGNED` |
+| Permission keys | `resource.action` snake_case | `customer_account.request`, `view_customer_phone` |
+| Audit actions | `SCREAMING_SNAKE_CASE` | `CUSTOMER_ASSIGNED`, `ACCOUNT_ACTIVATED` |
 
 ### Fields Requiring Mapping (DB → API)
 
@@ -528,3 +603,11 @@
 | `due_date` | `dueDate` |
 | `take_profit_price` | `takeProfitPrice` |
 | `stop_loss_price` | `stopLossPrice` |
+| `must_change_password` | `mustChangePassword` |
+| `account_activated` | `accountActivated` |
+| `activation_status` | `activationStatus` |
+| `marketing_site_id` | `marketingSiteId` |
+| `registration_id` | `registrationId` |
+| `provisioned_user_id` | `provisionedUserId` |
+| `requested_by_user_id` | `requestedByUserId` |
+| `assigned_manager_id` | `assignedManagerId` |

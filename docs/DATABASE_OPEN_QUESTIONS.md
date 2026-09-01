@@ -1,7 +1,8 @@
-# CryonFX — Database Open Questions
+# Trade Console — Database Open Questions
 
 > These are decisions that must be made before writing PostgreSQL migrations.  
-> Each question is marked with its impact level.
+> Each question is marked with its impact level.  
+> **Resolved** questions are kept for audit trail — they document the final decision.
 
 ---
 
@@ -39,15 +40,9 @@ The UI has:
 ### Q3: Document Storage Provider
 **Impact**: `verification_documents.storage_key` and `document_storage` table
 
-KYC documents must be stored somewhere. The database should only store references (keys), not binary data.
+KYC documents must be stored somewhere. The database stores only references (keys), not binary data.
 
-**Question**: Which object storage will you use?
-- (A) MinIO (self-hosted on VPS)
-- (B) AWS S3
-- (C) Cloudflare R2
-- (D) Local filesystem (not recommended for production)
-
-**Recommendation**: MinIO for Phase 1 (self-hosted, S3-compatible). Can migrate to R2/S3 later by changing `storage_provider` value.
+**FINAL DECISION**: Use external S3-compatible object storage — **Cloudflare R2** is the recommended provider. PostgreSQL stores object keys and metadata only. Binary document data is never stored in PostgreSQL.
 
 ---
 
@@ -113,20 +108,24 @@ The UI shows affiliate revenue figures but no commission rate or payout structur
 
 The recommended architecture uses `ledger_entries` as the source of truth for balances. This means every balance query requires a SUM of ledger entries.
 
-**Question**: Is this acceptable for performance, or do you need a cached `balance` column?
-
-**Recommendation**: Use ledger entries as source of truth. Add a materialized view or a `account_balance_cache` table (updated by trigger) if performance becomes an issue. Do NOT use a mutable `balance` column.
+**FINAL DECISION**: Use a genuine **double-entry ledger** as source of truth. The production financial ledger uses the structure `ledger_transactions → ledger_entries → accounts`. Every finalized ledger transaction must balance debits and credits. System/clearing/fee/settlement accounts are supported alongside customer accounts. Ledger entries are immutable and are the source of truth for all balances. A mutable customer balance field must NOT be used as financial source of truth. Add a materialized view or `account_balance_cache` table (updated by trigger) if query performance becomes an issue.
 
 ---
 
 ### Q9: Registration → Customer Profile Flow
 **Impact**: Whether `registrations` and `customer_profiles` are created simultaneously or sequentially
 
-**Question**: When a user registers:
-- (A) Create `users` + `customer_profiles` + `registrations` all at once
-- (B) Create `registrations` first, then create `users` + `customer_profiles` after approval
+**FINAL DECISION**: **Option B — sequential creation.**
 
-**Recommendation**: Option A — create all three simultaneously. The `registrations` table captures the marketing attribution data. The `customer_profiles` table captures the customer identity. Both are needed from day one.
+A `registrations` record may exist without a `users` record. The full lifecycle is:
+
+```
+registration/lead → authorized staff account request → Admin/Super Admin approval
+→ async provisioning → Trade Console user/profile created → activation email
+→ customer sets password → activated
+```
+
+`registrations.user_id` is nullable. A `users` record and `customer_profiles` record are created only after Admin approval and successful provisioning — not at registration capture time.
 
 ---
 
@@ -222,27 +221,31 @@ How long should audit logs be retained? (Legal requirement may vary by jurisdict
 
 ---
 
-## ACCOUNT PROVISIONING — New Open Questions
+## ACCOUNT PROVISIONING — Resolved Decisions
 
 ---
 
 ### Q21: Temporary Password vs Activation Link
 **Impact**: First-login security architecture, `users` table fields, email template content
 
-**Question**: For first-login access, which mechanism will be used?
-- (A) **Temporary password** — backend generates, stores only Argon2id hash, marks `mustChangePassword=true`, expires after first use or N hours
-- (B) **Activation/set-password link** — backend generates secure token, customer sets their own password on first visit, no temporary plaintext password ever transmitted
+**FINAL DECISION**: **Option B — Secure activation/set-password link.**
 
-**Security note**: Option A requires the temporary password to be transmitted in the account access email (plaintext in transit). Option B is preferred for security — no password is ever emailed.
+- Do NOT email permanent or temporary plaintext passwords.
+- Backend generates a secure, cryptographically random activation token.
+- Token is stored **hashed** in `users.activation_token_hash`.
+- Token has an expiry stored in `users.activation_token_expires_at`.
+- Customer clicks the activation link and sets their own password on first visit.
+- `users.password_hash` may be NULL only before account activation.
+- Once `users.account_activated = true`, a valid Argon2id password hash is required.
+- Activation tokens must be stored hashed and expire.
 
-**Recommendation**: Option B (activation link) is preferred. If Option A is chosen: generate server-side only, store only hash, mark temporary, require change on first login, expire it, never log it, never expose via Admin APIs.
-
-**Fields to prepare regardless of choice:**
+**Fields required on `users`:**
 ```
-mustChangePassword: boolean
-accountActivated: boolean
-activationTokenExpiresAt: timestamp (Option B)
-passwordExpiresAt: timestamp (Option A)
+username                    text UNIQUE NOT NULL
+must_change_password        boolean DEFAULT false
+account_activated           boolean DEFAULT false
+activation_token_hash       text NULL
+activation_token_expires_at timestamptz NULL
 ```
 
 ---
@@ -250,60 +253,88 @@ passwordExpiresAt: timestamp (Option A)
 ### Q22: Provisioning Trigger — Immediate vs Async Job
 **Impact**: Backend architecture, frontend status polling, UX after approval
 
-**Question**: When Admin approves an account request, does provisioning occur:
-- (A) **Synchronously** — immediately on approval API response
-- (B) **Asynchronously** — via background job queue (status transitions: `approved` → `provisioning` → `provisioned`)
+**FINAL DECISION**: **Option B — Asynchronous provisioning job.**
 
-**Recommendation**: Option B (async job) for production. The `provisioning` status exists in the enum to support this. Frontend should poll or use WebSocket `account_request.status_updated` event.
+The `provisioning` status exists in the `account_requests` enum to support this. Frontend should poll or subscribe to the WebSocket `account_request.status_updated` event. Status transitions: `approved` → `provisioning` → `provisioned`.
 
 ---
 
 ### Q23: Which Manager Roles Can Request Accounts
 **Impact**: `customer_account.request` permission assignment, RBAC configuration
 
-**Question**: Which staff roles should be permitted to submit account creation requests?
-- All roles with customer/lead access (agent, broker, retention_broker, ftd_broker, etc.)?
-- Only specific senior roles (desk_manager, team_leader, conversion_manager)?
-- Configurable per team/office?
-
-**Recommendation**: Grant `customer_account.request` to all roles that have customer assignment scope (agent, broker, retention_broker, ftd_broker, desk_broker, compliance_broker). Restrict to assigned customers only — existing team/assignment scope must continue to apply.
+**FINAL DECISION**: Grant `customer_account.request` to all roles that have customer assignment scope (agent, broker, retention_broker, ftd_broker, desk_broker, compliance_broker). Restrict to assigned customers only — existing team/assignment scope must continue to apply. Account-request authorization must additionally verify assignment/customer scope. Permission possession alone is not sufficient.
 
 ---
 
 ### Q24: Admin vs Super Admin Approval Authority
 **Impact**: `customer_account.approve` permission assignment
 
-**Question**: Can regular Admin approve account requests, or is this Super Admin only?
-
-**Recommendation**: Both Admin and Super Admin should be able to approve/reject. Super Admin additionally gets `customer_account.provision` (manual provisioning override) and `customer_account.disable` / `customer_account.credentials_reset`.
+**FINAL DECISION**: Both Admin and Super Admin can approve/reject/resend/disable/reset. Super Admin additionally receives `customer_account.provision` (manual provisioning override) and `marketing_site.manage`.
 
 ---
 
 ### Q25: Marketing Sites — New Table vs Extend Existing
 **Impact**: Schema design, whether `marketing_sources` table is sufficient
 
-**Question**: The existing `marketing_sources` table tracks lead attribution sources. Should marketing sites (with `domain`, `login_url`, `brand_config`) be:
-- (A) A new `marketing_sites` table (separate from attribution sources)
-- (B) Extended columns on the existing `marketing_sources` table
+**FINAL DECISION**: **Option A — new `marketing_sites` table, separate from `marketing_sources`.**
 
-**Recommendation**: Option A — new `marketing_sites` table. Marketing sources are attribution/analytics data. Marketing sites are authentication entry points with security implications (approved domain allowlist). These are different concerns and should not be conflated.
+- `marketing_sources` = attribution/analytics data (traffic sources, UTM tracking).
+- `marketing_sites` = approved authentication entry-point allowlist (domain, login_url, brand_config).
+- These are different concerns and must not be conflated.
+- Never accept arbitrary redirect/login URLs from the browser.
+- Backend must enforce an approved-domain allowlist for all `login_url` values.
 
 ---
 
 ### Q26: Login Handoff Token Storage
-**Impact**: New `login_handoff_tokens` table design
+**Impact**: Token storage architecture
 
-**Question**: Should handoff tokens be stored in:
-- (A) PostgreSQL `login_handoff_tokens` table (with TTL cleanup job)
-- (B) Valkey/Redis with TTL (auto-expires, no cleanup needed)
+**FINAL DECISION**: **Valkey only — no PostgreSQL `login_handoff_tokens` table.**
 
-**Recommendation**: Option B (Valkey) for handoff tokens — they are ephemeral (~30–60s), high-frequency, and benefit from automatic TTL expiry. Audit records of redemption events go to PostgreSQL `audit_logs`.
+- Handoff tokens are ephemeral (~60 seconds TTL), cryptographically random, single-use.
+- Stored as hashed/derived token data in Valkey with TTL.
+- Deleted immediately on redemption.
+- Audit records of creation and redemption events go to PostgreSQL `audit_logs` (events: `LOGIN_HANDOFF_CREATED`, `LOGIN_HANDOFF_REDEEMED`).
+- Do NOT create a PostgreSQL `login_handoff_tokens` table.
+- Do NOT put passwords or permanent session tokens in redirect URLs.
 
 ---
 
 ### Q27: Account Access Email — Branding
 **Impact**: Email template system, `marketing_sites` brand configuration
 
-**Question**: Should account access emails be branded per marketing site (CryonFX branding for cryonfx.com customers, TradeHub branding for tradehub.io customers)?
+**FINAL DECISION**: Account access emails are branded per marketing site. The `marketing_sites` table includes a `brand_config` JSONB field (logo URL, brand name, colors). The email template system resolves branding from the customer's associated marketing site record. The login URL in the email is resolved from `marketing_sites.login_url` — it is never hardcoded.
 
-**Recommendation**: Yes. The `marketing_sites` table should include a `brand_config` reference (logo URL, brand name, colors). The email template system should resolve branding from the customer's associated marketing site.
+---
+
+## OPEN — Remaining Unresolved Questions
+
+---
+
+### Q28: Double-Entry Ledger — Account Types
+**Impact**: `ledger_transactions`, `ledger_entries`, `accounts` schema
+
+**Question**: What system/clearing/fee/settlement account identifiers will be used?
+- How are system accounts seeded (migration vs admin UI)?
+- What is the chart of accounts structure?
+
+**Recommendation**: Define a `system_accounts` seed migration with well-known UUIDs for clearing, fee, and settlement accounts. Customer accounts are created dynamically on provisioning.
+
+---
+
+### Q29: Username Generation Strategy
+**Impact**: Backend provisioning job
+
+**Question**: What is the username generation algorithm?
+- Prefix + sequential number (e.g. `TC-000042`)?
+- First name + random suffix?
+- Email-derived?
+
+**Recommendation**: Backend generates username. Frontend must NOT generate authoritative usernames. The backend is responsible for uniqueness. Potential response field: `username`.
+
+---
+
+### Q30: KYC Placement in Navigation
+**Impact**: Frontend navigation structure
+
+**FINAL DECISION**: KYC remains mandatory but is presented under Profile/Settings rather than primary navigation. Backend enforcement will ultimately determine restricted actions for unverified customers.
