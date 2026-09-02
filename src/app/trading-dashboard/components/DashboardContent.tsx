@@ -9,7 +9,7 @@ import PortfolioChart from './PortfolioChart';
 import TopMovers from './TopMovers';
 import RecentActivity from './RecentActivity';
 import MarketSummary from './MarketSummary';
-import { DollarSign, Shield, ArrowUpFromLine, X, TrendingUp, Bell, Zap, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { DollarSign, Shield, ArrowUpFromLine, X, TrendingUp, Bell, Zap, CheckCircle2, AlertTriangle, Gift, Users } from 'lucide-react';
 import Link from 'next/link';
 import { kycService, KYCStatus } from '@/services/kyc.service';
 
@@ -218,51 +218,42 @@ export default function DashboardContent() {
         </div>
       )}
 
-      {/* Premium Notification Stack */}
+      {/* Notification Stack */}
       {visibleNotifs.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-          {/* Stack header */}
-          <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center justify-between px-4 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <Bell size={13} style={{ color: 'var(--primary)' }} />
-                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '7px' }}>
-                  {visibleNotifs.length}
-                </span>
-              </div>
+              <Bell size={13} style={{ color: 'var(--primary)' }} />
               <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
                 {visibleNotifs.length} new {visibleNotifs.length === 1 ? 'alert' : 'alerts'}
               </span>
             </div>
             <button
               onClick={dismissAll}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors hover:bg-white/5"
+              className="flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors hover:bg-muted"
               style={{ color: 'var(--muted-foreground)' }}
             >
               <CheckCircle2 size={11} />
               Dismiss all
             </button>
           </div>
-
-          {/* Notification items */}
-          <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {visibleNotifs.map((n) => {
               const meta = NOTIF_META[n.type] || NOTIF_META.system;
               const NIcon = meta.icon;
               return (
                 <div
                   key={n.id}
-                  className="flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-white/[0.02]"
-                  style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                  className="flex items-center gap-3 px-4 py-3 group transition-colors hover:bg-muted/40"
                 >
                   {n.priority === 'high' && (
-                    <div className="w-0.5 h-8 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
+                    <div className="w-0.5 h-7 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
                   )}
                   <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+                    className="w-7 h-7 rounded flex items-center justify-center shrink-0"
                     style={{ backgroundColor: meta.bg, border: `1px solid ${meta.accent}` }}
                   >
-                    <NIcon size={14} style={{ color: meta.color }} />
+                    <NIcon size={13} style={{ color: meta.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -279,7 +270,7 @@ export default function DashboardContent() {
                     <span className="text-xs hidden sm:block" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>{n.time}</span>
                     <button
                       onClick={() => dismissNotif(n.id)}
-                      className="w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-white/10"
+                      className="w-6 h-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-muted"
                       style={{ color: 'var(--muted-foreground)' }}
                     >
                       <X size={11} />
@@ -315,36 +306,36 @@ export default function DashboardContent() {
         </div>
       </div>
 
-      {/* Available Programs — discovery section */}
-      <div className="rounded border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Available Programs</h3>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Account programs and financial services</p>
+      {/* Available Programs — compact discovery section */}
+      <div className="rounded border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-2">
+            <Gift size={13} style={{ color: 'var(--primary)' }} />
+            <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Available Programs</span>
           </div>
-          <Link href="/programs" className="flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: 'var(--primary)' }}>
-            View All <TrendingUp size={11} />
+          <Link href="/programs" className="text-xs font-medium" style={{ color: 'var(--primary)' }}>
+            View All
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0" style={{ borderColor: 'var(--border)' }}>
           {[
-            { icon: DollarSign, label: 'Deposit Bonus', desc: 'Promotional credit', color: 'var(--primary)', href: '/programs' },
-            { icon: Shield, label: 'Referral Program', desc: 'Invite & earn', color: '#22c55e', href: '/programs' },
-            { icon: TrendingUp, label: 'Crypto Lending', desc: 'Earn on holdings', color: '#3b82f6', href: '/programs' },
-            { icon: Zap, label: 'Dividend Program', desc: 'Eligible accounts', color: 'var(--primary)', href: '/settings?tab=dividend' },
+            { icon: DollarSign, label: 'Deposit Bonus', desc: 'Promotional credit on qualifying deposits', color: 'var(--primary)', href: '/programs' },
+            { icon: Users, label: 'Referral Program', desc: 'Invite clients and earn rewards', color: '#22c55e', href: '/programs' },
+            { icon: TrendingUp, label: 'Crypto Lending', desc: 'Allocate assets to lending programs', color: '#3b82f6', href: '/programs' },
+            { icon: Zap, label: 'Dividend Program', desc: 'Eligible account benefit programs', color: 'var(--primary)', href: '/settings?tab=dividend' },
           ].map((prog, i) => (
             <Link
               key={i}
               href={prog.href}
-              className="flex flex-col gap-2 p-3 rounded border transition-all hover:border-primary/30 hover:shadow-sm"
-              style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', textDecoration: 'none' }}
+              className="flex items-start gap-3 p-4 transition-colors hover:bg-muted/40"
+              style={{ textDecoration: 'none', borderColor: 'var(--border)' }}
             >
-              <div className="w-7 h-7 rounded flex items-center justify-center" style={{ backgroundColor: `${prog.color}14` }}>
+              <div className="w-7 h-7 rounded flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${prog.color}14` }}>
                 <prog.icon size={13} style={{ color: prog.color }} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{prog.label}</p>
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{prog.desc}</p>
+                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{prog.desc}</p>
               </div>
             </Link>
           ))}

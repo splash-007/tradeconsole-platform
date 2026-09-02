@@ -14,6 +14,8 @@ import { Gift, Users, TrendingUp, Award, Copy, Check, ChevronRight, AlertTriangl
 
 
 
+
+
 type ProgramTab = 'overview' | 'deposit-bonus' | 'referral' | 'lending' | 'dividend';
 
 // ─── Shared primitives ────────────────────────────────────────────────────────

@@ -38,32 +38,37 @@ function MarketCard({ market }: { market: PredictionMarket }) {
   return (
     <Link
       href={`/prediction-markets/${market.id}`}
-      className="block rounded border overflow-hidden transition-all hover:border-primary/40 hover:shadow-sm group"
-      style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', textDecoration: 'none' }}
+      className="block rounded border overflow-hidden transition-all hover:shadow-md group"
+      style={{
+        backgroundColor: 'var(--card)',
+        borderColor: 'var(--border)',
+        textDecoration: 'none',
+      }}
     >
       {/* Image */}
-      <div className="relative h-28 overflow-hidden">
+      <div className="relative h-24 overflow-hidden">
         <img
           src={market.imageUrl}
           alt={market.imageAlt}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.65))' }} />
-        <div className="absolute top-2 left-2">
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.7))' }} />
+        <div className="absolute top-1.5 left-1.5">
           <span
             className="px-1.5 py-0.5 rounded text-xs font-semibold capitalize"
-            style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)', fontSize: '10px' }}
+            style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff', backdropFilter: 'blur(4px)', fontSize: '9px', letterSpacing: '0.03em' }}
           >
             {market.category}
           </span>
         </div>
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-1.5 right-1.5">
           <span
-            className="px-1.5 py-0.5 rounded text-xs font-semibold"
+            className="px-1.5 py-0.5 rounded text-xs font-bold"
             style={{
-              backgroundColor: isOpen ? 'rgba(34,197,94,0.75)' : 'rgba(107,114,128,0.75)',
+              backgroundColor: isOpen ? 'rgba(34,197,94,0.8)' : 'rgba(107,114,128,0.8)',
               color: '#fff',
-              fontSize: '10px',
+              fontSize: '9px',
+              letterSpacing: '0.05em',
             }}
           >
             {isOpen ? 'LIVE' : 'CLOSED'}
@@ -73,7 +78,7 @@ function MarketCard({ market }: { market: PredictionMarket }) {
 
       {/* Content */}
       <div className="p-3">
-        <p className="text-xs font-semibold leading-snug line-clamp-2 mb-2.5" style={{ color: 'var(--foreground)', minHeight: '2.5rem' }}>
+        <p className="text-xs font-semibold leading-snug line-clamp-2 mb-2.5" style={{ color: 'var(--foreground)', minHeight: '2.5rem', fontSize: '11px' }}>
           {market.title}
         </p>
 
@@ -85,12 +90,12 @@ function MarketCard({ market }: { market: PredictionMarket }) {
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <span className="text-xs font-bold tabular-nums" style={{ color: '#16a34a' }}>YES</span>
-              <span className="text-xs font-bold tabular-nums" style={{ color: '#16a34a' }}>{market.yesProbability}%</span>
+              <span className="text-xs font-bold tabular-nums" style={{ color: '#16a34a', fontSize: '11px' }}>YES</span>
+              <span className="text-xs font-bold tabular-nums" style={{ color: '#16a34a', fontSize: '11px' }}>{market.yesProbability}%</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-xs font-bold tabular-nums" style={{ color: '#dc2626' }}>{market.noProbability}%</span>
-              <span className="text-xs font-bold tabular-nums" style={{ color: '#dc2626' }}>NO</span>
+              <span className="text-xs font-bold tabular-nums" style={{ color: '#dc2626', fontSize: '11px' }}>{market.noProbability}%</span>
+              <span className="text-xs font-bold tabular-nums" style={{ color: '#dc2626', fontSize: '11px' }}>NO</span>
             </div>
           </div>
         </div>
@@ -98,32 +103,32 @@ function MarketCard({ market }: { market: PredictionMarket }) {
         {/* YES/NO price buttons */}
         <div className="flex gap-1.5 mb-2.5">
           <div
-            className="flex-1 py-1.5 rounded text-center text-xs font-bold"
-            style={{ backgroundColor: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}
+            className="flex-1 py-1.5 rounded text-center font-bold"
+            style={{ backgroundColor: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.18)', fontSize: '11px' }}
           >
             YES ${market.yesPrice.toFixed(2)}
           </div>
           <div
-            className="flex-1 py-1.5 rounded text-center text-xs font-bold"
-            style={{ backgroundColor: 'rgba(220,38,38,0.08)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.18)' }}
+            className="flex-1 py-1.5 rounded text-center font-bold"
+            style={{ backgroundColor: 'rgba(220,38,38,0.06)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.15)', fontSize: '11px' }}
           >
             NO ${market.noPrice.toFixed(2)}
           </div>
         </div>
 
         {/* Meta row */}
-        <div className="flex items-center justify-between text-xs" style={{ color: 'var(--muted-foreground)' }}>
+        <div className="flex items-center justify-between" style={{ color: 'var(--muted-foreground)' }}>
           <div className="flex items-center gap-1">
             <TrendingUp size={9} />
-            <span className="tabular-nums">{formatVolume(market.volume)}</span>
+            <span className="tabular-nums" style={{ fontSize: '10px' }}>{formatVolume(market.volume)}</span>
           </div>
           <div className="flex items-center gap-1">
             <Users size={9} />
-            <span className="tabular-nums">{market.totalPositions.toLocaleString()}</span>
+            <span className="tabular-nums" style={{ fontSize: '10px' }}>{market.totalPositions.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock size={9} />
-            <span>{timeRemaining(market.endsAt)}</span>
+            <span style={{ fontSize: '10px' }}>{timeRemaining(market.endsAt)}</span>
           </div>
         </div>
       </div>
@@ -170,19 +175,19 @@ export default function PredictionMarketsContent() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search markets…"
-            className="pl-8 pr-3 py-1.5 rounded text-xs border focus:outline-none w-44"
+            className="pl-8 pr-3 py-1.5 rounded border focus:outline-none w-44 text-xs"
             style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
           />
         </div>
       </div>
 
-      {/* Category filter bar — compact horizontal pills */}
+      {/* Category filter bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
         {CATEGORIES.map(cat => (
           <button
             key={cat.key}
             onClick={() => setActiveCategory(cat.key)}
-            className="px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-all shrink-0"
+            className="px-3 py-1 rounded text-xs font-medium whitespace-nowrap transition-all shrink-0"
             style={{
               backgroundColor: activeCategory === cat.key ? 'var(--primary)' : 'transparent',
               color: activeCategory === cat.key ? '#000' : 'var(--muted-foreground)',
@@ -208,7 +213,7 @@ export default function PredictionMarketsContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {Array.from({ length: 8 }, (_, i) => (
             <div key={i} className="rounded border overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-              <div className="h-28" style={{ backgroundColor: 'var(--muted)' }} />
+              <div className="h-24" style={{ backgroundColor: 'var(--muted)' }} />
               <div className="p-3 space-y-2">
                 <div className="h-3 rounded" style={{ backgroundColor: 'var(--muted)' }} />
                 <div className="h-3 rounded w-3/4" style={{ backgroundColor: 'var(--muted)' }} />

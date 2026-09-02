@@ -252,6 +252,52 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
           {/* ── OVERVIEW ── */}
           {activeSection === 'overview' && (
             <div className="space-y-4">
+              {/* Premium Profile Header */}
+              <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="px-5 py-4 border-b flex items-start gap-4" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, rgba(245,196,0,0.04) 0%, transparent 60%)' }}>
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold shrink-0" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
+                    {firstName.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div>
+                        <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>{firstName} {lastName}</h2>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>TC-2026-001847</span>
+                          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>·</span>
+                          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Individual Account</span>
+                          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>·</span>
+                          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Member since Aug 2024</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
+                          Active
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: KYC_STATUS_CONFIG[kycStatus].bg, color: KYC_STATUS_CONFIG[kycStatus].color, border: `1px solid ${KYC_STATUS_CONFIG[kycStatus].border}` }}>
+                          {KYC_STATUS_CONFIG[kycStatus].label}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Compact account indicators */}
+                    <div className="flex items-center gap-4 mt-3 flex-wrap">
+                      {[
+                        { label: 'KYC', value: KYC_STATUS_CONFIG[kycStatus].label, color: KYC_STATUS_CONFIG[kycStatus].color },
+                        { label: 'Security', value: twoFaEnabled ? '2FA On' : '2FA Off', color: twoFaEnabled ? '#22c55e' : '#f59e0b' },
+                        { label: 'Currency', value: prefs.displayCurrency, color: 'var(--foreground)' },
+                        { label: 'Sessions', value: `${sessions.length} active`, color: 'var(--foreground)' },
+                        { label: 'Programs', value: '4 available', color: 'var(--primary)' },
+                      ].map((ind, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{ind.label}:</span>
+                          <span className="text-xs font-semibold" style={{ color: ind.color }}>{ind.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                 {[
                   { label: 'Account Status', value: 'Active', color: '#22c55e', icon: CheckCircle, action: null },

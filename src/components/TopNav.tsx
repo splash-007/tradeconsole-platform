@@ -10,6 +10,7 @@ import { preferencesService } from '@/services/preferences.service';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
+  { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
   { label: 'Trading Bot', href: '/trading-bot', icon: Bot },
   { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
@@ -323,9 +324,6 @@ export default function TopNav() {
                   <div className="py-1">
                     <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
                       <Settings size={13} style={{ color: 'var(--muted-foreground)' }} /> Settings
-                    </Link>
-                    <Link href="/trade-trading-workspace" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
-                      <TrendingUp size={13} style={{ color: 'var(--muted-foreground)' }} /> Trade
                     </Link>
                     <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
                       <Gift size={13} style={{ color: 'var(--muted-foreground)' }} /> Programs &amp; Benefits
