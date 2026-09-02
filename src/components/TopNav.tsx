@@ -323,13 +323,19 @@ export default function TopNav() {
                   </div>
                   <div className="py-1">
                     <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
-                      <Settings size={13} style={{ color: 'var(--muted-foreground)' }} /> Settings
+                      <Settings size={13} style={{ color: 'var(--muted-foreground)' }} /> Profile &amp; Settings
+                    </Link>
+                    <Link href="/finance" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
+                      <Wallet size={13} style={{ color: 'var(--muted-foreground)' }} /> Balance &amp; Funds
                     </Link>
                     <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
                       <Gift size={13} style={{ color: 'var(--muted-foreground)' }} /> Programs &amp; Benefits
                     </Link>
                     <Link href="/notifications" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
                       <Bell size={13} style={{ color: 'var(--muted-foreground)' }} /> Notifications
+                    </Link>
+                    <Link href="/messages" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
+                      <MessageSquare size={13} style={{ color: 'var(--muted-foreground)' }} /> Support
                     </Link>
                   </div>
                   <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>

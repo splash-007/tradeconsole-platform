@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   programsService,
   DepositBonusProgram,
@@ -10,10 +11,8 @@ import {
   LendingPosition,
 } from '@/services/programs.service';
 
-import { Gift, Users, TrendingUp, Award, Copy, Check, ChevronRight, AlertTriangle, Info, ArrowRight, Shield, BarChart2, Lock } from 'lucide-react';
-
-
-
+import { Gift, Users, TrendingUp, Award, Copy, Check, ChevronRight, AlertTriangle, Info, ArrowRight, Shield, BarChart2, Lock, ArrowLeft } from 'lucide-react';
+import Icon from '@/components/ui/AppIcon';
 
 
 type ProgramTab = 'overview' | 'deposit-bonus' | 'referral' | 'lending' | 'dividend';
@@ -119,7 +118,6 @@ function DepositBonusPanel({ program }: { program: DepositBonusProgram }) {
       />
 
       <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        {/* Header band */}
         <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, rgba(212,168,0,0.06) 0%, transparent 60%)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -135,7 +133,6 @@ function DepositBonusPanel({ program }: { program: DepositBonusProgram }) {
           </div>
         </div>
 
-        {/* Details */}
         <div className="px-5 py-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="p-3 rounded border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
@@ -162,7 +159,6 @@ function DepositBonusPanel({ program }: { program: DepositBonusProgram }) {
             <InfoRow label="Status" value={<StatusBadge status={program.status} />} />
           </div>
 
-          {/* Terms */}
           <div className="flex items-start gap-2 p-3 rounded text-xs mb-4" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
             <Info size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
             <p style={{ color: 'var(--muted-foreground)' }}>{program.terms}</p>
@@ -221,7 +217,6 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
         subtitle="Invite clients to Trade Console. Reward amounts are configured by the platform program settings."
       />
 
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total Referrals', value: program.totalReferrals, color: 'var(--foreground)' },
@@ -236,7 +231,6 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
         ))}
       </div>
 
-      {/* Referral code + link */}
       <div className="rounded border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <h3 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Your Referral Details</h3>
         <div className="space-y-3">
@@ -274,7 +268,6 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
         </div>
       </div>
 
-      {/* Invite */}
       <div className="rounded border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <h3 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Invite a Client</h3>
         <div className="flex gap-2">
@@ -298,7 +291,6 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
         <p className="text-xs mt-2" style={{ color: 'var(--muted-foreground)' }}>{program.programTerms}</p>
       </div>
 
-      {/* History table */}
       {history.length > 0 && (
         <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -340,7 +332,7 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
 function LendingPanel({ programs, positions }: { programs: LendingProgram[]; positions: LendingPosition[] }) {
   const [selectedProgram, setSelectedProgram] = useState<LendingProgram | null>(null);
   const [amount, setAmount] = useState('');
-  const [step, setStep] = useState<'select' | 'review' | 'confirm'>('select');
+  const [step, setStep] = useState<'select' | 'review'>('select');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -365,11 +357,10 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
         subtitle="Allocate eligible cryptocurrency to approved lending programs. Rates and terms are subject to market conditions and program availability."
       />
 
-      {/* Risk disclosure */}
       <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
         <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
         <p style={{ color: 'var(--muted-foreground)' }}>
-          Crypto lending involves risk including potential loss of principal. Rates displayed are indicative and subject to change. 
+          Crypto lending involves risk including potential loss of principal. Rates displayed are indicative and subject to change.
           Past performance does not guarantee future results. Ensure you understand the risks before participating.
         </p>
       </div>
@@ -380,7 +371,6 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
         </div>
       )}
 
-      {/* Programs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {programs.map(prog => (
           <div
@@ -429,7 +419,6 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
         ))}
       </div>
 
-      {/* Lending form */}
       {selectedProgram && step === 'review' && (
         <div className="rounded border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--primary)' }}>
           <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--foreground)' }}>Lending Details — {selectedProgram.assetSymbol}</h3>
@@ -454,7 +443,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
             <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
               <Shield size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
               <p style={{ color: 'var(--muted-foreground)' }}>
-                By proceeding you confirm you have read and accepted the lending program risk disclosure and terms. 
+                By proceeding you confirm you have read and accepted the lending program risk disclosure and terms.
                 Rates are indicative and may change. Principal is not guaranteed.
               </p>
             </div>
@@ -479,7 +468,6 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
         </div>
       )}
 
-      {/* Positions table */}
       <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
           <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Active Lending Positions</h3>
@@ -542,9 +530,10 @@ function DividendPanel() {
           </div>
         </div>
         <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
-          Dividend eligibility, program participation, claim amounts, and payment schedules are determined by the platform 
+          Dividend eligibility, program participation, claim amounts, and payment schedules are determined by the platform
           based on account status, program rules, and applicable regulations. Employment status is one of several eligibility signals.
         </p>
+        {/* Direct link to /settings?tab=dividend — reliable URL param routing */}
         <Link
           href="/settings?tab=dividend"
           className="inline-flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all hover:opacity-90"
@@ -560,6 +549,7 @@ function DividendPanel() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProgramsContent() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProgramTab>('overview');
   const [depositBonus, setDepositBonus] = useState<DepositBonusProgram | null>(null);
   const [referralProgram, setReferralProgram] = useState<ReferralProgram | null>(null);
@@ -608,6 +598,18 @@ export default function ProgramsContent() {
 
   return (
     <div className="py-4 max-w-5xl">
+      {/* Back navigation — always returns to /settings explicitly */}
+      <div className="mb-4">
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-80"
+          style={{ color: 'var(--muted-foreground)' }}
+        >
+          <ArrowLeft size={13} />
+          Back to Settings
+        </Link>
+      </div>
+
       {/* Page header */}
       <div className="mb-5">
         <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Programs &amp; Benefits</h1>
@@ -679,7 +681,7 @@ export default function ProgramsContent() {
           <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
             <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
             <p style={{ color: 'var(--muted-foreground)' }}>
-              Program availability, eligibility, and terms are subject to jurisdiction, account status, and platform configuration. 
+              Program availability, eligibility, and terms are subject to jurisdiction, account status, and platform configuration.
               All financial values are backend-authoritative. The frontend does not modify account balances.
             </p>
           </div>

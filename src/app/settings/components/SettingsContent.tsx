@@ -1,47 +1,41 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { User, Shield, Bell, Eye, EyeOff, Smartphone, Key, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Phone, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info, Gift, Users, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { User, Shield, Bell, Eye, EyeOff, Smartphone, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info, Gift } from 'lucide-react';
 import KYCVerificationFlow from '@/components/kyc/KYCVerificationFlow';
 import { kycService, KYCStatus } from '@/services/kyc.service';
 import { DividendEligibilityStatus, EmploymentStatus } from '@/services/dividend.service';
 import { preferencesService, UserPreferences } from '@/services/preferences.service';
+import { sessionService, CustomerSession, LoginHistoryEntry } from '@/services/session.service';
+import { documentsService, CustomerDocument } from '@/services/documents.service';
+import Link from 'next/link';
 
 type SettingsSection =
-  | 'overview' |'personal' |'account' |'programs' |'kyc' |'security' |'preferences' |'notifications' |'dividend' |'documents' |'sessions';
+  | 'overview' | 'personal' | 'account' | 'kyc' | 'security' | 'preferences' | 'notifications' | 'dividend' | 'documents' | 'sessions';
 
 interface NavItem {
   id: SettingsSection;
   label: string;
   icon: React.ElementType;
   badge?: string;
+  externalHref?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'personal', label: 'Personal Information', icon: User },
   { id: 'account', label: 'Account Information', icon: CreditCard },
-  { id: 'programs', label: 'Programs & Benefits', icon: Gift },
   { id: 'kyc', label: 'Verification / KYC', icon: FileCheck },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'preferences', label: 'Preferences', icon: Settings },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'dividend', label: 'Dividend', icon: Award },
   { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'sessions', label: 'Sessions & Login Activity', icon: Monitor },
 ];
 
-const MOCK_SESSIONS = [
-  { id: 's1', device: 'Chrome on macOS', location: 'London, UK', lastActive: 'Active now', current: true, browser: 'Chrome 127', created: '27 Aug 2026', expires: '26 Sep 2026' },
-  { id: 's2', device: 'Safari on iPhone 15', location: 'London, UK', lastActive: '2 hours ago', current: false, browser: 'Safari 17', created: '25 Aug 2026', expires: '24 Sep 2026' },
-  { id: 's3', device: 'Firefox on Windows 11', location: 'Manchester, UK', lastActive: '3 days ago', current: false, browser: 'Firefox 121', created: '20 Aug 2026', expires: '19 Sep 2026' },
-];
-
-const MOCK_LOGIN_HISTORY = [
-  { date: '27 Aug 2026, 21:13', device: 'Chrome on macOS', browser: 'Chrome 127', location: 'London, UK', result: 'success' },
-  { date: '26 Aug 2026, 09:42', device: 'Safari on iPhone 15', browser: 'Safari 17', location: 'London, UK', result: 'success' },
-  { date: '25 Aug 2026, 14:21', device: 'Unknown device', browser: 'Unknown', location: 'Frankfurt, DE', result: 'failed' },
-  { date: '24 Aug 2026, 18:05', device: 'Chrome on macOS', browser: 'Chrome 127', location: 'London, UK', result: 'success' },
-  { date: '23 Aug 2026, 11:30', device: 'Firefox on Windows 11', browser: 'Firefox 121', location: 'Manchester, UK', result: 'success' },
-];
+// Sessions and login history come from real backend data via sessionService.
+// Do NOT substitute fake session or login history records here.
 
 const COUNTRY_CODES = [
   { code: '+1', flag: '🇺🇸', name: 'US' }, { code: '+44', flag: '🇬🇧', name: 'UK' },
@@ -94,13 +88,39 @@ const DIVIDEND_STATUS_CONFIG: Record<DividendEligibilityStatus, { label: string;
   rejected: { label: 'Rejected', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
 };
 
+const VALID_SECTIONS: SettingsSection[] = [
+  'overview', 'personal', 'account', 'kyc', 'security',
+  'preferences', 'notifications', 'dividend', 'documents', 'sessions',
+];
+
 interface SettingsContentProps {
   initialTab?: string;
 }
 
 export default function SettingsContent({ initialTab }: SettingsContentProps) {
-  const [activeSection, setActiveSection] = useState<SettingsSection>((initialTab as SettingsSection) || 'overview');
+  const router = useRouter();
+
+  const resolveSection = (tab?: string): SettingsSection => {
+    if (tab && VALID_SECTIONS.includes(tab as SettingsSection)) {
+      return tab as SettingsSection;
+    }
+    return 'overview';
+  };
+
+  const [activeSection, setActiveSection] = useState<SettingsSection>(resolveSection(initialTab));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Sync section with initialTab prop changes (URL param changes)
+  useEffect(() => {
+    setActiveSection(resolveSection(initialTab));
+  }, [initialTab]);
+
+  // Update URL when section changes
+  const navigateToSection = useCallback((section: SettingsSection) => {
+    setActiveSection(section);
+    setMobileNavOpen(false);
+    router.replace(`/settings?tab=${section}`, { scroll: false });
+  }, [router]);
 
   // Profile state
   const [firstName, setFirstName] = useState('Alex');
@@ -120,6 +140,9 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
   const [employmentStatus, setEmploymentStatus] = useState<EmploymentStatus>('employed');
   const [saved, setSaved] = useState(false);
 
+  // Dirty tracking for unsaved changes warning
+  const [isDirty, setIsDirty] = useState(false);
+
   // Security state
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
@@ -130,7 +153,16 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
   const [pwSaved, setPwSaved] = useState(false);
   const [pwError, setPwError] = useState('');
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
-  const [sessions, setSessions] = useState(MOCK_SESSIONS);
+  // Sessions — loaded from backend via sessionService. Empty until backend connected.
+  const [sessions, setSessions] = useState<CustomerSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [loginHistory, setLoginHistory] = useState<LoginHistoryEntry[]>([]);
+  const [loginHistoryLoading, setLoginHistoryLoading] = useState(false);
+  // Documents — loaded from backend via documentsService. Empty until backend connected.
+  const [documents, setDocuments] = useState<CustomerDocument[]>([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  // Revoke confirmation dialog
+  const [revokeConfirm, setRevokeConfirm] = useState<{ type: 'single' | 'others'; sessionId?: string } | null>(null);
 
   // KYC state
   const [kycStatus, setKycStatus] = useState<KYCStatus>('not_started');
@@ -151,6 +183,10 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
     dividends: true,
   });
 
+  // Unsaved changes dialog
+  const [pendingSection, setPendingSection] = useState<SettingsSection | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+
   useEffect(() => {
     kycService.getKYCStatus('cust-001').then(data => {
       setKycStatus(data.status);
@@ -158,8 +194,36 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
     });
   }, []);
 
+  // Load sessions and login history when sessions tab is active
+  useEffect(() => {
+    if (activeSection === 'sessions') {
+      setSessionsLoading(true);
+      setLoginHistoryLoading(true);
+      sessionService.getSessions().then(data => {
+        setSessions(data);
+        setSessionsLoading(false);
+      });
+      sessionService.getLoginHistory().then(data => {
+        setLoginHistory(data);
+        setLoginHistoryLoading(false);
+      });
+    }
+  }, [activeSection]);
+
+  // Load documents when documents tab is active
+  useEffect(() => {
+    if (activeSection === 'documents') {
+      setDocumentsLoading(true);
+      documentsService.getDocuments().then(data => {
+        setDocuments(data);
+        setDocumentsLoading(false);
+      });
+    }
+  }, [activeSection]);
+
   const handleSave = () => {
     setSaved(true);
+    setIsDirty(false);
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -179,8 +243,48 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
     setTimeout(() => setPrefsSaved(false), 2500);
   };
 
-  const revokeSession = (id: string) => setSessions(prev => prev.filter(s => s.id !== id));
-  const revokeAllOther = () => setSessions(prev => prev.filter(s => s.current));
+  const revokeSession = (id: string) => {
+    setRevokeConfirm({ type: 'single', sessionId: id });
+  };
+  const revokeAllOther = () => {
+    setRevokeConfirm({ type: 'others' });
+  };
+  const confirmRevoke = async () => {
+    if (!revokeConfirm) return;
+    if (revokeConfirm.type === 'single' && revokeConfirm.sessionId) {
+      const targetId = revokeConfirm.sessionId;
+      await sessionService.revokeSession(targetId);
+      setSessions(prev => prev.filter(s => s.id !== targetId));
+    } else if (revokeConfirm.type === 'others') {
+      await sessionService.revokeOtherSessions();
+      setSessions(prev => prev.filter(s => s.isCurrent));
+    }
+    setRevokeConfirm(null);
+  };
+
+  // Handle section navigation with unsaved changes check
+  const handleSectionClick = (section: SettingsSection) => {
+    if (isDirty && activeSection === 'personal') {
+      setPendingSection(section);
+      setShowUnsavedDialog(true);
+    } else {
+      navigateToSection(section);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setIsDirty(false);
+    setShowUnsavedDialog(false);
+    if (pendingSection) {
+      navigateToSection(pendingSection);
+      setPendingSection(null);
+    }
+  };
+
+  const handleContinueEditing = () => {
+    setShowUnsavedDialog(false);
+    setPendingSection(null);
+  };
 
   const inputCls = "w-full px-3 py-2 rounded text-sm border focus:outline-none focus:ring-1 focus:ring-yellow-500/30 transition-colors";
   const inputStyle = { backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' };
@@ -191,6 +295,37 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
 
   return (
     <div className="py-4 max-w-6xl">
+      {/* Unsaved changes dialog */}
+      {showUnsavedDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="w-full max-w-sm rounded-lg border p-5 shadow-2xl" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle size={16} style={{ color: '#f59e0b' }} />
+              <h3 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Unsaved Changes</h3>
+            </div>
+            <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+              You have unsaved changes to your profile. If you leave now, your changes will be lost.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDiscardChanges}
+                className="flex-1 py-2 rounded text-sm font-medium border transition-all hover:bg-muted"
+                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+              >
+                Discard Changes
+              </button>
+              <button
+                onClick={handleContinueEditing}
+                className="flex-1 py-2 rounded text-sm font-semibold transition-all"
+                style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+              >
+                Continue Editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-5">
         <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Profile &amp; Settings</h1>
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Manage your account, security, verification, and preferences</p>
@@ -214,7 +349,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             {NAV_ITEMS.map(item => (
               <button
                 key={item.id}
-                onClick={() => { setActiveSection(item.id); setMobileNavOpen(false); }}
+                onClick={() => handleSectionClick(item.id)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
                 style={{ borderColor: 'var(--border)', color: activeSection === item.id ? 'var(--primary)' : 'var(--foreground)', backgroundColor: activeSection === item.id ? 'rgba(212,168,0,0.06)' : 'transparent' }}
               >
@@ -223,6 +358,15 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 {item.id === 'kyc' && kycIncomplete && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
+            {/* Programs & Benefits — navigates to /programs */}
+            <Link
+              href="/programs"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+            >
+              <Gift size={13} />
+              Programs &amp; Benefits
+            </Link>
           </div>
         )}
       </div>
@@ -234,8 +378,8 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             {NAV_ITEMS.map(item => (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+                onClick={() => handleSectionClick(item.id)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b transition-colors hover:bg-muted"
                 style={{ borderColor: 'var(--border)', color: activeSection === item.id ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: activeSection === item.id ? 'rgba(212,168,0,0.06)' : 'transparent' }}
               >
                 <item.icon size={13} />
@@ -243,6 +387,15 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 {item.id === 'kyc' && kycIncomplete && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
+            {/* Programs & Benefits — dedicated page link */}
+            <Link
+              href="/programs"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)', display: 'flex' }}
+            >
+              <Gift size={13} />
+              <span className="flex-1">Programs &amp; Benefits</span>
+            </Link>
           </div>
         </div>
 
@@ -285,7 +438,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                         { label: 'KYC', value: KYC_STATUS_CONFIG[kycStatus].label, color: KYC_STATUS_CONFIG[kycStatus].color },
                         { label: 'Security', value: twoFaEnabled ? '2FA On' : '2FA Off', color: twoFaEnabled ? '#22c55e' : '#f59e0b' },
                         { label: 'Currency', value: prefs.displayCurrency, color: 'var(--foreground)' },
-                        { label: 'Sessions', value: `${sessions.length} active`, color: 'var(--foreground)' },
+                        { label: 'Sessions', value: sessions.length > 0 ? `${sessions.length} active` : 'No active sessions', color: 'var(--foreground)' },
                         { label: 'Programs', value: '4 available', color: 'var(--primary)' },
                       ].map((ind, i) => (
                         <div key={i} className="flex items-center gap-1.5">
@@ -301,13 +454,13 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                 {[
                   { label: 'Account Status', value: 'Active', color: '#22c55e', icon: CheckCircle, action: null },
-                  { label: 'KYC Status', value: KYC_STATUS_CONFIG[kycStatus].label, color: KYC_STATUS_CONFIG[kycStatus].color, icon: FileCheck, action: kycIncomplete ? () => setActiveSection('kyc') : null, actionLabel: 'Complete' },
-                  { label: 'Security', value: twoFaEnabled ? '2FA Enabled' : '2FA Disabled', color: twoFaEnabled ? '#22c55e' : '#f59e0b', icon: Shield, action: () => setActiveSection('security'), actionLabel: 'Manage' },
-                  { label: 'Display Currency', value: prefs.displayCurrency, color: 'var(--primary)', icon: DollarSign, action: () => setActiveSection('preferences'), actionLabel: 'Change' },
-                  { label: 'Language', value: prefs.language.toUpperCase(), color: 'var(--foreground)', icon: Globe, action: () => setActiveSection('preferences'), actionLabel: 'Change' },
-                  { label: 'Time Zone', value: prefs.timezone, color: 'var(--foreground)', icon: Clock, action: () => setActiveSection('preferences'), actionLabel: 'Change' },
-                  { label: 'Notifications', value: 'Configured', color: '#22c55e', icon: Bell, action: () => setActiveSection('notifications'), actionLabel: 'Manage' },
-                  { label: 'Active Sessions', value: `${sessions.length} device${sessions.length !== 1 ? 's' : ''}`, color: 'var(--foreground)', icon: Monitor, action: () => setActiveSection('sessions'), actionLabel: 'View' },
+                  { label: 'KYC Status', value: KYC_STATUS_CONFIG[kycStatus].label, color: KYC_STATUS_CONFIG[kycStatus].color, icon: FileCheck, action: kycIncomplete ? () => navigateToSection('kyc') : null, actionLabel: 'Complete' },
+                  { label: 'Security', value: twoFaEnabled ? '2FA Enabled' : '2FA Disabled', color: twoFaEnabled ? '#22c55e' : '#f59e0b', icon: Shield, action: () => navigateToSection('security'), actionLabel: 'Manage' },
+                  { label: 'Display Currency', value: prefs.displayCurrency, color: 'var(--primary)', icon: DollarSign, action: () => navigateToSection('preferences'), actionLabel: 'Change' },
+                  { label: 'Language', value: prefs.language.toUpperCase(), color: 'var(--foreground)', icon: Globe, action: () => navigateToSection('preferences'), actionLabel: 'Change' },
+                  { label: 'Time Zone', value: prefs.timezone, color: 'var(--foreground)', icon: Clock, action: () => navigateToSection('preferences'), actionLabel: 'Change' },
+                  { label: 'Notifications', value: 'Configured', color: '#22c55e', icon: Bell, action: () => navigateToSection('notifications'), actionLabel: 'Manage' },
+                  { label: 'Active Sessions', value: sessions.length > 0 ? `${sessions.length} device${sessions.length !== 1 ? 's' : ''}` : 'No active sessions', color: 'var(--foreground)', icon: Monitor, action: () => navigateToSection('sessions'), actionLabel: 'View' },
                 ].map((card, i) => (
                   <div key={i} className="rounded border p-3 flex flex-col gap-2" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                     <div className="flex items-center justify-between">
@@ -328,10 +481,10 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--foreground)' }}>Quick Actions</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { label: 'Complete Verification', icon: FileCheck, action: () => setActiveSection('kyc'), show: kycIncomplete },
-                    { label: 'Change Password', icon: Lock, action: () => setActiveSection('security'), show: true },
-                    { label: 'Manage Sessions', icon: Monitor, action: () => setActiveSection('sessions'), show: true },
-                    { label: 'Update Preferences', icon: Settings, action: () => setActiveSection('preferences'), show: true },
+                    { label: 'Complete Verification', icon: FileCheck, action: () => navigateToSection('kyc'), show: kycIncomplete },
+                    { label: 'Change Password', icon: Lock, action: () => navigateToSection('security'), show: true },
+                    { label: 'Manage Sessions', icon: Monitor, action: () => navigateToSection('sessions'), show: true },
+                    { label: 'Update Preferences', icon: Settings, action: () => navigateToSection('preferences'), show: true },
                   ].filter(a => a.show).map((action, i) => (
                     <button
                       key={i}
@@ -356,6 +509,11 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                   <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Personal Information</h2>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Sensitive fields are subject to backend authorization before changes take effect.</p>
                 </div>
+                {isDirty && (
+                  <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                    Unsaved changes
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-4">
@@ -371,11 +529,11 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>First Name</label>
-                  <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={firstName} onChange={e => { setFirstName(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Last Name</label>
-                  <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={lastName} onChange={e => { setLastName(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Email Address <span className="text-xs opacity-60">(contact support to change)</span></label>
@@ -384,37 +542,37 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Phone Number</label>
                   <div className="flex gap-2">
-                    <select value={phoneCode} onChange={e => setPhoneCode(e.target.value)} className="text-sm px-2 py-2 rounded border focus:outline-none shrink-0" style={{ ...inputStyle, width: '90px' }}>
+                    <select value={phoneCode} onChange={e => { setPhoneCode(e.target.value); setIsDirty(true); }} className="text-sm px-2 py-2 rounded border focus:outline-none shrink-0" style={{ ...inputStyle, width: '90px' }}>
                       {COUNTRY_CODES.map((c, i) => <option key={`${c.code}-${i}`} value={c.code}>{c.flag} {c.code}</option>)}
                     </select>
-                    <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, ''))} className={`flex-1 ${inputCls}`} style={inputStyle} />
+                    <input type="tel" value={phoneNumber} onChange={e => { setPhoneNumber(e.target.value.replace(/\D/g, '')); setIsDirty(true); }} className={`flex-1 ${inputCls}`} style={inputStyle} />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Date of Birth</label>
-                  <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="date" value={dateOfBirth} onChange={e => { setDateOfBirth(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Nationality</label>
-                  <input type="text" value={nationality} onChange={e => setNationality(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={nationality} onChange={e => { setNationality(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Country of Residence</label>
-                  <select value={country} onChange={e => setCountry(e.target.value)} className={inputCls} style={inputStyle}>
+                  <select value={country} onChange={e => { setCountry(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle}>
                     {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Address</label>
-                  <input type="text" value={address} onChange={e => setAddress(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={address} onChange={e => { setAddress(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>City</label>
-                  <input type="text" value={city} onChange={e => setCity(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={city} onChange={e => { setCity(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Postal Code</label>
-                  <input type="text" value={postalCode} onChange={e => setPostalCode(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={postalCode} onChange={e => { setPostalCode(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
               </div>
 
@@ -423,25 +581,27 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Employment Status</label>
-                    <select value={employmentStatus} onChange={e => setEmploymentStatus(e.target.value as EmploymentStatus)} className={inputCls} style={inputStyle}>
+                    <select value={employmentStatus} onChange={e => { setEmploymentStatus(e.target.value as EmploymentStatus); setIsDirty(true); }} className={inputCls} style={inputStyle}>
                       <option value="employed">Employed</option>
                       <option value="self_employed">Self-Employed</option>
                       <option value="retired">Retired</option>
                       <option value="unemployed">Unemployed</option>
+                      <option value="student">Student</option>
                       <option value="other">Other</option>
                     </select>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Employment status is one of several signals used by backend eligibility rules.</p>
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Occupation</label>
-                    <input type="text" value={occupation} onChange={e => setOccupation(e.target.value)} className={inputCls} style={inputStyle} />
+                    <input type="text" value={occupation} onChange={e => { setOccupation(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Employer / Company</label>
-                    <input type="text" value={employer} onChange={e => setEmployer(e.target.value)} className={inputCls} style={inputStyle} />
+                    <input type="text" value={employer} onChange={e => { setEmployer(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Annual Income Range</label>
-                    <select value={annualIncome} onChange={e => setAnnualIncome(e.target.value)} className={inputCls} style={inputStyle}>
+                    <select value={annualIncome} onChange={e => { setAnnualIncome(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle}>
                       <option value="under-25000">Under $25,000</option>
                       <option value="25000-50000">$25,000 – $50,000</option>
                       <option value="50000-75000">$50,000 – $75,000</option>
@@ -456,7 +616,14 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
               <div className="flex items-center justify-between pt-2">
                 {saved && <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--positive)' }}><Check size={13} /> Saved successfully</div>}
                 <div className="flex-1" />
-                <button onClick={handleSave} className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Save Changes</button>
+                <button
+                  onClick={handleSave}
+                  disabled={!isDirty}
+                  className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
           )}
@@ -612,22 +779,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                   </button>
                 </div>
               </div>
-
-              <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <Key size={15} style={{ color: 'var(--primary)' }} />
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>API Keys</h3>
-                </div>
-                <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>API keys allow programmatic access to your account. Keep them secret.</p>
-                <div className="rounded border p-3 flex items-center justify-between gap-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Main API Key</p>
-                    <p className="text-xs font-mono mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>tc_••••••••••••••••••••••••••••••••</p>
-                  </div>
-                  <button className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>Reveal</button>
-                </div>
-                <button className="mt-3 text-xs px-3 py-1.5 rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>+ Generate New Key</button>
-              </div>
+              {/* API Keys section intentionally removed from customer-facing Settings */}
             </div>
           )}
 
@@ -759,44 +911,6 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             </div>
           )}
 
-          {/* ── PROGRAMS & BENEFITS ── */}
-          {activeSection === 'programs' && (
-            <div className="space-y-4">
-              <div className="mb-5">
-                <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Programs &amp; Benefits</h2>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Account programs and financial services available to eligible Trade Console customers.</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { icon: Gift, title: 'Deposit Bonus', desc: 'Receive additional account credit on qualifying promotional deposits.', color: 'var(--primary)', href: '/programs' },
-                  { icon: Users, title: 'Referral Program', desc: 'Invite clients and earn rewards when they qualify under program terms.', color: '#22c55e', href: '/programs' },
-                  { icon: TrendingUp, title: 'Crypto Lending', desc: 'Allocate eligible cryptocurrency to approved lending programs.', color: '#3b82f6', href: '/programs' },
-                  { icon: Award, title: 'Dividend Program', desc: 'Eligible customers may participate in configured dividend programs.', color: 'var(--primary)', href: '/settings?tab=dividend' },
-                ].map((card, i) => (
-                  <a
-                    key={i}
-                    href={card.href}
-                    className="flex items-start gap-3 p-4 rounded border transition-all hover:shadow-sm hover:border-primary/30 group"
-                    style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', textDecoration: 'none' }}
-                  >
-                    <div className="w-9 h-9 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: `${card.color}14`, border: `1px solid ${card.color}30` }}>
-                      <card.icon size={16} style={{ color: card.color }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{card.title}</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{card.desc}</p>
-                    </div>
-                    <ChevronDown size={13} className="-rotate-90 shrink-0 mt-1 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--muted-foreground)' }} />
-                  </a>
-                ))}
-              </div>
-              <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
-                <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-                <p style={{ color: 'var(--muted-foreground)' }}>Program availability, eligibility, and terms are subject to jurisdiction, account status, and platform configuration. All financial values are backend-authoritative.</p>
-              </div>
-            </div>
-          )}
-
           {/* ── DIVIDEND ── */}
           {activeSection === 'dividend' && <DividendSection employmentStatus={employmentStatus} />}
 
@@ -804,51 +918,83 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
           {activeSection === 'documents' && (
             <div className="space-y-4">
               <div className="rounded border p-4 sm:p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <h2 className="text-sm font-bold mb-4" style={{ color: 'var(--foreground)' }}>Documents</h2>
-                <div className="space-y-2">
-                  {[
-                    { name: 'Account Agreement', date: 'Aug 2026', status: 'Signed', type: 'PDF' },
-                    { name: 'Risk Disclosure', date: 'Aug 2026', status: 'Signed', type: 'PDF' },
-                    { name: 'Privacy Policy', date: 'Aug 2026', status: 'Accepted', type: 'PDF' },
-                    { name: 'Terms of Service', date: 'Aug 2026', status: 'Accepted', type: 'PDF' },
-                  ].map((doc, i) => (
-                    <div key={i} className="flex items-center justify-between py-2.5 border-b last:border-b-0 gap-3" style={{ borderColor: 'var(--border)' }}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}>
-                          <FileText size={13} style={{ color: '#ef4444' }} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{doc.name}</p>
-                          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{doc.type} · {doc.date}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs px-2 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>{doc.status}</span>
-                        <button className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>View</button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Your Documents</h2>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Documents associated with your account. Downloads use authenticated secure links.</p>
+                  </div>
                 </div>
+
+                {documentsLoading ? (
+                  <div className="py-8 text-center">
+                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Loading documents…</p>
+                  </div>
+                ) : documents.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <FileText size={24} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} />
+                    <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>No documents yet</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Documents submitted during verification will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {documents.map(doc => {
+                      const statusColors: Record<string, { bg: string; color: string }> = {
+                        uploaded: { bg: 'rgba(59,130,246,0.1)', color: '#3b82f6' },
+                        under_review: { bg: 'rgba(245,158,11,0.1)', color: '#f59e0b' },
+                        approved: { bg: 'rgba(34,197,94,0.1)', color: '#22c55e' },
+                        rejected: { bg: 'rgba(239,68,68,0.1)', color: '#ef4444' },
+                      };
+                      const sc = statusColors[doc.status] ?? { bg: 'rgba(107,114,128,0.1)', color: '#6b7280' };
+                      return (
+                        <div key={doc.id} className="flex items-center justify-between py-2.5 border-b last:border-b-0 gap-3" style={{ borderColor: 'var(--border)' }}>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}>
+                              <FileText size={13} style={{ color: '#ef4444' }} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>{doc.typeLabel}</p>
+                              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{doc.fileName} · {new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs px-2 py-0.5 rounded font-semibold capitalize" style={{ backgroundColor: sc.bg, color: sc.color }}>{doc.status.replace('_', ' ')}</span>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await documentsService.getDownloadUrl(doc.id);
+                                  window.open(res.downloadUrl, '_blank');
+                                } catch {
+                                  // Backend integration required
+                                }
+                              }}
+                              className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted"
+                              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+                            >
+                              View
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+
+              {/* KYC Documents */}
               <div className="rounded border p-4 sm:p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--foreground)' }}>KYC Documents</h3>
                 {kycStatus === 'verified' ? (
-                  <div className="space-y-2">
-                    {[
-                      { name: 'Passport / ID', status: 'Verified', date: 'Aug 2026' },
-                      { name: 'Proof of Address', status: 'Verified', date: 'Aug 2026' },
-                    ].map((doc, i) => (
-                      <div key={i} className="flex items-center justify-between py-2 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
-                        <span className="text-sm" style={{ color: 'var(--foreground)' }}>{doc.name}</span>
-                        <span className="text-xs px-2 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>{doc.status}</span>
-                      </div>
-                    ))}
+                  <div className="text-center py-6">
+                    <CheckCircle size={24} className="mx-auto mb-2" style={{ color: '#22c55e' }} />
+                    <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Identity Verified</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Your KYC documents have been reviewed and approved.</p>
                   </div>
                 ) : (
                   <div className="text-center py-6">
                     <FileCheck size={24} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />
                     <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>No KYC documents uploaded yet.</p>
-                    <button onClick={() => setActiveSection('kyc')} className="mt-3 text-xs px-3 py-1.5 rounded font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Complete Verification</button>
+                    <button onClick={() => navigateToSection('kyc')} className="mt-3 text-xs px-3 py-1.5 rounded font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Complete Verification</button>
                   </div>
                 )}
               </div>
@@ -858,47 +1004,96 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
           {/* ── SESSIONS & LOGIN ACTIVITY ── */}
           {activeSection === 'sessions' && (
             <div className="space-y-4">
+              {/* Revoke confirmation dialog */}
+              {revokeConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                  <div className="w-full max-w-sm rounded-lg border p-5 shadow-2xl" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle size={16} style={{ color: '#f59e0b' }} />
+                      <h3 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>
+                        {revokeConfirm.type === 'single' ? 'Sign out this device?' : 'Sign out all other devices?'}
+                      </h3>
+                    </div>
+                    <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+                      {revokeConfirm.type === 'single' ?'This session will be signed out immediately. You will need to sign in again on that device.' :'All sessions except your current one will be signed out immediately.'}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setRevokeConfirm(null)}
+                        className="flex-1 py-2 rounded text-sm font-medium border transition-all hover:bg-muted"
+                        style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={confirmRevoke}
+                        className="flex-1 py-2 rounded text-sm font-semibold transition-all"
+                        style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                      >
+                        {revokeConfirm.type === 'single' ? 'Sign Out Device' : 'Sign Out Others'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
                     <Monitor size={15} style={{ color: 'var(--primary)' }} />
                     <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Active Sessions</h2>
                   </div>
-                  <button onClick={revokeAllOther} className="text-xs hover:underline" style={{ color: 'var(--negative)' }}>Sign out all other sessions</button>
+                  {sessions.length > 1 && (
+                    <button onClick={revokeAllOther} className="text-xs hover:underline" style={{ color: 'var(--negative)' }}>Sign out all other sessions</button>
+                  )}
                 </div>
                 <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>Devices currently signed in to your account.</p>
-                <div className="space-y-0">
-                  {sessions.map(session => (
-                    <div key={session.id} className="py-3 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: 'var(--muted)' }}>
-                            <Monitor size={13} style={{ color: 'var(--muted-foreground)' }} />
+
+                {sessionsLoading ? (
+                  <div className="py-8 text-center">
+                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Loading sessions…</p>
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <Monitor size={24} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} />
+                    <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>No active sessions available</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Session data will appear here once backend integration is connected.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-0">
+                    {sessions.map(session => (
+                      <div key={session.id} className="py-3 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: 'var(--muted)' }}>
+                              <Monitor size={13} style={{ color: 'var(--muted-foreground)' }} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{session.device}</p>
+                                {session.isCurrent && <span className="text-xs px-1.5 py-0.5 rounded font-semibold shrink-0" style={{ backgroundColor: 'rgba(34,197,94,0.12)', color: '#22c55e' }}>Current</span>}
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}><MapPin size={10} /> {session.approximateLocation}</span>
+                                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}><Clock size={10} /> Last active: {new Date(session.lastActiveAt).toLocaleDateString()}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Created: {new Date(session.createdAt).toLocaleDateString()}</span>
+                                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Expires: {new Date(session.expiresAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{session.device}</p>
-                              {session.current && <span className="text-xs px-1.5 py-0.5 rounded font-semibold text-positive shrink-0" style={{ backgroundColor: 'rgba(34,197,94,0.12)' }}>Current</span>}
-                            </div>
-                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                              <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}><MapPin size={10} /> {session.location}</span>
-                              <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}><Clock size={10} /> {session.lastActive}</span>
-                            </div>
-                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Created: {session.created}</span>
-                              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Expires: {session.expires}</span>
-                            </div>
-                          </div>
+                          {!session.isCurrent && (
+                            <button onClick={() => revokeSession(session.id)} className="flex items-center gap-1 text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0" style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}>
+                              <LogOut size={11} /> Revoke
+                            </button>
+                          )}
                         </div>
-                        {!session.current && (
-                          <button onClick={() => revokeSession(session.id)} className="flex items-center gap-1 text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0" style={{ borderColor: 'var(--negative)', color: 'var(--negative)' }}>
-                            <LogOut size={11} /> Revoke
-                          </button>
-                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
@@ -907,33 +1102,47 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                   <h3 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Login Activity</h3>
                 </div>
                 <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>Recent sign-in attempts to your account.</p>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs min-w-[480px]">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                        {['Date', 'Device', 'Browser', 'Location', 'Result'].map(h => (
-                          <th key={h} className="text-left pb-2 pr-3 font-semibold" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {MOCK_LOGIN_HISTORY.map((entry, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td className="py-2.5 pr-3" style={{ color: 'var(--foreground)' }}>{entry.date}</td>
-                          <td className="py-2.5 pr-3 truncate max-w-[120px]" style={{ color: 'var(--foreground)' }}>{entry.device}</td>
-                          <td className="py-2.5 pr-3" style={{ color: 'var(--muted-foreground)' }}>{entry.browser}</td>
-                          <td className="py-2.5 pr-3" style={{ color: 'var(--muted-foreground)' }}>{entry.location}</td>
-                          <td className="py-2.5">
-                            {entry.result === 'success'
-                              ? <span className="px-1.5 py-0.5 rounded text-positive font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)' }}>Success</span>
-                              : <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: 'var(--negative)' }}><AlertTriangle size={10} /> Failed</span>
-                            }
-                          </td>
+
+                {loginHistoryLoading ? (
+                  <div className="py-8 text-center">
+                    <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
+                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Loading login history…</p>
+                  </div>
+                ) : loginHistory.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <History size={24} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} />
+                    <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>No login activity is available yet.</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Login history will appear here once backend integration is connected.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs min-w-[480px]">
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                          {['Date', 'Device', 'Browser', 'Location', 'Result'].map(h => (
+                            <th key={h} className="text-left pb-2 pr-3 font-semibold" style={{ color: 'var(--muted-foreground)' }}>{h}</th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {loginHistory.map((entry) => (
+                          <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td className="py-2.5 pr-3" style={{ color: 'var(--foreground)' }}>{new Date(entry.date).toLocaleString()}</td>
+                            <td className="py-2.5 pr-3 truncate max-w-[120px]" style={{ color: 'var(--foreground)' }}>{entry.device}</td>
+                            <td className="py-2.5 pr-3" style={{ color: 'var(--muted-foreground)' }}>{entry.browser}</td>
+                            <td className="py-2.5 pr-3" style={{ color: 'var(--muted-foreground)' }}>{entry.approximateLocation}</td>
+                            <td className="py-2.5">
+                              {entry.status === 'successful'
+                                ? <span className="px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>Success</span>
+                                : <span className="flex items-center gap-1 px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: 'rgba(239,68,68,0.1)', color: '#ef4444' }}><AlertTriangle size={10} /> Failed</span>
+                              }
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -946,10 +1155,6 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
 
 // ── DIVIDEND SECTION ──
 function DividendSection({ employmentStatus }: { employmentStatus: EmploymentStatus }) {
-  const [showClaimModal, setShowClaimModal] = useState(false);
-  const [claimStep, setClaimStep] = useState(1);
-  const [declarationAccepted, setDeclarationAccepted] = useState(false);
-
   const eligibilityStatus: DividendEligibilityStatus = 'not_evaluated';
   const statusCfg = DIVIDEND_STATUS_CONFIG[eligibilityStatus];
 
