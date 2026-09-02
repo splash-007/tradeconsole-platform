@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, ChevronDown, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History, Bot, Activity, CheckCheck, ExternalLink } from 'lucide-react';
+import { Bell, ChevronDown, Sun, Moon, Menu, X, LayoutDashboard, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, Shield, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, History, Bot, Activity, CheckCheck, ExternalLink, Gift } from 'lucide-react';
 import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
 import { notificationService, AppNotification } from '@/services/notification.service';
 import { preferencesService } from '@/services/preferences.service';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/trading-dashboard', icon: LayoutDashboard },
+  { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
   { label: 'Trading Bot', href: '/trading-bot', icon: Bot },
   { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
@@ -314,37 +315,26 @@ export default function TopNav() {
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-1 w-52 rounded-lg border shadow-xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                   <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Alex Morgan</p>
                     <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>alex.morgan@email.com</p>
+                    <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--muted-foreground)' }}>TC-2026-001847</p>
                   </div>
                   <div className="py-1">
-                    {[
-                      { label: 'Profile & Settings', href: '/settings', icon: Settings },
-                      { label: 'Notifications', href: '/notifications', icon: Bell },
-                      { label: 'Security', href: '/settings', icon: Shield },
-                    ].map(item => (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        onClick={() => setProfileOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors"
-                        style={{ color: 'var(--foreground)' }}
-                      >
-                        <item.icon size={13} style={{ color: 'var(--muted-foreground)' }} />
-                        {item.label}
-                      </Link>
-                    ))}
+                    <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
+                      <Settings size={13} style={{ color: 'var(--muted-foreground)' }} /> Settings
+                    </Link>
+                    <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
+                      <Gift size={13} style={{ color: 'var(--muted-foreground)' }} /> Programs &amp; Benefits
+                    </Link>
+                    <Link href="/notifications" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
+                      <Bell size={13} style={{ color: 'var(--muted-foreground)' }} /> Notifications
+                    </Link>
                   </div>
                   <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors"
-                      style={{ color: 'var(--negative)' }}
-                    >
-                      <LogOut size={13} />
-                      Sign Out
+                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--negative)' }}>
+                      <LogOut size={13} /> Sign Out
                     </button>
                   </div>
                 </div>

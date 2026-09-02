@@ -680,20 +680,344 @@ See §12 (Per-user Notification State) — `dismissed_at` field.
 
 ---
 
-## Financial Architecture Notes
+## 21. Customer Programs
 
-**Watchlist:** PostgreSQL per-user persistence.
+**Purpose:** Track which benefit programs are available to a customer, their enrollment status, and program configuration. Programs include Deposit Bonus, Referral, Crypto Lending, and Dividend.
 
-**Preferences (including Theme):** PostgreSQL per-user persistence. Theme is part of preferences.
+**Suggested Table:** `customer_programs`
 
-**Notification delivery/read/dismiss:** PostgreSQL per-user state. Transient real-time delivery via Valkey / WebSocket.
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id (NOT NULL)
+- `program_type` — enum: deposit_bonus | referral | lending | dividend
+- `program_id` — uuid, FK → program configuration table (type-specific)
+- `status` — enum: available | activated | used | expired | not_eligible
+- `enrolled_at` — timestamptz, nullable
+- `expires_at` — timestamptz, nullable
+- `metadata` — jsonb, program-specific data
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
 
-**Bot runtime:** PostgreSQL configuration/history + Valkey real-time/runtime state where appropriate.
+**Relationships:** Belongs to `users`. References type-specific program configuration.
 
-**Prediction positions:** PostgreSQL authoritative records. Balance allocation and settlement must integrate with the future immutable financial ledger.
+**Ownership:** Per-customer. Managed by platform admin.
 
-**Prediction eligibility:** PostgreSQL with possible Valkey cache for short-lived results.
+**Mutability:** Status is mutable. Enrollment events are append-only audit log.
 
-**Dividend claims/payments:** PostgreSQL + immutable financial ledger.
+**Storage:** PostgreSQL
 
-**No frontend direct balance manipulation.** All financial operations are server-authoritative.
+**API Requirements:**
+- `GET  /api/v1/programs` — list available programs for authenticated customer
+- `GET  /api/v1/programs/:type` — get specific program details
+
+**Permissions:** Customer reads own programs. Admin manages program availability.
+
+**Audit Events:** program_enrolled, program_activated, program_expired, program_status_changed
+
+**Ledger Interaction:** Bonus credits and rewards must integrate with the double-entry financial ledger.
+
+---
+
+## 22. Deposit Bonus Programs
+
+**Purpose:** Define configurable deposit bonus programs. Bonus percentage, minimum deposit, maximum bonus, and eligible deposit types are all backend-configured — never hardcoded on the frontend.
+
+**Suggested Table:** `deposit_bonus_programs`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `name` — varchar(255)
+- `description` — text
+- `bonus_percentage` — numeric(5,2), nullable (null = TBD / admin-set)
+- `minimum_deposit` — numeric(18,8) NOT NULL
+- `maximum_bonus` — numeric(18,8), nullable
+- `eligible_deposit_types` — text[], e.g. ['bank_transfer', 'crypto']
+- `valid_from` — timestamptz NOT NULL
+- `valid_until` — timestamptz, nullable
+- `is_active` — boolean, default true
+- `terms` — text
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+
+**Relationships:** Referenced by `customer_programs`.
+
+**Ownership:** Platform-managed. Admin creates and configures programs.
+
+**Mutability:** Program configuration is mutable by admin. Customer enrollment is append-only.
+
+**Storage:** PostgreSQL
+
+**API Requirements:**
+- `GET  /api/v1/programs/deposit-bonus` — get active deposit bonus program for customer
+- `POST /api/v1/programs/deposit-bonus/activate` — customer activates bonus
+
+**Permissions:** Admin manages programs. Customer reads active programs.
+
+**Audit Events:** deposit_bonus_created, deposit_bonus_activated, deposit_bonus_credited
+
+**Ledger Interaction:** Bonus credit must be recorded as a double-entry ledger transaction (debit: platform bonus expense, credit: customer account).
+
+---
+
+## 23. Customer Bonus Enrollment
+
+**Purpose:** Track individual customer enrollment and usage of deposit bonus programs.
+
+**Suggested Table:** `customer_bonus_enrollments`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id
+- `program_id` — uuid, FK → deposit_bonus_programs.id
+- `status` — enum: pending | active | credited | expired | cancelled
+- `qualifying_deposit_id` — uuid, FK → deposits.id, nullable
+- `qualifying_deposit_amount` — numeric(18,8), nullable
+- `bonus_amount` — numeric(18,8), nullable (set by backend on qualification)
+- `credited_at` — timestamptz, nullable
+- `expires_at` — timestamptz, nullable
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+
+**Relationships:** Belongs to `users` and `deposit_bonus_programs`.
+
+**Ownership:** Per-customer. Backend-authoritative.
+
+**Mutability:** Status transitions are append-only audit log. Bonus amount set by backend only.
+
+**Storage:** PostgreSQL
+
+**Ledger Interaction:** Bonus credit is a ledger transaction. Frontend must never set bonus_amount.
+
+---
+
+## 24. Referral Programs
+
+**Purpose:** Define configurable referral reward programs. Reward amounts and qualification criteria are backend-configured.
+
+**Suggested Table:** `referral_programs`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `name` — varchar(255)
+- `description` — text
+- `reward_type` — enum: fixed | percentage
+- `reward_amount` — numeric(18,8), nullable (backend-configured)
+- `reward_currency` — varchar(10)
+- `qualification_criteria` — jsonb (e.g. min_deposit, kyc_required, min_trades)
+- `is_active` — boolean, default true
+- `valid_from` — timestamptz
+- `valid_until` — timestamptz, nullable
+- `terms` — text
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+
+**Ownership:** Platform-managed.
+
+**Storage:** PostgreSQL
+
+**API Requirements:**
+- `GET  /api/v1/referrals/me` — get customer referral program details and stats
+- `GET  /api/v1/referrals` — get referral history
+- `POST /api/v1/referrals/invite` — send referral invitation
+
+---
+
+## 25. Referral Relationships
+
+**Purpose:** Track referrer → referred customer relationships.
+
+**Suggested Table:** `referral_relationships`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `referrer_id` — uuid, FK → users.id (the referring customer)
+- `referred_id` — uuid, FK → users.id (the new customer)
+- `referral_code` — varchar(64)
+- `program_id` — uuid, FK → referral_programs.id
+- `status` — enum: pending | qualified | rewarded | expired | cancelled
+- `qualified_at` — timestamptz, nullable
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+
+**Relationships:** Both referrer and referred belong to `users`.
+
+**Ownership:** Per-customer pair. Backend-authoritative.
+
+**Mutability:** Status transitions are append-only audit log.
+
+**Storage:** PostgreSQL
+
+**Audit Events:** referral_created, referral_qualified, referral_rewarded, referral_expired
+
+---
+
+## 26. Referral Rewards
+
+**Purpose:** Track reward amounts owed and paid to referrers.
+
+**Suggested Table:** `referral_rewards`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `referral_relationship_id` — uuid, FK → referral_relationships.id
+- `referrer_id` — uuid, FK → users.id
+- `program_id` — uuid, FK → referral_programs.id
+- `amount` — numeric(18,8) (backend-set only)
+- `currency` — varchar(10)
+- `status` — enum: pending | approved | processing | paid | rejected | cancelled
+- `approved_by` — uuid, FK → users.id (admin), nullable
+- `approved_at` — timestamptz, nullable
+- `paid_at` — timestamptz, nullable
+- `ledger_transaction_id` — uuid, nullable (FK → financial ledger)
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+
+**Ownership:** Per-referrer. Backend-authoritative.
+
+**Mutability:** Amount set by backend only. Status transitions are append-only audit log.
+
+**Storage:** PostgreSQL
+
+**Ledger Interaction:** Reward payment must be a double-entry ledger transaction. Frontend must never set reward amounts.
+
+**Audit Events:** referral_reward_created, referral_reward_approved, referral_reward_paid
+
+---
+
+## 27. Lending Programs
+
+**Purpose:** Define configurable crypto lending programs. APY/rates are backend/provider-configured — never hardcoded on the frontend.
+
+**Suggested Table:** `lending_programs`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `name` — varchar(255)
+- `description` — text
+- `asset_symbol` — varchar(20) (e.g. BTC, USDC)
+- `apy_rate` — numeric(8,4), nullable (null = TBD / provider-set)
+- `term_type` — enum: flexible | fixed
+- `term_days` — integer, nullable (null for flexible)
+- `minimum_amount` — numeric(18,8) NOT NULL
+- `maximum_amount` — numeric(18,8), nullable
+- `available_liquidity` — numeric(18,8)
+- `risk_level` — enum: low | medium | high
+- `status` — enum: available | paused | closed
+- `terms` — text
+- `risk_disclosure` — text
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+
+**Ownership:** Platform-managed. Admin creates and configures programs.
+
+**Storage:** PostgreSQL
+
+**API Requirements:**
+- `GET  /api/v1/lending/programs` — list available lending programs
+
+**Permissions:** Admin manages. Customer reads available programs.
+
+---
+
+## 28. Lending Positions
+
+**Purpose:** Track customer lending positions. Principal and accrued amounts are backend-authoritative.
+
+**Suggested Table:** `lending_positions`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id
+- `program_id` — uuid, FK → lending_programs.id
+- `asset_symbol` — varchar(20)
+- `principal_amount` — numeric(18,8) NOT NULL (set by backend on confirmation)
+- `current_rate` — numeric(8,4), nullable (rate at time of opening)
+- `status` — enum: pending | active | maturing | completed | cancelled | defaulted
+- `opened_at` — timestamptz, nullable
+- `maturity_date` — timestamptz, nullable
+- `closed_at` — timestamptz, nullable
+- `ledger_debit_id` — uuid, nullable (FK → financial ledger, principal debit)
+- `ledger_credit_id` — uuid, nullable (FK → financial ledger, principal return)
+- `created_at` — timestamptz
+- `updated_at` — timestamptz
+
+**Relationships:** Belongs to `users` and `lending_programs`.
+
+**Ownership:** Per-customer. Backend-authoritative.
+
+**Mutability:** Status transitions are append-only audit log. Principal set by backend only.
+
+**Storage:** PostgreSQL
+
+**API Requirements:**
+- `GET  /api/v1/lending/positions` — list customer lending positions
+- `POST /api/v1/lending/positions` — open new lending position
+- `POST /api/v1/lending/positions/:id/close` — close/withdraw lending position
+
+**Permissions:** Customer reads/manages own positions. Admin can view all.
+
+**Audit Events:** lending_position_opened, lending_position_closed, lending_position_defaulted
+
+**Ledger Interaction:** Opening a position debits customer account (principal). Closing credits principal return. Interest/accrual is a separate ledger entry. Frontend must never modify balances.
+
+---
+
+## 29. Lending Accrual / Settlement
+
+**Purpose:** Track interest accrual and settlement for lending positions. All amounts are backend-calculated.
+
+**Suggested Table:** `lending_accruals`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `position_id` — uuid, FK → lending_positions.id
+- `user_id` — uuid, FK → users.id
+- `accrual_date` — date NOT NULL
+- `accrual_amount` — numeric(18,8) NOT NULL (backend-calculated only)
+- `rate_applied` — numeric(8,4)
+- `status` — enum: accrued | settled | reversed
+- `settled_at` — timestamptz, nullable
+- `ledger_transaction_id` — uuid, nullable (FK → financial ledger)
+- `created_at` — timestamptz
+
+**Ownership:** Per-position. Backend-authoritative. Append-only.
+
+**Mutability:** Accrual records are append-only. Status transitions only.
+
+**Storage:** PostgreSQL
+
+**Ledger Interaction:** Each settled accrual is a double-entry ledger transaction (debit: lending interest expense, credit: customer account). Frontend must never set accrual amounts.
+
+**Audit Events:** lending_accrual_created, lending_accrual_settled, lending_accrual_reversed
+
+---
+
+## Financial Settlement Rules (Programs)
+
+**Deposit Bonus Credits:**
+- Triggered by qualifying deposit confirmation (backend event)
+- Recorded as double-entry ledger: debit platform bonus expense → credit customer account
+- Frontend must never directly credit accounts
+
+**Referral Rewards:**
+- Triggered by referral qualification (backend event)
+- Requires admin approval before payment
+- Recorded as double-entry ledger: debit platform referral expense → credit referrer account
+- Frontend must never set reward amounts
+
+**Lending Principal:**
+- Debited from customer account on position open (backend-authoritative)
+- Credited back on position close/maturity
+- All amounts set by backend only
+
+**Lending Interest:**
+- Accrued daily by backend calculation
+- Settled to customer account per program terms
+- Recorded as double-entry ledger entries
+- Frontend displays accrued amounts from API only
+
+**Dividend Payments:**
+- Governed by existing dividend.service.ts architecture
+- All amounts backend-authoritative
+- Recorded as double-entry ledger entries
+- Frontend must never modify balances
