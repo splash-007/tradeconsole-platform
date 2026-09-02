@@ -1,14 +1,38 @@
-// BACKEND INTEGRATION:
-// POST /api/v1/bots/analyze
-// POST /api/v1/bots
-// GET  /api/v1/bots
-// GET  /api/v1/bots/:id
-// POST /api/v1/bots/:id/start
-// POST /api/v1/bots/:id/pause
-// POST /api/v1/bots/:id/stop
+// TRADING BOT SERVICE
+// Frontend abstraction for customer trading bot management.
+//
+// IMPORTANT DESIGN PRINCIPLES:
+// - Browsing/selecting/configuring a bot MUST NOT automatically persist a bot record.
+// - Bot builder state is LOCAL TEMPORARY form state only (botBuilderState).
+// - A bot is ONLY persisted when the customer performs an explicit Deploy/Activate action.
+// - Frontend must NOT display bots as active until backend confirms deployment.
+// - Bot status transitions are controlled by the backend — not the frontend.
+// - If the customer has never deployed a bot, show: "No trading bots have been deployed yet."
+//
+// Bot Lifecycle (backend-controlled):
+//   draft → pending_activation → active → paused → stopping → stopped → completed | failed
+//
+// Future API:
+//   POST /api/v1/bots/analyze
+//   POST /api/v1/bots              (Deploy Bot — creates persistent record)
+//   GET  /api/v1/bots
+//   GET  /api/v1/bots/:id
+//   POST /api/v1/bots/:id/start
+//   POST /api/v1/bots/:id/pause
+//   POST /api/v1/bots/:id/stop
 
 export type MarketType = 'SPOT' | 'PERPETUAL_FUTURES' | 'OPTIONS';
-export type BotStatus = 'active' | 'paused' | 'completed' | 'error';
+
+/**
+ * Full bot lifecycle — backend controls all transitions.
+ * Frontend must NOT change status without backend confirmation.
+ */
+export type BotLifecycleStatus =
+  | 'draft' |'pending_activation' |'active' |'paused' |'stopping' |'stopped' |'completed' |'failed';
+
+/** Legacy alias — kept for backward compatibility */
+export type BotStatus = BotLifecycleStatus;
+
 export type BotStrategy = 'GRID' | 'DCA' | 'MOMENTUM' | 'TECHNICAL' | 'ARBITRAGE';
 
 export interface BotConfig {
@@ -35,13 +59,17 @@ export interface Bot {
   symbol: string;
   strategy: BotStrategy;
   allocation: number;
-  status: BotStatus;
-  created: string;
-  started: string | null;
+  status: BotLifecycleStatus;
+  createdAt: string;
+  startedAt: string | null;
+  stoppedAt: string | null;
   pnl: number;
   pnlPct: number;
   risk: 'low' | 'medium' | 'high';
   config: BotConfig;
+  // Legacy aliases
+  created?: string;
+  started?: string | null;
 }
 
 export interface AnalysisResult {
@@ -60,72 +88,15 @@ export interface AnalysisResult {
   dataSources: string[];
 }
 
-const MOCK_BOTS: Bot[] = [
-  {
-    id: 'bot-001',
-    name: 'BTC Grid Alpha',
-    market: 'PERPETUAL_FUTURES',
-    symbol: 'BTC/USDT',
-    strategy: 'GRID',
-    allocation: 2500,
-    status: 'active',
-    created: '2026-08-15T10:00:00Z',
-    started: '2026-08-15T10:05:00Z',
-    pnl: 142.80,
-    pnlPct: 5.71,
-    risk: 'medium',
-    config: {
-      market_type: 'PERPETUAL_FUTURES',
-      symbol: 'BTCUSDT',
-      bot_type: 'GRID',
-      parameters: { leverage: 5, lower_bound: 62000, upper_bound: 72000, grid_count: 50, investment_amount_usdt: 2500, stop_loss_percentage: 3.5 },
-    },
-  },
-  {
-    id: 'bot-002',
-    name: 'ETH DCA Accumulator',
-    market: 'SPOT',
-    symbol: 'ETH/USDT',
-    strategy: 'DCA',
-    allocation: 1000,
-    status: 'active',
-    created: '2026-08-20T14:00:00Z',
-    started: '2026-08-20T14:02:00Z',
-    pnl: 38.40,
-    pnlPct: 3.84,
-    risk: 'low',
-    config: {
-      market_type: 'SPOT',
-      symbol: 'ETHUSDT',
-      bot_type: 'DCA',
-      parameters: { investment_amount_usdt: 1000, dca_interval: '4h', dca_amount: 50 },
-    },
-  },
-  {
-    id: 'bot-003',
-    name: 'SOL Momentum',
-    market: 'PERPETUAL_FUTURES',
-    symbol: 'SOL/USDT',
-    strategy: 'MOMENTUM',
-    allocation: 800,
-    status: 'paused',
-    created: '2026-08-10T08:00:00Z',
-    started: '2026-08-10T08:10:00Z',
-    pnl: -22.40,
-    pnlPct: -2.80,
-    risk: 'high',
-    config: {
-      market_type: 'PERPETUAL_FUTURES',
-      symbol: 'SOLUSDT',
-      bot_type: 'MOMENTUM',
-      parameters: { leverage: 3, investment_amount_usdt: 800, stop_loss_percentage: 5 },
-    },
-  },
-];
+export interface DeployBotResult {
+  id: string;
+  status: BotLifecycleStatus;
+}
 
 export const tradingBotService = {
   /**
    * Analyze market and get strategy recommendation.
+   * This is a READ-ONLY analysis — it does NOT create any bot record.
    * BACKEND: POST /api/v1/bots/analyze  body: { symbol, market_type }
    */
   async analyzeMarket(symbol: string, marketType: MarketType): Promise<AnalysisResult> {
@@ -162,44 +133,79 @@ export const tradingBotService = {
   },
 
   /**
-   * Deploy a new bot.
+   * Deploy a new bot — creates a PERSISTENT bot record on the backend.
+   *
+   * IMPORTANT: This is the ONLY action that creates a persistent bot record.
+   * Browsing, selecting market type, selecting pair, running analysis,
+   * and configuring parameters do NOT create any bot record.
+   *
+   * Only call this after the customer explicitly confirms deployment.
+   *
+   * On success:
+   *   - Add bot to Active Bots list
+   *   - Create BOT_CREATED / BOT_ACTIVATED notification
+   *
+   * On failure:
+   *   - Do NOT display the bot as active
+   *   - Show meaningful error to customer
+   *
    * BACKEND: POST /api/v1/bots  body: BotConfig
    */
-  async deployBot(_config: BotConfig): Promise<{ id: string; status: string }> {
-    // FRONTEND ONLY — no real deployment
+  async deployBot(_config: BotConfig): Promise<DeployBotResult> {
+    // BACKEND INTEGRATION REQUIRED
+    // Replace with:
+    // const res = await apiClient.post('/api/v1/bots', _config);
+    // return { id: res.data.id, status: res.data.status };
     await new Promise(r => setTimeout(r, 1000));
-    return { id: `bot-${Date.now()}`, status: 'active' };
+    return { id: `bot-${Date.now()}`, status: 'pending_activation' };
   },
 
   /**
-   * Get all bots.
+   * Get all bots for the current authenticated customer.
+   * Returns empty array when customer has never deployed a bot.
    * BACKEND: GET /api/v1/bots
+   *
+   * Frontend must NOT substitute fake bot records.
+   * Empty state: "No trading bots have been deployed yet."
    */
   async getBots(): Promise<Bot[]> {
-    return MOCK_BOTS;
+    // BACKEND INTEGRATION REQUIRED
+    // Replace with:
+    // const res = await apiClient.get('/api/v1/bots');
+    // return res.data.bots;
+    return [];
   },
 
   /**
-   * Start a bot.
+   * Start/resume a bot.
+   * Backend controls whether this transition is valid.
    * BACKEND: POST /api/v1/bots/:id/start
    */
-  async startBot(_id: string): Promise<void> {
+  async startBot(id: string): Promise<void> {
+    // BACKEND INTEGRATION REQUIRED
+    void id;
     await new Promise(r => setTimeout(r, 500));
   },
 
   /**
    * Pause a bot.
+   * Backend controls whether this transition is valid.
    * BACKEND: POST /api/v1/bots/:id/pause
    */
-  async pauseBot(_id: string): Promise<void> {
+  async pauseBot(id: string): Promise<void> {
+    // BACKEND INTEGRATION REQUIRED
+    void id;
     await new Promise(r => setTimeout(r, 500));
   },
 
   /**
    * Stop a bot.
+   * Backend controls whether this transition is valid.
    * BACKEND: POST /api/v1/bots/:id/stop
    */
-  async stopBot(_id: string): Promise<void> {
+  async stopBot(id: string): Promise<void> {
+    // BACKEND INTEGRATION REQUIRED
+    void id;
     await new Promise(r => setTimeout(r, 500));
   },
 };

@@ -1378,3 +1378,316 @@ See §12 (Per-user Notification State) — `dismissed_at` field.
 **No client-side balance manipulation is permitted under any circumstances.**
 
 All balance values displayed on the frontend must come from backend API responses.
+
+---
+
+## 39. Customer Activity Events
+
+**Purpose:** Store customer-visible activity history. This is SAFE USER-VISIBLE event history — distinct from internal audit logs which are never shown to customers.
+
+**Suggested Table:** `customer_activity_events`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `type` — enum: PROFILE_UPDATED | PASSWORD_CHANGED | SESSION_CREATED | SESSION_REVOKED | KYC_STARTED | KYC_SUBMITTED | KYC_ADDITIONAL_INFO_REQUIRED | KYC_VERIFIED | KYC_REJECTED | DEPOSIT_SUBMITTED | DEPOSIT_COMPLETED | DEPOSIT_REJECTED | WITHDRAWAL_SUBMITTED | WITHDRAWAL_APPROVED | WITHDRAWAL_COMPLETED | WITHDRAWAL_REJECTED | TRANSFER_SUBMITTED | TRANSFER_COMPLETED | SUPPORT_MESSAGE_RECEIVED | SUPPORT_TICKET_UPDATED | BOT_CREATED | BOT_ACTIVATED | BOT_PAUSED | BOT_STOPPED | BOT_COMPLETED | PREDICTION_POSITION_OPENED | PREDICTION_MARKET_RESOLVED | PROGRAM_ENROLLED | DIVIDEND_CLAIM_SUBMITTED | SECURITY_ALERT
+- `category` — enum: account | security | trading | kyc | finance | support | programs | prediction | system
+- `description` — text NOT NULL (customer-safe human-readable description)
+- `related_entity_type` — varchar(64), nullable (e.g. 'bot', 'deposit', 'conversation')
+- `related_entity_id` — uuid, nullable
+- `metadata` — jsonb, nullable (customer-safe metadata only — no internal fields)
+- `created_at` — timestamptz NOT NULL
+
+**Relationships:**
+- Belongs to `users`
+
+**Ownership:** Per-user. Customer reads own activity only. Admin may view for support.
+
+**Mutability:** Append-only. No updates or deletes.
+
+**API Requirements:**
+- `GET /api/v1/me/activity` — paginated customer activity feed
+
+**Permissions:** Customer reads own activity. Staff/admin may view for support purposes.
+
+**Important Distinction:**
+- Customer Activity = safe user-visible event history
+- Audit Log = internal append-only compliance/security history (NEVER shown to customers)
+
+**Storage:** PostgreSQL
+
+---
+
+## 40. Notification Source Events & Deduplication
+
+**Purpose:** Track the source backend event for each notification to prevent duplicate notifications when the same event arrives twice (e.g. WebSocket reconnect).
+
+**Suggested Table:** `notification_source_events`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `notification_id` — uuid, FK → notifications.id NOT NULL
+- `source_event_id` — varchar(256) NOT NULL UNIQUE (unique identifier of the originating backend event)
+- `source_event_type` — varchar(128) NOT NULL
+- `created_at` — timestamptz NOT NULL
+
+**Deduplication Rule:**
+- Before creating a notification, check if `source_event_id` already exists in this table.
+- If it exists, do NOT create a second notification.
+- This prevents duplicate notifications when WebSocket events are replayed on reconnect.
+
+**Relationships:**
+- Belongs to `notifications`
+
+**Ownership:** System-generated. Append-only.
+
+**Mutability:** Append-only. Immutable after creation.
+
+**Storage:** PostgreSQL
+
+---
+
+## 41. Customer Session Views
+
+**Purpose:** Store customer-visible session data for the Sessions & Login Activity page. Sessions are created and managed by the authentication system — this is the read model for customer display.
+
+**Suggested Table:** `customer_sessions` (or view over auth sessions)
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `device` — varchar(256) (e.g. "Chrome on macOS")
+- `browser` — varchar(128)
+- `os` — varchar(128)
+- `ip_address` — inet NOT NULL
+- `approximate_location` — varchar(256) (derived from IP, not GPS)
+- `created_at` — timestamptz NOT NULL
+- `last_active_at` — timestamptz NOT NULL
+- `expires_at` — timestamptz NOT NULL
+- `is_current` — boolean (computed, not stored — derived from token comparison)
+- `revoked_at` — timestamptz, nullable
+
+**Ownership:** Per-user. Customer reads own sessions only.
+
+**Status Lifecycle:** active → revoked | expired
+
+**API Requirements:**
+- `GET    /api/v1/me/sessions` — list active sessions
+- `DELETE /api/v1/me/sessions/:id` — revoke specific session (requires confirmation)
+- `DELETE /api/v1/me/sessions/others` — revoke all sessions except current
+
+**Security Rules:**
+- Backend controls session validity — frontend never decides if a session is valid.
+- Current session must be clearly identified and protected from accidental revocation.
+- Revocation requires explicit customer confirmation.
+
+**Storage:** PostgreSQL (session store) + Valkey (active token cache)
+
+---
+
+## 42. Login Activity History
+
+**Purpose:** Store customer-visible login attempt history. Only customer-appropriate information is revealed — no internal security details for failed logins.
+
+**Suggested Table:** `login_activity`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `date` — timestamptz NOT NULL
+- `device` — varchar(256)
+- `browser` — varchar(128)
+- `ip_address` — inet NOT NULL
+- `approximate_location` — varchar(256)
+- `status` — enum: successful | failed
+- `created_at` — timestamptz NOT NULL
+
+**Ownership:** Per-user. Customer reads own login history only.
+
+**Mutability:** Append-only. Immutable after creation.
+
+**API Requirements:**
+- `GET /api/v1/me/sessions/history` — paginated login history
+
+**Security Rules:**
+- For failed login history, reveal only appropriate information to the authenticated customer.
+- Do NOT expose sensitive internal security details (e.g. exact failure reason, internal error codes).
+- IP addresses are shown to the customer for their own security awareness.
+
+**Empty State:** "No login activity is available yet." — do NOT display fake cities/devices/IP addresses.
+
+**Storage:** PostgreSQL
+
+---
+
+## 43. Customer Documents
+
+**Purpose:** Store metadata for documents owned by the current authenticated customer. Actual file content is stored in object storage — only metadata is in PostgreSQL.
+
+**Suggested Table:** `customer_documents`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `type` — enum: passport | national_id | drivers_license | proof_of_address | bank_statement | utility_bill | selfie | other
+- `file_name` — varchar(256) NOT NULL
+- `file_size_bytes` — integer NOT NULL
+- `mime_type` — varchar(128) NOT NULL
+- `storage_key` — varchar(512) NOT NULL (object storage key — never exposed to frontend)
+- `uploaded_at` — timestamptz NOT NULL
+- `status` — enum: uploaded | under_review | approved | rejected
+- `verification_case_id` — uuid, nullable (FK → kyc_cases)
+- `rejection_reason` — text, nullable (customer-safe message only)
+- `reviewed_by` — uuid, nullable (FK → staff users)
+- `reviewed_at` — timestamptz, nullable
+- `created_at` — timestamptz NOT NULL
+- `updated_at` — timestamptz NOT NULL
+
+**Relationships:**
+- Belongs to `users`
+- Optionally linked to `kyc_cases`
+
+**Ownership:** Per-user. Customer reads own documents only.
+
+**Status Lifecycle:** uploaded → under_review → approved | rejected
+
+**Mutability:** Status transitions only. File content is immutable after upload.
+
+**API Requirements:**
+- `GET  /api/v1/me/documents` — list customer documents
+- `POST /api/v1/me/documents/upload-request` — request signed upload URL
+- `GET  /api/v1/me/documents/:id/download` — request short-lived signed download URL
+
+**Security Rules:**
+- Document downloads must use authenticated short-lived signed URLs — NOT permanent public URLs.
+- `storage_key` must NEVER be exposed to the frontend.
+- Frontend requests download access through the API endpoint only.
+- Do NOT save base64 document content in frontend state.
+
+**Storage:** PostgreSQL (metadata) + Object Storage (file content)
+
+---
+
+## 44. Trading Bot Draft vs Persistent State
+
+**Purpose:** Clarify the distinction between temporary builder state and persistent bot records.
+
+**CRITICAL RULE:**
+- Browsing/selecting/configuring a bot MUST NOT automatically persist a bot record.
+- Bot builder state is LOCAL TEMPORARY form state only.
+- A bot is ONLY persisted when the customer performs an explicit Deploy/Activate action.
+
+**Draft State (NOT persisted):**
+- Market type selection
+- Asset pair selection
+- Strategy analysis results
+- Risk parameter configuration
+- Any intermediate builder step
+
+**Persistent State (created ONLY on explicit Deploy):**
+- `POST /api/v1/bots` is called ONLY when customer confirms deployment
+- Backend validates the configuration
+- Backend creates the persistent bot record
+- Backend returns bot ID
+- Frontend adds bot to Active Bots list ONLY after backend success
+
+**Suggested Table:** `trading_bots` (already documented in section 2)
+
+**Additional Fields for Full Lifecycle:**
+- `lifecycle_status` — enum: draft | pending_activation | active | paused | stopping | stopped | completed | failed
+- `created_at` — timestamptz NOT NULL
+- `started_at` — timestamptz, nullable
+- `stopped_at` — timestamptz, nullable
+- `pending_activation_at` — timestamptz, nullable
+- `failure_reason` — text, nullable
+
+**Status Lifecycle:** draft → pending_activation → active → paused → stopping → stopped → completed | failed
+
+**Backend Controls:** All status transitions are controlled by the backend. Frontend must NOT change status without backend confirmation.
+
+**Storage:** PostgreSQL
+
+---
+
+## 45. Bot Execution History
+
+**Purpose:** Store per-order execution history for deployed bots.
+
+**Suggested Table:** `bot_executions`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `bot_id` — uuid, FK → trading_bots.id NOT NULL
+- `user_id` — uuid, FK → users.id NOT NULL
+- `order_id` — varchar(128) (exchange order ID)
+- `side` — enum: buy | sell
+- `price` — numeric(18,8) NOT NULL
+- `quantity` — numeric(18,8) NOT NULL
+- `fee` — numeric(18,8) NOT NULL default 0
+- `pnl` — numeric(18,8), nullable
+- `executed_at` — timestamptz NOT NULL
+- `created_at` — timestamptz NOT NULL
+
+**Ownership:** Per-user via bot ownership.
+
+**Mutability:** Append-only. Immutable after creation.
+
+**API Requirements:**
+- `GET /api/v1/bots/:id/executions` — paginated execution history for a specific bot
+
+**Realtime Events (future WebSocket):**
+- `bot.order_executed`
+- `bot.risk_triggered`
+
+**Storage:** PostgreSQL
+
+---
+
+## 46. Bot Realtime State
+
+**Purpose:** Cache current bot state for low-latency UI updates.
+
+**Required Fields (Valkey):**
+- `bot:{id}:status` — current lifecycle status
+- `bot:{id}:pnl` — current PnL
+- `bot:{id}:last_order` — last executed order summary
+- `bot:{id}:risk_state` — current risk parameter state
+
+**Realtime Events:**
+- `bot.created`
+- `bot.activated`
+- `bot.paused`
+- `bot.resumed`
+- `bot.stopped`
+- `bot.failed`
+- `bot.order_executed`
+- `bot.risk_triggered`
+
+**Storage:** Valkey (ephemeral cache) — PostgreSQL is source of truth
+
+---
+
+## Event Source of Truth
+
+**CRITICAL RULE — This must be followed for all persistent business actions:**
+
+```
+Persistent business action
+        ↓
+PostgreSQL (authoritative record)
+        ↓
+Domain event emitted
+        ↓
+Valkey / realtime channel
+        ↓
+Customer UI (read-only consumer)
+```
+
+**NOT:**
+```
+Frontend button click
+        ↓
+Fake permanent record
+```
+
+Frontend is a consumer of backend state. It never creates authoritative financial, security, or session records directly.

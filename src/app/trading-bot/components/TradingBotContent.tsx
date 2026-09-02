@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { tradingBotService, Bot, BotConfig, MarketType, BotStrategy, AnalysisResult } from '@/services/trading-bot.service';
+import { tradingBotService, Bot, BotConfig, MarketType, BotStrategy, AnalysisResult, BotLifecycleStatus } from '@/services/trading-bot.service';
+import { notificationService } from '@/services/notification.service';
 import { Bot as BotIcon, Play, Pause, Square, ChevronRight, ChevronDown, AlertTriangle, CheckCircle, Loader2, TrendingUp, TrendingDown, Minus, BarChart2, Zap, Info } from 'lucide-react';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -27,7 +28,16 @@ const STRATEGY_LABELS: Record<BotStrategy, string> = {
 };
 
 const RISK_COLORS = { low: '#22c55e', medium: '#f59e0b', high: '#ef4444' };
-const STATUS_COLORS: Record<string, string> = { active: '#22c55e', paused: '#f59e0b', completed: '#6b7280', error: '#ef4444' };
+const STATUS_COLORS: Record<BotLifecycleStatus, string> = {
+  draft: '#6b7280',
+  pending_activation: '#3b82f6',
+  active: '#22c55e',
+  paused: '#f59e0b',
+  stopping: '#f59e0b',
+  stopped: '#6b7280',
+  completed: '#6b7280',
+  failed: '#ef4444',
+};
 
 function StepIndicator({ current, total }: { current: Step; total: number }) {
   return (
@@ -91,7 +101,7 @@ function BotCard({ bot, onAction }: { bot: Bot; onAction: (id: string, action: '
         </div>
         <div className="rounded p-2" style={{ backgroundColor: 'var(--muted)' }}>
           <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Created</p>
-          <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{new Date(bot.created).toLocaleDateString()}</p>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{new Date(bot.createdAt).toLocaleDateString()}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 pt-1">
@@ -226,14 +236,43 @@ export default function TradingBotContent() {
     await tradingBotService.deployBot(config);
     setDeploying(false);
     setDeployed(true);
+    // Only create notification AFTER backend confirms deployment success
+    notificationService.addFromCustomerAction({
+      id: `bot-deployed-${Date.now()}`,
+      userId: 'current-user',
+      type: 'bot_activated',
+      category: 'trading',
+      severity: 'success',
+      title: 'Trading Bot Activated',
+      message: `${selectedPair} ${analysis?.recommendedStrategy ?? 'Bot'} has been deployed and activated.`,
+      createdAt: new Date().toISOString(),
+    });
     tradingBotService.getBots().then(setBots);
   };
 
   const handleBotAction = async (id: string, action: 'start' | 'pause' | 'stop') => {
+    const bot = bots.find(b => b.id === id);
     if (action === 'start') await tradingBotService.startBot(id);
     else if (action === 'pause') await tradingBotService.pauseBot(id);
     else await tradingBotService.stopBot(id);
-    setBots(prev => prev.map(b => b.id === id ? { ...b, status: action === 'start' ? 'active' : action === 'pause' ? 'paused' : 'completed' } : b));
+    // Only update status after backend action — backend controls transitions
+    setBots(prev => prev.map(b => b.id === id ? { ...b, status: action === 'start' ? 'active' : action === 'pause' ? 'paused' : 'stopped' } : b));
+    // Create notification only after backend action succeeds
+    if (bot) {
+      const notifType = action === 'pause' ? 'bot_paused' : action === 'stop' ? 'bot_stopped' : 'bot_activated';
+      const notifTitle = action === 'pause' ? 'Trading Bot Paused' : action === 'stop' ? 'Trading Bot Stopped' : 'Trading Bot Resumed';
+      notificationService.addFromCustomerAction({
+        id: `bot-${action}-${id}-${Date.now()}`,
+        userId: 'current-user',
+        type: notifType,
+        category: 'trading',
+        severity: 'info',
+        title: notifTitle,
+        message: `${bot.symbol} ${bot.strategy} bot has been ${action === 'start' ? 'resumed' : action + 'ed'}.`,
+        relatedEntity: id,
+        createdAt: new Date().toISOString(),
+      });
+    }
   };
 
   const resetBuilder = () => {

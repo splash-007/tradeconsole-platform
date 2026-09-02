@@ -1,6 +1,5 @@
 // NOTIFICATION SERVICE
 // Frontend abstraction for the platform-wide notification system.
-// Handles in-app notifications with read/dismiss distinction.
 //
 // IMPORTANT DESIGN PRINCIPLES:
 // - READ ≠ DISMISSED
@@ -11,6 +10,20 @@
 // - Notification state is USER-SPECIFIC.
 //   Admin A reading notification X does NOT mark it read for Admin B.
 //
+// - Notifications must represent MEANINGFUL customer events.
+//   Do NOT generate notifications for: page views, tab changes, hover,
+//   dropdown opens, watchlist stars, or normal navigation.
+//
+// - Frontend is NOT the authoritative source of financial/security notifications.
+//   Backend domain events → notification creation → target user → realtime delivery.
+//
+// - Deduplication: use sourceEventId to prevent duplicate notifications
+//   from the same backend event arriving twice (e.g. WebSocket reconnect).
+//
+// - Realtime: this service is prepared to accept future WebSocket events
+//   via the addFromRealtimeEvent() method. Do NOT create separate WebSocket
+//   connections in individual components — use this centralized layer.
+//
 // Future API:
 //   GET  /api/v1/notifications
 //   GET  /api/v1/notifications/unread-count
@@ -19,11 +32,12 @@
 //   POST /api/v1/notifications/read-all
 
 export type NotificationSeverity = 'info' | 'success' | 'warning' | 'critical';
+
 export type NotificationCategory =
-  | 'account' |'security' |'trading' |'kyc' |'finance' |'support' |'system' |'dividend';
+  | 'account' |'security' |'trading' |'kyc' |'finance' |'support' |'programs' |'prediction' |'system' |'dividend';
 
 export type NotificationType =
-  | 'deposit_confirmed' |'withdrawal_pending' |'withdrawal_approved' |'withdrawal_rejected' |'profile_updated' |'kyc_approved' |'kyc_rejected' |'kyc_submitted' |'account_activated' |'account_suspended' |'security_login' |'security_password_changed' |'trade_filled' |'trade_cancelled' |'support_message' |'support_ticket_updated' |'dividend_eligible' |'dividend_paid' |'dividend_rejected' |'system_maintenance' |'system_announcement';
+  | 'deposit_submitted' |'deposit_confirmed' |'deposit_rejected' |'withdrawal_submitted' |'withdrawal_pending' |'withdrawal_approved' |'withdrawal_completed' |'withdrawal_rejected' |'transfer_submitted' |'transfer_completed' |'profile_updated' |'kyc_submitted' |'kyc_approved' |'kyc_rejected' |'kyc_additional_info_required' |'account_activated' |'account_suspended' |'security_login' |'security_password_changed' |'trade_filled' |'trade_cancelled' |'bot_created' |'bot_activated' |'bot_paused' |'bot_stopped' |'bot_failed' |'support_message' |'support_ticket_updated' |'prediction_position_accepted' |'prediction_market_resolved' |'prediction_position_settled' |'program_enrolled' |'dividend_eligible' |'dividend_claim_submitted' |'dividend_paid' |'dividend_rejected' |'system_maintenance' |'system_announcement';
 
 export interface AppNotification {
   id: string;
@@ -34,6 +48,12 @@ export interface AppNotification {
   title: string;
   message: string;
   source?: string;
+  /**
+   * sourceEventId: unique identifier of the backend domain event that created
+   * this notification. Used for deduplication — if the same backend event
+   * arrives twice (e.g. WebSocket reconnect), a second notification is NOT created.
+   */
+  sourceEventId?: string;
   relatedEntity?: string;
   createdAt: string;
   // Per-user state — never global
@@ -55,121 +75,29 @@ export interface NotificationState {
   unreadCount: number;
 }
 
-const NOTIF_STATE_KEY = 'tc-notification-state';
+const NOTIF_STATE_KEY = 'tc-notification-state-v2';
 
-// Mock notifications — represent what the backend will return
-const INITIAL_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: 'notif-001',
-    userId: 'cust-001',
-    type: 'deposit_confirmed',
-    category: 'finance',
-    severity: 'success',
-    title: 'Deposit Confirmed',
-    message: '$2,500 USDC deposit has been confirmed and credited to your account.',
-    createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    readAt: null,
-    dismissedAt: null,
-  },
-  {
-    id: 'notif-002',
-    userId: 'cust-001',
-    type: 'kyc_submitted',
-    category: 'kyc',
-    severity: 'info',
-    title: 'KYC Documents Submitted',
-    message: 'Your identity documents are under review. This usually takes 24–48 hours.',
-    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    readAt: null,
-    dismissedAt: null,
-  },
-  {
-    id: 'notif-003',
-    userId: 'cust-001',
-    type: 'withdrawal_pending',
-    category: 'finance',
-    severity: 'warning',
-    title: 'Withdrawal Processing',
-    message: 'Your withdrawal of $500 USDC is being processed. Expected: 1–3 business days.',
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    readAt: null,
-    dismissedAt: null,
-  },
-  {
-    id: 'notif-004',
-    userId: 'cust-001',
-    type: 'trade_filled',
-    category: 'trading',
-    severity: 'success',
-    title: 'Order Filled',
-    message: 'Buy order for 0.05 BTC at $67,842 has been fully filled.',
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    readAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-    dismissedAt: null,
-  },
-  {
-    id: 'notif-005',
-    userId: 'cust-001',
-    type: 'kyc_approved',
-    category: 'kyc',
-    severity: 'success',
-    title: 'Identity Verified',
-    message: 'Your KYC verification is complete. Full trading access is now enabled.',
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    readAt: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString(),
-    dismissedAt: null,
-  },
-  {
-    id: 'notif-006',
-    userId: 'cust-001',
-    type: 'security_login',
-    category: 'security',
-    severity: 'warning',
-    title: 'New Login Detected',
-    message: 'New login detected from Chrome on Windows. If this was not you, secure your account immediately.',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    readAt: null,
-    dismissedAt: null,
-  },
-  {
-    id: 'notif-007',
-    userId: 'cust-001',
-    type: 'support_message',
-    category: 'support',
-    severity: 'info',
-    title: 'Support Reply',
-    message: 'Your support agent has replied to your conversation.',
-    source: 'support',
-    relatedEntity: 'conv-001',
-    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    readAt: null,
-    dismissedAt: null,
-  },
-];
-
-function loadState(): AppNotification[] {
-  if (typeof window === 'undefined') return INITIAL_NOTIFICATIONS;
+/**
+ * Load persisted read/dismiss state from localStorage.
+ * The notifications themselves come from the backend — only per-user
+ * interaction state (readAt, dismissedAt) is persisted locally until
+ * backend persistence is connected.
+ */
+function loadPersistedState(): Map<string, { readAt: string | null; dismissedAt: string | null }> {
+  if (typeof window === 'undefined') return new Map();
   try {
     const stored = localStorage.getItem(NOTIF_STATE_KEY);
     if (stored) {
-      const parsed: AppNotification[] = JSON.parse(stored);
-      // Merge stored state (read/dismiss) with initial notifications
-      return INITIAL_NOTIFICATIONS.map(n => {
-        const stored_n = parsed.find(p => p.id === n.id);
-        if (stored_n) {
-          return { ...n, readAt: stored_n.readAt, dismissedAt: stored_n.dismissedAt };
-        }
-        return n;
-      });
+      const arr: { id: string; readAt: string | null; dismissedAt: string | null }[] = JSON.parse(stored);
+      return new Map(arr.map(item => [item.id, { readAt: item.readAt, dismissedAt: item.dismissedAt }]));
     }
   } catch {}
-  return INITIAL_NOTIFICATIONS;
+  return new Map();
 }
 
-function saveState(notifications: AppNotification[]): void {
+function savePersistedState(notifications: AppNotification[]): void {
   if (typeof localStorage === 'undefined') return;
   try {
-    // Only persist the per-user state fields (readAt, dismissedAt)
     const stateOnly = notifications.map(n => ({
       id: n.id,
       readAt: n.readAt,
@@ -179,13 +107,34 @@ function saveState(notifications: AppNotification[]): void {
   } catch {}
 }
 
+// In-memory store — will be replaced by backend API + WebSocket
+let _notifications: AppNotification[] = [];
+let _initialized = false;
+
+function getStore(): AppNotification[] {
+  if (!_initialized) {
+    // Restore persisted read/dismiss state for any notifications already in store
+    const persisted = loadPersistedState();
+    _notifications = _notifications.map(n => {
+      const state = persisted.get(n.id);
+      if (state) return { ...n, readAt: state.readAt, dismissedAt: state.dismissedAt };
+      return n;
+    });
+    _initialized = true;
+  }
+  return _notifications;
+}
+
 export const notificationService = {
   /**
    * Get all notifications (including dismissed — history is always retained).
    * BACKEND INTEGRATION: GET /api/v1/notifications
+   *
+   * When backend is connected, replace the in-memory store with API data.
+   * The empty default state is intentional — no fake notifications.
    */
   getNotifications(filters?: NotificationFilters): AppNotification[] {
-    const all = loadState();
+    const all = getStore();
     if (!filters || filters.status === 'all') return all;
     return all.filter(n => {
       if (filters.status === 'unread') return !n.readAt;
@@ -202,7 +151,7 @@ export const notificationService = {
    * Get active (non-dismissed) notifications for the notification feed.
    */
   getActiveNotifications(): AppNotification[] {
-    return loadState().filter(n => !n.dismissedAt);
+    return getStore().filter(n => !n.dismissedAt);
   },
 
   /**
@@ -210,7 +159,7 @@ export const notificationService = {
    * BACKEND INTEGRATION: GET /api/v1/notifications/unread-count
    */
   getUnreadCount(): number {
-    return loadState().filter(n => !n.readAt && !n.dismissedAt).length;
+    return getStore().filter(n => !n.readAt && !n.dismissedAt).length;
   },
 
   /**
@@ -219,13 +168,13 @@ export const notificationService = {
    * BACKEND INTEGRATION: POST /api/v1/notifications/:id/read
    */
   markRead(id: string): AppNotification[] {
-    const notifications = loadState().map(n =>
+    _notifications = getStore().map(n =>
       n.id === id && !n.readAt
         ? { ...n, readAt: new Date().toISOString() }
         : n
     );
-    saveState(notifications);
-    return notifications;
+    savePersistedState(_notifications);
+    return _notifications;
   },
 
   /**
@@ -234,11 +183,11 @@ export const notificationService = {
    */
   markAllRead(): AppNotification[] {
     const now = new Date().toISOString();
-    const notifications = loadState().map(n =>
+    _notifications = getStore().map(n =>
       !n.readAt ? { ...n, readAt: now } : n
     );
-    saveState(notifications);
-    return notifications;
+    savePersistedState(_notifications);
+    return _notifications;
   },
 
   /**
@@ -247,7 +196,7 @@ export const notificationService = {
    * BACKEND INTEGRATION: POST /api/v1/notifications/:id/dismiss
    */
   dismiss(id: string): AppNotification[] {
-    const notifications = loadState().map(n =>
+    _notifications = getStore().map(n =>
       n.id === id
         ? {
             ...n,
@@ -257,30 +206,107 @@ export const notificationService = {
           }
         : n
     );
-    saveState(notifications);
-    return notifications;
+    savePersistedState(_notifications);
+    return _notifications;
   },
 
   /**
    * Mark a support notification as read when the conversation is opened.
-   * Prevents the same support message from appearing as new after being read.
+   * Only marks notifications related to the specific conversation.
+   * BACKEND INTEGRATION: POST /api/v1/notifications/:id/read
    */
   markSupportNotificationRead(conversationId: string): void {
-    const notifications = loadState().map(n =>
+    _notifications = getStore().map(n =>
       n.type === 'support_message' && n.relatedEntity === conversationId && !n.readAt
         ? { ...n, readAt: new Date().toISOString() }
         : n
     );
-    saveState(notifications);
+    savePersistedState(_notifications);
   },
 
   /**
    * Get unread support notification count.
    */
   getUnreadSupportCount(): number {
-    return loadState().filter(n =>
+    return getStore().filter(n =>
       n.category === 'support' && !n.readAt && !n.dismissedAt
     ).length;
+  },
+
+  /**
+   * Add a notification from a real customer action outcome.
+   *
+   * IMPORTANT: Only call this AFTER backend API confirms the action succeeded.
+   * Do NOT call this speculatively before API confirmation.
+   *
+   * Deduplication: if sourceEventId is provided and a notification with the
+   * same sourceEventId already exists, the duplicate is silently ignored.
+   *
+   * Examples of correct usage:
+   *   - After PUT /api/v1/me/profile returns 200 → addFromCustomerAction(PROFILE_UPDATED)
+   *   - After POST /api/v1/me/deposits returns 201 → addFromCustomerAction(DEPOSIT_SUBMITTED)
+   *   - After POST /api/v1/bots returns 201 → addFromCustomerAction(BOT_CREATED)
+   *
+   * Examples of INCORRECT usage:
+   *   - On page load
+   *   - On tab change
+   *   - On dropdown open
+   *   - Before API confirmation
+   */
+  addFromCustomerAction(notification: Omit<AppNotification, 'readAt' | 'dismissedAt'>): AppNotification[] {
+    const store = getStore();
+
+    // Deduplication: prevent duplicate notifications for the same backend event
+    if (notification.sourceEventId) {
+      const exists = store.some(n => n.sourceEventId === notification.sourceEventId);
+      if (exists) return store;
+    }
+
+    const newNotification: AppNotification = {
+      ...notification,
+      readAt: null,
+      dismissedAt: null,
+    };
+
+    _notifications = [newNotification, ...store];
+    savePersistedState(_notifications);
+    return _notifications;
+  },
+
+  /**
+   * Accept a notification from a realtime WebSocket event.
+   *
+   * Conceptual flow:
+   *   WS event → notification service → query/cache update → bell badge → notification page
+   *
+   * This is the single centralized realtime entry point.
+   * Do NOT create separate WebSocket connections in individual components.
+   *
+   * Deduplication is applied using sourceEventId.
+   *
+   * BACKEND INTEGRATION: Connect to WS channel when backend is ready.
+   */
+  addFromRealtimeEvent(notification: Omit<AppNotification, 'readAt' | 'dismissedAt'>): AppNotification[] {
+    return this.addFromCustomerAction(notification);
+  },
+
+  /**
+   * Replace the entire notification store with data from the backend API.
+   * Merges persisted read/dismiss state with server data.
+   * BACKEND INTEGRATION: Call after GET /api/v1/notifications
+   */
+  hydrateFromBackend(serverNotifications: Omit<AppNotification, 'readAt' | 'dismissedAt'>[]): AppNotification[] {
+    const persisted = loadPersistedState();
+    _notifications = serverNotifications.map(n => {
+      const state = persisted.get(n.id);
+      return {
+        ...n,
+        readAt: state?.readAt ?? null,
+        dismissedAt: state?.dismissedAt ?? null,
+      };
+    });
+    _initialized = true;
+    return _notifications;
   },
 };
 
