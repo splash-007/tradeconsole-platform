@@ -314,6 +314,42 @@ export default function DashboardContent() {
           <MarketSummary instruments={instruments} />
         </div>
       </div>
+
+      {/* Available Programs — discovery section */}
+      <div className="rounded border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Available Programs</h3>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Account programs and financial services</p>
+          </div>
+          <Link href="/programs" className="flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: 'var(--primary)' }}>
+            View All <TrendingUp size={11} />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            { icon: DollarSign, label: 'Deposit Bonus', desc: 'Promotional credit', color: 'var(--primary)', href: '/programs' },
+            { icon: Shield, label: 'Referral Program', desc: 'Invite & earn', color: '#22c55e', href: '/programs' },
+            { icon: TrendingUp, label: 'Crypto Lending', desc: 'Earn on holdings', color: '#3b82f6', href: '/programs' },
+            { icon: Zap, label: 'Dividend Program', desc: 'Eligible accounts', color: 'var(--primary)', href: '/settings?tab=dividend' },
+          ].map((prog, i) => (
+            <Link
+              key={i}
+              href={prog.href}
+              className="flex flex-col gap-2 p-3 rounded border transition-all hover:border-primary/30 hover:shadow-sm"
+              style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', textDecoration: 'none' }}
+            >
+              <div className="w-7 h-7 rounded flex items-center justify-center" style={{ backgroundColor: `${prog.color}14` }}>
+                <prog.icon size={13} style={{ color: prog.color }} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{prog.label}</p>
+                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{prog.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
