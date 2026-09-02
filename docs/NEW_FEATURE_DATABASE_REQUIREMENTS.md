@@ -1021,3 +1021,360 @@ See §12 (Per-user Notification State) — `dismissed_at` field.
 - All amounts backend-authoritative
 - Recorded as double-entry ledger entries
 - Frontend must never modify balances
+
+---
+
+## 30. Customer Profile Persistence
+
+**Purpose:** Store the complete customer profile including personal information, employment status, address, and financial preferences. This is the authoritative customer identity record.
+
+**Suggested Table:** `customer_profiles`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id (UNIQUE, NOT NULL)
+- `first_name` — varchar(128) NOT NULL
+- `last_name` — varchar(128) NOT NULL
+- `email` — varchar(256) NOT NULL (read-only after creation, change via support)
+- `phone` — varchar(32)
+- `phone_country_code` — varchar(8)
+- `date_of_birth` — date
+- `nationality` — varchar(128)
+- `country` — varchar(128)
+- `address` — varchar(512)
+- `city` — varchar(128)
+- `postal_code` — varchar(32)
+- `occupation` — varchar(256)
+- `employer_name` — varchar(256)
+- `employment_status` — enum: employed | self_employed | retired | unemployed | student | other
+- `annual_income_range` — varchar(64)
+- `preferred_currency` — varchar(16)
+- `language` — varchar(16)
+- `timezone` — varchar(64)
+- `account_status` — enum: active | suspended | restricted | closed | pending
+- `account_type` — varchar(64)
+- `member_since` — date
+- `created_at` — timestamptz NOT NULL
+- `updated_at` — timestamptz NOT NULL
+
+**Relationships:**
+- Belongs to `users` (1:1)
+- Referenced by KYC, dividend eligibility, program eligibility
+
+**Ownership:** Per-user. Customer can update personal fields. Sensitive fields (email, account_status) require admin/support authorization.
+
+**Mutability:** Mutable. All changes are audited.
+
+**API Requirements:**
+- `GET /api/v1/me/profile` — get current customer profile
+- `PUT /api/v1/me/profile/personal` — update personal information
+- `PUT /api/v1/me/profile/employment` — update employment information
+- `PUT /api/v1/me/profile/preferences` — update preferences
+
+**Permissions:** Customer reads/updates own profile. Admin can view and update with audit trail.
+
+**Audit Events:** profile_personal_updated, profile_employment_updated, profile_preferences_updated
+
+**Storage:** PostgreSQL
+
+---
+
+## 31. Employment Status
+
+**Purpose:** Track customer employment status as one eligibility signal for backend program rules. Employment status alone does not grant program eligibility.
+
+**Note:** Employment status is stored as part of `customer_profiles.employment_status`.
+
+**Possible Values:**
+- `employed` — Full-time or part-time employment
+- `self_employed` — Self-employed or business owner
+- `retired` — Retired (does NOT automatically grant dividend eligibility)
+- `unemployed` — Currently unemployed
+- `student` — Student
+- `other` — Other employment situation
+
+**Eligibility Rule:** Backend determines program eligibility using employment status as one of multiple signals (account status, KYC, jurisdiction, admin authorization). Frontend must never derive eligibility from employment status alone.
+
+---
+
+## 32. Customer Financial Preferences
+
+**Purpose:** Store customer display and trading preferences. Separate from profile identity fields.
+
+**Note:** Preferences are stored as part of `customer_profiles` or a separate `customer_preferences` table depending on implementation.
+
+**Required Fields:**
+- `preferred_currency` — ISO currency code
+- `language` — ISO language code
+- `timezone` — IANA timezone string
+- `number_format` — locale string (e.g. en-US, de-DE)
+- `market_default_view` — enum: all | forex | crypto | indices | commodities
+- `chart_type` — enum: candlestick | line | bar | area
+- `chart_interval` — varchar(8)
+- `show_pnl_in_header` — boolean
+- `compact_tables` — boolean
+
+**API Requirements:**
+- `GET /api/v1/me/preferences`
+- `PUT /api/v1/me/preferences`
+
+---
+
+## 33. Deposit Requests
+
+**Purpose:** Track all customer deposit requests from submission through completion.
+
+**Suggested Table:** `deposit_requests`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `method_id` — uuid, FK → deposit_methods.id
+- `currency` — varchar(16) NOT NULL
+- `amount` — numeric(18,8) NOT NULL
+- `fee` — numeric(18,8) NOT NULL default 0
+- `net_amount` — numeric(18,8) NOT NULL (amount - fee, backend-calculated)
+- `status` — enum: draft | submitted | pending | processing | completed | failed | cancelled | rejected
+- `reference` — varchar(128) UNIQUE (platform reference)
+- `external_reference` — varchar(256) (payment provider reference)
+- `instructions` — text (deposit instructions shown to customer)
+- `ledger_transaction_id` — uuid, nullable (FK → financial ledger, set on completion)
+- `submitted_at` — timestamptz
+- `processed_at` — timestamptz, nullable
+- `created_at` — timestamptz NOT NULL
+- `updated_at` — timestamptz NOT NULL
+
+**Relationships:**
+- Belongs to `users`
+- References `deposit_methods`
+- References financial ledger on completion
+
+**Ownership:** Per-user. Customer can view own deposits. Admin can view and manage all.
+
+**Status Lifecycle:** draft → submitted → pending → processing → completed | failed | cancelled | rejected
+
+**Mutability:** Status transitions only. Amount and method are immutable after submission.
+
+**API Requirements:**
+- `GET  /api/v1/me/deposits` — list customer deposits
+- `POST /api/v1/me/deposits` — submit deposit request
+- `GET  /api/v1/me/deposits/:id` — get specific deposit
+
+**Permissions:** Customer reads own deposits. Admin manages all.
+
+**Audit Events:** deposit_submitted, deposit_processing, deposit_completed, deposit_failed, deposit_rejected
+
+**Ledger Interaction:** On completion, backend creates double-entry ledger: debit payment received → credit customer account. Frontend must never credit balances.
+
+**Storage:** PostgreSQL
+
+---
+
+## 34. Withdrawal Requests
+
+**Purpose:** Track all customer withdrawal requests from submission through completion or rejection.
+
+**Suggested Table:** `withdrawal_requests`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `destination_id` — uuid, FK → withdrawal_destinations.id
+- `currency` — varchar(16) NOT NULL
+- `amount` — numeric(18,8) NOT NULL
+- `fee` — numeric(18,8) NOT NULL default 0
+- `net_amount` — numeric(18,8) NOT NULL (backend-calculated)
+- `status` — enum: draft | submitted | pending_review | approved | processing | completed | rejected | cancelled | failed
+- `reference` — varchar(128) UNIQUE
+- `security_verification_type` — varchar(64) (2fa, otp, etc.)
+- `reviewed_by` — uuid, nullable (FK → staff users)
+- `review_note` — text, nullable
+- `ledger_transaction_id` — uuid, nullable
+- `submitted_at` — timestamptz
+- `reviewed_at` — timestamptz, nullable
+- `processed_at` — timestamptz, nullable
+- `created_at` — timestamptz NOT NULL
+- `updated_at` — timestamptz NOT NULL
+
+**Relationships:**
+- Belongs to `users`
+- References `withdrawal_destinations`
+- References financial ledger on completion
+
+**Ownership:** Per-user. Customer views own withdrawals. Admin reviews and approves.
+
+**Status Lifecycle:** draft → submitted → pending_review → approved → processing → completed | rejected | cancelled | failed
+
+**Mutability:** Status transitions only. Amount and destination are immutable after submission.
+
+**API Requirements:**
+- `GET  /api/v1/me/withdrawals` — list customer withdrawals
+- `POST /api/v1/me/withdrawals` — submit withdrawal request
+- `GET  /api/v1/me/withdrawals/:id` — get specific withdrawal
+
+**Permissions:** Customer reads own withdrawals. Admin reviews and approves.
+
+**Audit Events:** withdrawal_submitted, withdrawal_approved, withdrawal_rejected, withdrawal_completed, withdrawal_failed
+
+**Ledger Interaction:** On approval, backend reserves funds. On completion, double-entry: debit customer account → credit payment sent. Frontend must never debit balances.
+
+**Storage:** PostgreSQL
+
+---
+
+## 35. Transfer Requests
+
+**Purpose:** Track internal and wallet-to-wallet transfer requests. Transfer is distinct from withdrawal.
+
+**Suggested Table:** `transfer_requests`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `type` — enum: internal_account | wallet_to_wallet | customer_transfer
+- `currency` — varchar(16) NOT NULL
+- `amount` — numeric(18,8) NOT NULL
+- `fee` — numeric(18,8) NOT NULL default 0
+- `net_amount` — numeric(18,8) NOT NULL
+- `source_account_id` — uuid, nullable
+- `destination_account_id` — uuid, nullable
+- `destination_reference` — varchar(256), nullable
+- `status` — enum: draft | submitted | pending_review | processing | completed | failed | cancelled | rejected
+- `reference` — varchar(128) UNIQUE
+- `note` — text, nullable
+- `ledger_transaction_id` — uuid, nullable
+- `created_at` — timestamptz NOT NULL
+- `updated_at` — timestamptz NOT NULL
+
+**Relationships:**
+- Belongs to `users`
+- References financial ledger on completion
+
+**Ownership:** Per-user. Customer views own transfers. Admin can view all.
+
+**Status Lifecycle:** draft → submitted → pending_review → processing → completed | failed | cancelled | rejected
+
+**API Requirements:**
+- `GET  /api/v1/me/transfers` — list customer transfers
+- `POST /api/v1/me/transfers` — submit transfer request
+- `GET  /api/v1/me/transfers/:id` — get specific transfer
+
+**Permissions:** Customer reads own transfers. Admin manages all.
+
+**Audit Events:** transfer_submitted, transfer_processing, transfer_completed, transfer_failed
+
+**Ledger Interaction:** Double-entry: debit source account → credit destination account. Frontend must never modify balances.
+
+**Storage:** PostgreSQL
+
+---
+
+## 36. Funding Methods
+
+**Purpose:** Store platform-configured deposit methods available to customers. Methods are configured by admin, not by customers.
+
+**Suggested Table:** `deposit_methods`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `type` — enum: bank_transfer | card | crypto | other
+- `label` — varchar(128) NOT NULL
+- `description` — text
+- `minimum_amount` — numeric(18,8), nullable (null = no minimum)
+- `maximum_amount` — numeric(18,8), nullable
+- `fee_description` — varchar(256), nullable
+- `processing_time` — varchar(128), nullable
+- `currencies` — varchar[] (supported currencies)
+- `enabled` — boolean NOT NULL default true
+- `jurisdiction_restrictions` — varchar[] (restricted jurisdictions)
+- `created_at` — timestamptz NOT NULL
+- `updated_at` — timestamptz NOT NULL
+
+**Ownership:** Platform-level. Admin manages. Customer reads available methods only.
+
+**API Requirements:**
+- `GET /api/v1/deposits/methods` — list available deposit methods for current customer
+
+**Permissions:** Admin creates/updates methods. Customer reads enabled methods only.
+
+**Storage:** PostgreSQL
+
+---
+
+## 37. Withdrawal Destinations
+
+**Purpose:** Store customer-registered withdrawal destinations (bank accounts, crypto addresses). Destinations must be verified before use.
+
+**Suggested Table:** `withdrawal_destinations`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `user_id` — uuid, FK → users.id NOT NULL
+- `type` — enum: bank_account | crypto_address | saved_destination
+- `label` — varchar(128) NOT NULL
+- `details` — varchar(512) NOT NULL (masked for display)
+- `currency` — varchar(16)
+- `verified` — boolean NOT NULL default false
+- `verified_at` — timestamptz, nullable
+- `verified_by` — uuid, nullable (FK → staff users)
+- `active` — boolean NOT NULL default true
+- `created_at` — timestamptz NOT NULL
+- `updated_at` — timestamptz NOT NULL
+
+**Ownership:** Per-user. Customer manages own destinations. Admin verifies.
+
+**Mutability:** Destinations are immutable after verification. New destination required for changes.
+
+**API Requirements:**
+- `GET  /api/v1/me/withdrawal-destinations` — list customer destinations
+- `POST /api/v1/me/withdrawal-destinations` — add new destination
+
+**Permissions:** Customer reads/adds own destinations. Admin verifies.
+
+**Audit Events:** destination_added, destination_verified, destination_deactivated
+
+**Storage:** PostgreSQL
+
+---
+
+## 38. Financial Action Status History
+
+**Purpose:** Append-only audit trail of all status transitions for deposits, withdrawals, and transfers.
+
+**Suggested Table:** `financial_action_status_history`
+
+**Required Fields:**
+- `id` — uuid, primary key
+- `action_type` — enum: deposit | withdrawal | transfer
+- `action_id` — uuid NOT NULL (FK to respective table)
+- `user_id` — uuid, FK → users.id
+- `from_status` — varchar(64)
+- `to_status` — varchar(64) NOT NULL
+- `changed_by` — uuid, nullable (FK → users, null = system)
+- `note` — text, nullable
+- `created_at` — timestamptz NOT NULL
+
+**Ownership:** System-generated. Append-only. No updates or deletes.
+
+**Mutability:** Append-only. Immutable after creation.
+
+**Storage:** PostgreSQL
+
+**Audit Events:** All status transitions are themselves audit events.
+
+---
+
+## Financial Balance Authority
+
+**CRITICAL RULE:** Frontend must NEVER directly change a customer's authoritative balance.
+
+**Required Flow:**
+1. Customer submits financial action (deposit/withdrawal/transfer)
+2. Backend validates all rules (KYC, limits, restrictions, security)
+3. Backend creates financial ledger entry (double-entry)
+4. Balance/read model updates from ledger
+5. Frontend refreshes balance from API
+
+**No client-side balance manipulation is permitted under any circumstances.**
+
+All balance values displayed on the frontend must come from backend API responses.

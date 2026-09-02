@@ -1,33 +1,39 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { User, Shield, Bell, Eye, EyeOff, Smartphone, Key, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Phone, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info, Gift, Users, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { User, Shield, Bell, Eye, EyeOff, Smartphone, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info, Gift } from 'lucide-react';
 import KYCVerificationFlow from '@/components/kyc/KYCVerificationFlow';
 import { kycService, KYCStatus } from '@/services/kyc.service';
 import { DividendEligibilityStatus, EmploymentStatus } from '@/services/dividend.service';
 import { preferencesService, UserPreferences } from '@/services/preferences.service';
+import Link from 'next/link';
 
 type SettingsSection =
-  | 'overview' |'personal' |'account' |'programs' |'kyc' |'security' |'preferences' |'notifications' |'dividend' |'documents' |'sessions';
+  | 'overview' | 'personal' | 'account' | 'kyc' | 'security' | 'preferences' | 'notifications' | 'dividend' | 'documents' | 'sessions';
 
 interface NavItem {
   id: SettingsSection;
   label: string;
   icon: React.ElementType;
   badge?: string;
+  externalHref?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'personal', label: 'Personal Information', icon: User },
   { id: 'account', label: 'Account Information', icon: CreditCard },
-  { id: 'programs', label: 'Programs & Benefits', icon: Gift },
   { id: 'kyc', label: 'Verification / KYC', icon: FileCheck },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'preferences', label: 'Preferences', icon: Settings },
   { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'dividend', label: 'Dividend', icon: Award },
   { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'sessions', label: 'Sessions & Login Activity', icon: Monitor },
 ];
+
+// Programs & Benefits is a separate dedicated page — not a Settings panel
+const PROGRAMS_NAV_ITEM = { label: 'Programs & Benefits', icon: Gift, href: '/programs' };
 
 const MOCK_SESSIONS = [
   { id: 's1', device: 'Chrome on macOS', location: 'London, UK', lastActive: 'Active now', current: true, browser: 'Chrome 127', created: '27 Aug 2026', expires: '26 Sep 2026' },
@@ -94,13 +100,39 @@ const DIVIDEND_STATUS_CONFIG: Record<DividendEligibilityStatus, { label: string;
   rejected: { label: 'Rejected', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
 };
 
+const VALID_SECTIONS: SettingsSection[] = [
+  'overview', 'personal', 'account', 'kyc', 'security',
+  'preferences', 'notifications', 'dividend', 'documents', 'sessions',
+];
+
 interface SettingsContentProps {
   initialTab?: string;
 }
 
 export default function SettingsContent({ initialTab }: SettingsContentProps) {
-  const [activeSection, setActiveSection] = useState<SettingsSection>((initialTab as SettingsSection) || 'overview');
+  const router = useRouter();
+
+  const resolveSection = (tab?: string): SettingsSection => {
+    if (tab && VALID_SECTIONS.includes(tab as SettingsSection)) {
+      return tab as SettingsSection;
+    }
+    return 'overview';
+  };
+
+  const [activeSection, setActiveSection] = useState<SettingsSection>(resolveSection(initialTab));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Sync section with initialTab prop changes (URL param changes)
+  useEffect(() => {
+    setActiveSection(resolveSection(initialTab));
+  }, [initialTab]);
+
+  // Update URL when section changes
+  const navigateToSection = useCallback((section: SettingsSection) => {
+    setActiveSection(section);
+    setMobileNavOpen(false);
+    router.replace(`/settings?tab=${section}`, { scroll: false });
+  }, [router]);
 
   // Profile state
   const [firstName, setFirstName] = useState('Alex');
@@ -119,6 +151,9 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
   const [annualIncome, setAnnualIncome] = useState('75000-100000');
   const [employmentStatus, setEmploymentStatus] = useState<EmploymentStatus>('employed');
   const [saved, setSaved] = useState(false);
+
+  // Dirty tracking for unsaved changes warning
+  const [isDirty, setIsDirty] = useState(false);
 
   // Security state
   const [showCurrentPw, setShowCurrentPw] = useState(false);
@@ -151,6 +186,10 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
     dividends: true,
   });
 
+  // Unsaved changes dialog
+  const [pendingSection, setPendingSection] = useState<SettingsSection | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+
   useEffect(() => {
     kycService.getKYCStatus('cust-001').then(data => {
       setKycStatus(data.status);
@@ -160,6 +199,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
 
   const handleSave = () => {
     setSaved(true);
+    setIsDirty(false);
     setTimeout(() => setSaved(false), 2500);
   };
 
@@ -182,6 +222,30 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
   const revokeSession = (id: string) => setSessions(prev => prev.filter(s => s.id !== id));
   const revokeAllOther = () => setSessions(prev => prev.filter(s => s.current));
 
+  // Handle section navigation with unsaved changes check
+  const handleSectionClick = (section: SettingsSection) => {
+    if (isDirty && activeSection === 'personal') {
+      setPendingSection(section);
+      setShowUnsavedDialog(true);
+    } else {
+      navigateToSection(section);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setIsDirty(false);
+    setShowUnsavedDialog(false);
+    if (pendingSection) {
+      navigateToSection(pendingSection);
+      setPendingSection(null);
+    }
+  };
+
+  const handleContinueEditing = () => {
+    setShowUnsavedDialog(false);
+    setPendingSection(null);
+  };
+
   const inputCls = "w-full px-3 py-2 rounded text-sm border focus:outline-none focus:ring-1 focus:ring-yellow-500/30 transition-colors";
   const inputStyle = { backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' };
 
@@ -191,6 +255,37 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
 
   return (
     <div className="py-4 max-w-6xl">
+      {/* Unsaved changes dialog */}
+      {showUnsavedDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="w-full max-w-sm rounded-lg border p-5 shadow-2xl" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle size={16} style={{ color: '#f59e0b' }} />
+              <h3 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Unsaved Changes</h3>
+            </div>
+            <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
+              You have unsaved changes to your profile. If you leave now, your changes will be lost.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDiscardChanges}
+                className="flex-1 py-2 rounded text-sm font-medium border transition-all hover:bg-muted"
+                style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+              >
+                Discard Changes
+              </button>
+              <button
+                onClick={handleContinueEditing}
+                className="flex-1 py-2 rounded text-sm font-semibold transition-all"
+                style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+              >
+                Continue Editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-5">
         <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Profile &amp; Settings</h1>
         <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Manage your account, security, verification, and preferences</p>
@@ -214,7 +309,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             {NAV_ITEMS.map(item => (
               <button
                 key={item.id}
-                onClick={() => { setActiveSection(item.id); setMobileNavOpen(false); }}
+                onClick={() => handleSectionClick(item.id)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
                 style={{ borderColor: 'var(--border)', color: activeSection === item.id ? 'var(--primary)' : 'var(--foreground)', backgroundColor: activeSection === item.id ? 'rgba(212,168,0,0.06)' : 'transparent' }}
               >
@@ -223,6 +318,15 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 {item.id === 'kyc' && kycIncomplete && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
+            {/* Programs & Benefits — navigates to /programs */}
+            <Link
+              href="/programs"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
+            >
+              <Gift size={13} />
+              Programs &amp; Benefits
+            </Link>
           </div>
         )}
       </div>
@@ -234,8 +338,8 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             {NAV_ITEMS.map(item => (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+                onClick={() => handleSectionClick(item.id)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b transition-colors hover:bg-muted"
                 style={{ borderColor: 'var(--border)', color: activeSection === item.id ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: activeSection === item.id ? 'rgba(212,168,0,0.06)' : 'transparent' }}
               >
                 <item.icon size={13} />
@@ -243,6 +347,15 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 {item.id === 'kyc' && kycIncomplete && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
+            {/* Programs & Benefits — dedicated page link */}
+            <Link
+              href="/programs"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)', display: 'flex' }}
+            >
+              <Gift size={13} />
+              <span className="flex-1">Programs &amp; Benefits</span>
+            </Link>
           </div>
         </div>
 
@@ -301,13 +414,13 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                 {[
                   { label: 'Account Status', value: 'Active', color: '#22c55e', icon: CheckCircle, action: null },
-                  { label: 'KYC Status', value: KYC_STATUS_CONFIG[kycStatus].label, color: KYC_STATUS_CONFIG[kycStatus].color, icon: FileCheck, action: kycIncomplete ? () => setActiveSection('kyc') : null, actionLabel: 'Complete' },
-                  { label: 'Security', value: twoFaEnabled ? '2FA Enabled' : '2FA Disabled', color: twoFaEnabled ? '#22c55e' : '#f59e0b', icon: Shield, action: () => setActiveSection('security'), actionLabel: 'Manage' },
-                  { label: 'Display Currency', value: prefs.displayCurrency, color: 'var(--primary)', icon: DollarSign, action: () => setActiveSection('preferences'), actionLabel: 'Change' },
-                  { label: 'Language', value: prefs.language.toUpperCase(), color: 'var(--foreground)', icon: Globe, action: () => setActiveSection('preferences'), actionLabel: 'Change' },
-                  { label: 'Time Zone', value: prefs.timezone, color: 'var(--foreground)', icon: Clock, action: () => setActiveSection('preferences'), actionLabel: 'Change' },
-                  { label: 'Notifications', value: 'Configured', color: '#22c55e', icon: Bell, action: () => setActiveSection('notifications'), actionLabel: 'Manage' },
-                  { label: 'Active Sessions', value: `${sessions.length} device${sessions.length !== 1 ? 's' : ''}`, color: 'var(--foreground)', icon: Monitor, action: () => setActiveSection('sessions'), actionLabel: 'View' },
+                  { label: 'KYC Status', value: KYC_STATUS_CONFIG[kycStatus].label, color: KYC_STATUS_CONFIG[kycStatus].color, icon: FileCheck, action: kycIncomplete ? () => navigateToSection('kyc') : null, actionLabel: 'Complete' },
+                  { label: 'Security', value: twoFaEnabled ? '2FA Enabled' : '2FA Disabled', color: twoFaEnabled ? '#22c55e' : '#f59e0b', icon: Shield, action: () => navigateToSection('security'), actionLabel: 'Manage' },
+                  { label: 'Display Currency', value: prefs.displayCurrency, color: 'var(--primary)', icon: DollarSign, action: () => navigateToSection('preferences'), actionLabel: 'Change' },
+                  { label: 'Language', value: prefs.language.toUpperCase(), color: 'var(--foreground)', icon: Globe, action: () => navigateToSection('preferences'), actionLabel: 'Change' },
+                  { label: 'Time Zone', value: prefs.timezone, color: 'var(--foreground)', icon: Clock, action: () => navigateToSection('preferences'), actionLabel: 'Change' },
+                  { label: 'Notifications', value: 'Configured', color: '#22c55e', icon: Bell, action: () => navigateToSection('notifications'), actionLabel: 'Manage' },
+                  { label: 'Active Sessions', value: `${sessions.length} device${sessions.length !== 1 ? 's' : ''}`, color: 'var(--foreground)', icon: Monitor, action: () => navigateToSection('sessions'), actionLabel: 'View' },
                 ].map((card, i) => (
                   <div key={i} className="rounded border p-3 flex flex-col gap-2" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                     <div className="flex items-center justify-between">
@@ -328,10 +441,10 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--foreground)' }}>Quick Actions</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { label: 'Complete Verification', icon: FileCheck, action: () => setActiveSection('kyc'), show: kycIncomplete },
-                    { label: 'Change Password', icon: Lock, action: () => setActiveSection('security'), show: true },
-                    { label: 'Manage Sessions', icon: Monitor, action: () => setActiveSection('sessions'), show: true },
-                    { label: 'Update Preferences', icon: Settings, action: () => setActiveSection('preferences'), show: true },
+                    { label: 'Complete Verification', icon: FileCheck, action: () => navigateToSection('kyc'), show: kycIncomplete },
+                    { label: 'Change Password', icon: Lock, action: () => navigateToSection('security'), show: true },
+                    { label: 'Manage Sessions', icon: Monitor, action: () => navigateToSection('sessions'), show: true },
+                    { label: 'Update Preferences', icon: Settings, action: () => navigateToSection('preferences'), show: true },
                   ].filter(a => a.show).map((action, i) => (
                     <button
                       key={i}
@@ -356,6 +469,11 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                   <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Personal Information</h2>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Sensitive fields are subject to backend authorization before changes take effect.</p>
                 </div>
+                {isDirty && (
+                  <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
+                    Unsaved changes
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-4">
@@ -371,11 +489,11 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>First Name</label>
-                  <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={firstName} onChange={e => { setFirstName(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Last Name</label>
-                  <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={lastName} onChange={e => { setLastName(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Email Address <span className="text-xs opacity-60">(contact support to change)</span></label>
@@ -384,37 +502,37 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Phone Number</label>
                   <div className="flex gap-2">
-                    <select value={phoneCode} onChange={e => setPhoneCode(e.target.value)} className="text-sm px-2 py-2 rounded border focus:outline-none shrink-0" style={{ ...inputStyle, width: '90px' }}>
+                    <select value={phoneCode} onChange={e => { setPhoneCode(e.target.value); setIsDirty(true); }} className="text-sm px-2 py-2 rounded border focus:outline-none shrink-0" style={{ ...inputStyle, width: '90px' }}>
                       {COUNTRY_CODES.map((c, i) => <option key={`${c.code}-${i}`} value={c.code}>{c.flag} {c.code}</option>)}
                     </select>
-                    <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, ''))} className={`flex-1 ${inputCls}`} style={inputStyle} />
+                    <input type="tel" value={phoneNumber} onChange={e => { setPhoneNumber(e.target.value.replace(/\D/g, '')); setIsDirty(true); }} className={`flex-1 ${inputCls}`} style={inputStyle} />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Date of Birth</label>
-                  <input type="date" value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="date" value={dateOfBirth} onChange={e => { setDateOfBirth(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Nationality</label>
-                  <input type="text" value={nationality} onChange={e => setNationality(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={nationality} onChange={e => { setNationality(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Country of Residence</label>
-                  <select value={country} onChange={e => setCountry(e.target.value)} className={inputCls} style={inputStyle}>
+                  <select value={country} onChange={e => { setCountry(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle}>
                     {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Address</label>
-                  <input type="text" value={address} onChange={e => setAddress(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={address} onChange={e => { setAddress(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>City</label>
-                  <input type="text" value={city} onChange={e => setCity(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={city} onChange={e => { setCity(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Postal Code</label>
-                  <input type="text" value={postalCode} onChange={e => setPostalCode(e.target.value)} className={inputCls} style={inputStyle} />
+                  <input type="text" value={postalCode} onChange={e => { setPostalCode(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                 </div>
               </div>
 
@@ -423,25 +541,27 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Employment Status</label>
-                    <select value={employmentStatus} onChange={e => setEmploymentStatus(e.target.value as EmploymentStatus)} className={inputCls} style={inputStyle}>
+                    <select value={employmentStatus} onChange={e => { setEmploymentStatus(e.target.value as EmploymentStatus); setIsDirty(true); }} className={inputCls} style={inputStyle}>
                       <option value="employed">Employed</option>
                       <option value="self_employed">Self-Employed</option>
                       <option value="retired">Retired</option>
                       <option value="unemployed">Unemployed</option>
+                      <option value="student">Student</option>
                       <option value="other">Other</option>
                     </select>
+                    <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Employment status is one of several signals used by backend eligibility rules.</p>
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Occupation</label>
-                    <input type="text" value={occupation} onChange={e => setOccupation(e.target.value)} className={inputCls} style={inputStyle} />
+                    <input type="text" value={occupation} onChange={e => { setOccupation(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Employer / Company</label>
-                    <input type="text" value={employer} onChange={e => setEmployer(e.target.value)} className={inputCls} style={inputStyle} />
+                    <input type="text" value={employer} onChange={e => { setEmployer(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle} />
                   </div>
                   <div>
                     <label className="block text-xs mb-1.5" style={{ color: 'var(--muted-foreground)' }}>Annual Income Range</label>
-                    <select value={annualIncome} onChange={e => setAnnualIncome(e.target.value)} className={inputCls} style={inputStyle}>
+                    <select value={annualIncome} onChange={e => { setAnnualIncome(e.target.value); setIsDirty(true); }} className={inputCls} style={inputStyle}>
                       <option value="under-25000">Under $25,000</option>
                       <option value="25000-50000">$25,000 – $50,000</option>
                       <option value="50000-75000">$50,000 – $75,000</option>
@@ -456,7 +576,14 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
               <div className="flex items-center justify-between pt-2">
                 {saved && <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--positive)' }}><Check size={13} /> Saved successfully</div>}
                 <div className="flex-1" />
-                <button onClick={handleSave} className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Save Changes</button>
+                <button
+                  onClick={handleSave}
+                  disabled={!isDirty}
+                  className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
           )}
@@ -612,22 +739,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                   </button>
                 </div>
               </div>
-
-              <div className="rounded border p-4 sm:p-6" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <div className="flex items-center gap-2 mb-1">
-                  <Key size={15} style={{ color: 'var(--primary)' }} />
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>API Keys</h3>
-                </div>
-                <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>API keys allow programmatic access to your account. Keep them secret.</p>
-                <div className="rounded border p-3 flex items-center justify-between gap-3" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Main API Key</p>
-                    <p className="text-xs font-mono mt-0.5 truncate" style={{ color: 'var(--muted-foreground)' }}>tc_••••••••••••••••••••••••••••••••</p>
-                  </div>
-                  <button className="text-xs px-2 py-1 rounded border transition-all hover:bg-muted shrink-0" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>Reveal</button>
-                </div>
-                <button className="mt-3 text-xs px-3 py-1.5 rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>+ Generate New Key</button>
-              </div>
+              {/* API Keys section intentionally removed from customer-facing Settings */}
             </div>
           )}
 
@@ -759,44 +871,6 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             </div>
           )}
 
-          {/* ── PROGRAMS & BENEFITS ── */}
-          {activeSection === 'programs' && (
-            <div className="space-y-4">
-              <div className="mb-5">
-                <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Programs &amp; Benefits</h2>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Account programs and financial services available to eligible Trade Console customers.</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  { icon: Gift, title: 'Deposit Bonus', desc: 'Receive additional account credit on qualifying promotional deposits.', color: 'var(--primary)', href: '/programs' },
-                  { icon: Users, title: 'Referral Program', desc: 'Invite clients and earn rewards when they qualify under program terms.', color: '#22c55e', href: '/programs' },
-                  { icon: TrendingUp, title: 'Crypto Lending', desc: 'Allocate eligible cryptocurrency to approved lending programs.', color: '#3b82f6', href: '/programs' },
-                  { icon: Award, title: 'Dividend Program', desc: 'Eligible customers may participate in configured dividend programs.', color: 'var(--primary)', href: '/settings?tab=dividend' },
-                ].map((card, i) => (
-                  <a
-                    key={i}
-                    href={card.href}
-                    className="flex items-start gap-3 p-4 rounded border transition-all hover:shadow-sm hover:border-primary/30 group"
-                    style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', textDecoration: 'none' }}
-                  >
-                    <div className="w-9 h-9 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: `${card.color}14`, border: `1px solid ${card.color}30` }}>
-                      <card.icon size={16} style={{ color: card.color }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{card.title}</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{card.desc}</p>
-                    </div>
-                    <ChevronDown size={13} className="-rotate-90 shrink-0 mt-1 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--muted-foreground)' }} />
-                  </a>
-                ))}
-              </div>
-              <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
-                <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-                <p style={{ color: 'var(--muted-foreground)' }}>Program availability, eligibility, and terms are subject to jurisdiction, account status, and platform configuration. All financial values are backend-authoritative.</p>
-              </div>
-            </div>
-          )}
-
           {/* ── DIVIDEND ── */}
           {activeSection === 'dividend' && <DividendSection employmentStatus={employmentStatus} />}
 
@@ -848,7 +922,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                   <div className="text-center py-6">
                     <FileCheck size={24} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)' }} />
                     <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>No KYC documents uploaded yet.</p>
-                    <button onClick={() => setActiveSection('kyc')} className="mt-3 text-xs px-3 py-1.5 rounded font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Complete Verification</button>
+                    <button onClick={() => navigateToSection('kyc')} className="mt-3 text-xs px-3 py-1.5 rounded font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Complete Verification</button>
                   </div>
                 )}
               </div>
@@ -946,10 +1020,6 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
 
 // ── DIVIDEND SECTION ──
 function DividendSection({ employmentStatus }: { employmentStatus: EmploymentStatus }) {
-  const [showClaimModal, setShowClaimModal] = useState(false);
-  const [claimStep, setClaimStep] = useState(1);
-  const [declarationAccepted, setDeclarationAccepted] = useState(false);
-
   const eligibilityStatus: DividendEligibilityStatus = 'not_evaluated';
   const statusCfg = DIVIDEND_STATUS_CONFIG[eligibilityStatus];
 
