@@ -8,6 +8,12 @@ const repoRoot = path.resolve(__dirname, '../..');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: [
+    '*.rocket.new',
+    '*.builtwithrocket.new',
+    'localhost',
+    '127.0.0.1',
+  ],
   productionBrowserSourceMaps: true,
   distDir: process.env.DIST_DIR || '.next',
   typescript: {

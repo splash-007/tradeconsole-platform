@@ -2,6 +2,13 @@ import { imageHosts } from './image-hosts.config.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow Rocket.new preview iframe to load dev assets (/_next/*, HMR websocket).
+  allowedDevOrigins: [
+    '*.rocket.new',
+    '*.builtwithrocket.new',
+    'localhost',
+    '127.0.0.1',
+  ],
   productionBrowserSourceMaps: false,
   distDir: process.env.DIST_DIR || '.next',
   typescript: {
