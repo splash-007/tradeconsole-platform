@@ -35,9 +35,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
   },
+  // This is a private authenticated trading platform.
+  // Every page must be excluded from all search engine indexes.
+  // This global metadata is inherited by every route in the application.
   robots: {
     index: false,
     follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      nosnippet: true,
+    },
   },
 };
 
