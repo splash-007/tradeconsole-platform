@@ -28,11 +28,19 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
   },
-  // Default: private app pages should not be indexed.
-  // Public marketing pages can override this with their own metadata export.
+  // This is a private authenticated trading platform.
+  // Every page must be excluded from all search engine indexes.
+  // This global metadata is inherited by every route in the application.
   robots: {
     index: false,
     follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      nosnippet: true,
+    },
   },
 };
 
@@ -43,7 +51,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
 
         <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fc3rypxtovaul5814back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.20" />
-        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></body>
+        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.3" /></body>
     </html>
   );
 }
