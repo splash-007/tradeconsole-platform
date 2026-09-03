@@ -4,6 +4,7 @@ import { watchlistService } from '@/services/watchlist.service';
 import { marketsService, MarketInstrument } from '@/services/markets.service';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { Star, Search, TrendingUp, TrendingDown, ExternalLink, BarChart2 } from 'lucide-react';
+import AssetIcon from '@/components/ui/AssetIcon';
 import Link from 'next/link';
 
 type SortField = 'name' | 'lastPrice' | 'changePct24h';
@@ -214,10 +215,7 @@ export default function WatchlistContent() {
                       {/* Instrument */}
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0"
-                            style={{ backgroundColor: 'rgba(245,196,0,0.1)', color: 'var(--primary)', border: '1px solid rgba(245,196,0,0.2)' }}>
-                            {inst.baseCurrency.slice(0, 3)}
-                          </div>
+                          <AssetIcon symbol={inst.symbol} assetType={inst.category === 'crypto' ? 'crypto' : inst.category === 'forex' ? 'forex' : 'stock'} size={26} />
                           <div>
                             <div className="flex items-center gap-1">
                               <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
