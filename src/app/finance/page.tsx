@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { fundsService, CustomerBalance, FundsHistoryEntry, FundsHistoryStatus } from '@/services/funds.service';
 import { depositService, DepositMethodConfig } from '@/services/deposit.service';
@@ -664,14 +665,49 @@ function HistoryPanel({ history }: { history: FundsHistoryEntry[] }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function FinancePage() {
-  const [activeTab, setActiveTab] = useState<FundsTab>('overview');
+const VALID_TABS: FundsTab[] = ['overview', 'deposit', 'withdraw', 'transfer', 'history'];
+
+function isValidTab(tab: string | null): tab is FundsTab {
+  return VALID_TABS.includes(tab as FundsTab);
+}
+
+function FinancePageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read tab from URL query param; default to 'overview'
+  const tabFromUrl = searchParams.get('tab');
+  const initialTab: FundsTab = isValidTab(tabFromUrl) ? tabFromUrl : 'overview';
+
+  const [activeTab, setActiveTab] = useState<FundsTab>(initialTab);
   const [balance, setBalance] = useState<CustomerBalance | null>(null);
   const [history, setHistory] = useState<FundsHistoryEntry[]>([]);
   const [depositMethods, setDepositMethods] = useState<DepositMethodConfig[]>([]);
   const [destinations, setDestinations] = useState<WithdrawalDestination[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Sync tab state when URL changes (back/forward navigation)
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (isValidTab(tab) && tab !== activeTab) {
+      setActiveTab(tab);
+    } else if (!tab && activeTab !== 'overview') {
+      setActiveTab('overview');
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update URL when tab changes (preserves browser history)
+  const handleTabChange = useCallback((tab: FundsTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === 'overview') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    router.push(`/finance?${params.toString()}`);
+  }, [router, searchParams]);
 
   const loadData = async () => {
     const [bal, hist, methods, dests] = await Promise.all([
@@ -758,7 +794,7 @@ export default function FinancePage() {
           {TABS.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors shrink-0"
               style={{
                 color: activeTab === tab.id ? 'var(--primary)' : 'var(--muted-foreground)',
@@ -783,7 +819,7 @@ export default function FinancePage() {
               ].map(action => (
                 <button
                   key={action.label}
-                  onClick={() => setActiveTab(action.tab)}
+                  onClick={() => handleTabChange(action.tab)}
                   className="flex items-center gap-3 p-4 rounded border text-left transition-all hover:shadow-sm group"
                   style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
                 >
@@ -802,7 +838,7 @@ export default function FinancePage() {
             <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
                 <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Recent Activity</h3>
-                <button onClick={() => setActiveTab('history')} className="text-xs" style={{ color: 'var(--primary)' }}>View all</button>
+                <button onClick={() => handleTabChange('history')} className="text-xs" style={{ color: 'var(--primary)' }}>View all</button>
               </div>
               <div className="py-8 text-center">
                 <History size={20} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} />
@@ -830,5 +866,13 @@ export default function FinancePage() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+export default function FinancePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen" style={{ backgroundColor: 'var(--background)' }}><div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></div>}>
+      <FinancePageInner />
+    </Suspense>
   );
 }

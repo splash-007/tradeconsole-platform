@@ -1,7 +1,8 @@
 'use client';
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { MarketInstrument } from '@/services/markets.service';
-import { useMarketQuote } from '@/hooks/useMarketQuotes';
+import type { QuoteState } from '@/hooks/useMarketQuotes';
 import { ChevronDown, Star, Bell, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight } from 'lucide-react';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   instruments: MarketInstrument[];
   selectedSymbol: string;
   onSelectSymbol: (s: string) => void;
+  liveQuotes?: Record<string, QuoteState>;
 }
 
 // Map workspace display symbols to real data symbols
@@ -17,16 +19,19 @@ const WORKSPACE_TO_REAL: Record<string, string> = {
   'ETH/USDC': 'ETH/USD',
   'SOL/USDC': 'SOL/USD',
   'XRP/USDC': 'XRP/USD',
-  'BNB/USDC': 'BTC/USD', // no BNB in our registry, fall back gracefully
-  'ADA/USDC': 'BTC/USD', // same
+  'BNB/USDC': 'BTC/USD',
+  'ADA/USDC': 'BTC/USD',
 };
 
-export default function InstrumentBar({ instrument, instruments, selectedSymbol, onSelectSymbol }: Props) {
+export default function InstrumentBar({ instrument, instruments, selectedSymbol, onSelectSymbol, liveQuotes }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const router = useRouter();
 
-  // Fetch real price for selected symbol
+  // Resolve live quote from passed-in quotes (no duplicate hook)
   const realSym = WORKSPACE_TO_REAL[selectedSymbol];
-  const { quote: realQuote, available: realAvailable } = useMarketQuote(realSym ?? '');
+  const realState = realSym && liveQuotes ? liveQuotes[realSym] : undefined;
+  const realAvailable = !!(realState?.available && realState.quote?.price != null);
+  const realQuote = realState?.quote ?? null;
 
   const baseSymbol = selectedSymbol.split('/')[0];
 
@@ -35,6 +40,8 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
   const changePct = realAvailable && realQuote?.changePercent != null ? realQuote.changePercent : (instrument?.changePct24h ?? 0);
   const high = realAvailable && realQuote?.high != null ? realQuote.high : (instrument?.high24h ?? 0);
   const low = realAvailable && realQuote?.low != null ? realQuote.low : (instrument?.low24h ?? 0);
+  const bid = realAvailable && realQuote?.bid != null ? realQuote.bid : null;
+  const ask = realAvailable && realQuote?.ask != null ? realQuote.ask : null;
   const volume = instrument?.volume24h ?? 0;
   const isPos = changePct >= 0;
 
@@ -55,7 +62,12 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{selectedSymbol}</span>
               <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}>Spot</span>
-              {realAvailable && <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Live data" />}
+              {realAvailable && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: '#22c55e' }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                  Live
+                </span>
+              )}
               <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
             </div>
           </div>
@@ -114,16 +126,26 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
               {low > 0 ? low.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}
             </p>
           </div>
+          {bid != null && (
+            <div>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Bid</p>
+              <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: '#22c55e' }}>
+                {bid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          )}
+          {ask != null && (
+            <div>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Ask</p>
+              <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: '#ef4444' }}>
+                {ask.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>24h Volume ({baseSymbol})</p>
             <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
               {volume > 0 ? `${(volume / 1e6).toFixed(3)}M` : '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>24h Volume (USDC)</p>
-            <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-              {volume > 0 ? `${(volume * price / 1e9).toFixed(3)}B` : '—'}
             </p>
           </div>
         </div>
@@ -131,20 +153,29 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
 
       <div className="flex-1" />
 
-      {/* Action buttons */}
+      {/* Action buttons — navigate to Funds Center */}
       <div className="flex items-center gap-1 shrink-0">
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all active:scale-95"
-          style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
+        <button
+          onClick={() => router.push('/finance?tab=deposit')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-all active:scale-95"
+          style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+        >
           <ArrowDownToLine size={12} />
           Deposit
         </button>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all hover:bg-muted"
-          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+        <button
+          onClick={() => router.push('/finance?tab=withdraw')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all hover:bg-muted"
+          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+        >
           <ArrowUpFromLine size={12} />
           Withdraw
         </button>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all hover:bg-muted"
-          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>
+        <button
+          onClick={() => router.push('/finance?tab=transfer')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all hover:bg-muted"
+          style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
+        >
           <ArrowLeftRight size={12} />
           Transfer
         </button>

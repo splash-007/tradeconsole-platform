@@ -12,6 +12,7 @@ import TopMoversPanel from './TopMoversPanel';
 import LiveOrdersPanel from '@/components/trading/LiveOrdersPanel';
 import { marketsService, MarketInstrument } from '@/services/markets.service';
 import { marketDataService, NormalizedOrderBook, NormalizedTrade } from '@/services/market-data.service';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { LayoutGrid, ChevronDown, ChevronUp, Search, BookOpen, TrendingUp, BarChart2, List } from 'lucide-react';
 
 interface AssetCategory {
@@ -25,6 +26,20 @@ const ASSET_CATEGORIES: AssetCategory[] = [
   { label: 'Layer 1', symbols: ['ADA/USDC', 'AVAX/USDC', 'DOT/USDC', 'ATOM/USDC'] },
   { label: 'Meme', symbols: ['DOGE/USDC', 'SHIB/USDC', 'PEPE/USDC', 'FLOKI/USDC'] },
 ];
+
+// Supported real-data symbols for the workspace chips
+const CHIP_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'BNB/USDC', 'SOL/USDC', 'DOGE/USDC', 'ADA/USDC'];
+
+// Map workspace display symbols to market-data service symbols
+const WORKSPACE_TO_REAL: Record<string, string> = {
+  'BTC/USDC': 'BTC/USD',
+  'ETH/USDC': 'ETH/USD',
+  'SOL/USDC': 'SOL/USD',
+  'XRP/USDC': 'XRP/USD',
+};
+
+// All real symbols needed for the workspace
+const ALL_REAL_SYMBOLS = Object.values(WORKSPACE_TO_REAL).filter((v, i, a) => a.indexOf(v) === i);
 
 const MOCK_PRICES: Record<string, { price: number; change: number }> = {
   'BTC/USDC': { price: 67842, change: 2.14 },
@@ -68,6 +83,22 @@ export default function TradingWorkspace() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>('chart');
   const workspaceRef = useRef<HTMLDivElement>(null);
+
+  // Live market data for the workspace
+  const { quotes: realQuotes } = useMarketQuotes(ALL_REAL_SYMBOLS);
+
+  // Helper: get live price for a workspace symbol
+  const getLivePrice = (workspaceSym: string): { price: number; changePct: number; isLive: boolean } => {
+    const realSym = WORKSPACE_TO_REAL[workspaceSym];
+    const state = realSym ? realQuotes[realSym] : undefined;
+    const isLive = !!(state?.available && state.quote?.price != null);
+    const price = isLive && state?.quote?.price != null ? state.quote.price : (MOCK_PRICES[workspaceSym]?.price ?? 0);
+    const changePct = isLive && state?.quote?.changePercent != null ? state.quote.changePercent : (MOCK_PRICES[workspaceSym]?.change ?? 0);
+    return { price, changePct, isLive };
+  };
+
+  // Current instrument live price for OrderForm
+  const selectedLive = getLivePrice(selectedSymbol);
 
   useEffect(() => {
     marketsService.getInstruments().then(setInstruments);
@@ -144,8 +175,8 @@ export default function TradingWorkspace() {
 
         {/* Quick symbol chips */}
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1">
-          {['BTC/USDC', 'ETH/USDC', 'BNB/USDC', 'SOL/USDC', 'DOGE/USDC', 'ADA/USDC'].map(sym => {
-            const info = MOCK_PRICES[sym];
+          {CHIP_SYMBOLS.map(sym => {
+            const { price, changePct, isLive } = getLivePrice(sym);
             return (
               <button
                 key={sym}
@@ -158,11 +189,12 @@ export default function TradingWorkspace() {
                 }}
               >
                 <span className="font-semibold">{sym.split('/')[0]}</span>
-                {info && (
-                  <span className={`hidden sm:inline ${info.change >= 0 ? 'text-positive' : 'text-negative'}`}>
-                    {info.change >= 0 ? '+' : ''}{info.change.toFixed(2)}%
+                {price > 0 && (
+                  <span className={`hidden sm:inline ${changePct >= 0 ? 'text-positive' : 'text-negative'}`}>
+                    {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
                   </span>
                 )}
+                {isLive && <div className="w-1 h-1 rounded-full bg-green-500 shrink-0" />}
               </button>
             );
           })}
@@ -207,7 +239,7 @@ export default function TradingWorkspace() {
             {/* Asset grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {filteredSymbols.map(sym => {
-                const info = MOCK_PRICES[sym];
+                const { price, changePct, isLive } = getLivePrice(sym);
                 const isSelected = selectedSymbol === sym;
                 return (
                   <button
@@ -223,15 +255,16 @@ export default function TradingWorkspace() {
                       <span className="text-xs font-bold" style={{ color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
                         {sym.split('/')[0]}
                       </span>
-                      {info && (
-                        <span className={`text-xs ${info.change >= 0 ? 'text-positive' : 'text-negative'}`}>
-                          {info.change >= 0 ? '+' : ''}{info.change.toFixed(2)}%
+                      {price > 0 && (
+                        <span className={`text-xs ${changePct >= 0 ? 'text-positive' : 'text-negative'}`}>
+                          {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
                         </span>
                       )}
                     </div>
-                    {info && (
+                    {price > 0 && (
                       <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>
-                        ${info.price >= 1 ? info.price.toLocaleString() : info.price.toFixed(7)}
+                        ${price >= 1 ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(7)}
+                        {isLive && <span className="ml-1 text-green-500">●</span>}
                       </span>
                     )}
                   </button>
@@ -248,6 +281,7 @@ export default function TradingWorkspace() {
         instruments={instruments}
         selectedSymbol={selectedSymbol}
         onSelectSymbol={setSelectedSymbol}
+        liveQuotes={realQuotes}
       />
 
       {/* ===== DESKTOP LAYOUT ===== */}
@@ -281,7 +315,7 @@ export default function TradingWorkspace() {
 
           {/* Order Form */}
           <div className="shrink-0 flex flex-col border-l overflow-y-auto no-scrollbar" style={{ width: '220px', borderColor: 'var(--border)' }}>
-            <OrderForm symbol={selectedSymbol} currentPrice={currentInstrument?.lastPrice || 0} />
+            <OrderForm symbol={selectedSymbol} currentPrice={selectedLive.price || currentInstrument?.lastPrice || 0} />
           </div>
         </div>
 
@@ -334,7 +368,7 @@ export default function TradingWorkspace() {
 
           {mobileTab === 'order' && (
             <div className="overflow-y-auto no-scrollbar">
-              <OrderForm symbol={selectedSymbol} currentPrice={currentInstrument?.lastPrice || 0} />
+              <OrderForm symbol={selectedSymbol} currentPrice={selectedLive.price || currentInstrument?.lastPrice || 0} />
             </div>
           )}
 
