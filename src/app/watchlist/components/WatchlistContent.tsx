@@ -2,11 +2,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { watchlistService } from '@/services/watchlist.service';
 import { marketsService, MarketInstrument } from '@/services/markets.service';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { Star, Search, TrendingUp, TrendingDown, ExternalLink, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 
 type SortField = 'name' | 'lastPrice' | 'changePct24h';
 type SortDir = 'asc' | 'desc';
+
+// Map watchlist instrument symbols to real data symbols
+const REAL_SYMBOL_MAP: Record<string, string> = {
+  'BTC/USDT': 'BTC/USD',
+  'ETH/USDT': 'ETH/USD',
+  'SOL/USDT': 'SOL/USD',
+  'XRP/USDT': 'XRP/USD',
+  'EUR/USD': 'EUR/USD',
+  'GBP/USD': 'GBP/USD',
+  'USD/JPY': 'USD/JPY',
+  'USD/CHF': 'USD/CHF',
+  'AUD/USD': 'AUD/USD',
+  'AAPL': 'AAPL',
+  'NVDA': 'NVDA',
+  'MSFT': 'MSFT',
+  'TSLA': 'TSLA',
+  'AMZN': 'AMZN',
+};
+
+const ALL_REAL_SYMBOLS = Object.values(REAL_SYMBOL_MAP).filter((v, i, a) => a.indexOf(v) === i);
 
 function formatPrice(price: number): string {
   if (price >= 10000) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -20,6 +41,9 @@ export default function WatchlistContent() {
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState<SortField>('changePct24h');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  // Real market data
+  const { quotes: realQuotes } = useMarketQuotes(ALL_REAL_SYMBOLS);
 
   useEffect(() => {
     marketsService.getInstruments().then(setAllInstruments);
@@ -47,15 +71,25 @@ export default function WatchlistContent() {
       data = data.filter(i => i.symbol.toLowerCase().includes(q) || i.name.toLowerCase().includes(q));
     }
     data.sort((a, b) => {
+      const getRealPrice = (inst: MarketInstrument) => {
+        const realSym = REAL_SYMBOL_MAP[inst.symbol];
+        const state = realSym ? realQuotes[realSym] : undefined;
+        return (state?.available && state.quote?.price != null) ? state.quote.price : inst.lastPrice;
+      };
+      const getRealChangePct = (inst: MarketInstrument) => {
+        const realSym = REAL_SYMBOL_MAP[inst.symbol];
+        const state = realSym ? realQuotes[realSym] : undefined;
+        return (state?.available && state.quote?.changePercent != null) ? state.quote.changePercent : inst.changePct24h;
+      };
       let av: number | string = 0, bv: number | string = 0;
       if (sortField === 'name') { av = a.name; bv = b.name; }
-      else if (sortField === 'lastPrice') { av = a.lastPrice; bv = b.lastPrice; }
-      else { av = a.changePct24h; bv = b.changePct24h; }
+      else if (sortField === 'lastPrice') { av = getRealPrice(a); bv = getRealPrice(b); }
+      else { av = getRealChangePct(a); bv = getRealChangePct(b); }
       if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv as string) : (bv as string).localeCompare(av);
       return sortDir === 'asc' ? (av as number) - (bv as number) : (bv as number) - (av as number);
     });
     return data;
-  }, [watchedInstruments, search, sortField, sortDir]);
+  }, [watchedInstruments, search, sortField, sortDir, realQuotes]);
 
   const SortIndicator = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <span style={{ color: 'var(--muted-foreground)', opacity: 0.4 }}>↕</span>;
@@ -149,7 +183,18 @@ export default function WatchlistContent() {
                     </td>
                   </tr>
                 ) : filtered.map(inst => {
-                  const isPos = inst.changePct24h >= 0;
+                  const realSym = REAL_SYMBOL_MAP[inst.symbol];
+                  const realState = realSym ? realQuotes[realSym] : undefined;
+                  const isReal = realState?.available && realState.quote?.price != null;
+                  const q = realState?.quote;
+
+                  const price = isReal && q?.price != null ? q.price : inst.lastPrice;
+                  const changePct = isReal && q?.changePercent != null ? q.changePercent : inst.changePct24h;
+                  const high = isReal && q?.high != null ? q.high : inst.high24h;
+                  const low = isReal && q?.low != null ? q.low : inst.low24h;
+                  const bid = isReal && q?.bid != null ? q.bid : inst.bid;
+                  const ask = isReal && q?.ask != null ? q.ask : inst.ask;
+                  const isPos = changePct >= 0;
                   return (
                     <tr
                       key={inst.id}
@@ -174,7 +219,10 @@ export default function WatchlistContent() {
                             {inst.baseCurrency.slice(0, 3)}
                           </div>
                           <div>
-                            <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
+                            <div className="flex items-center gap-1">
+                              <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
+                              {isReal && <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Live data" />}
+                            </div>
                             <p className="text-xs capitalize" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{inst.category}</p>
                           </div>
                         </div>
@@ -186,7 +234,7 @@ export default function WatchlistContent() {
                       {/* Price */}
                       <td className="px-3 py-3 text-right">
                         <span className="text-xs font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-                          {formatPrice(inst.lastPrice)}
+                          {formatPrice(price)}
                         </span>
                       </td>
                       {/* 24h % */}
@@ -197,24 +245,24 @@ export default function WatchlistContent() {
                             color: isPos ? '#22c55e' : '#ef4444',
                           }}>
                           {isPos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                          {isPos ? '+' : ''}{inst.changePct24h.toFixed(2)}%
+                          {isPos ? '+' : ''}{changePct.toFixed(2)}%
                         </div>
                       </td>
                       {/* Bid */}
                       <td className="px-3 py-3 text-right hidden md:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: '#22c55e' }}>{formatPrice(inst.bid)}</span>
+                        <span className="text-xs tabular-nums font-mono" style={{ color: '#22c55e' }}>{formatPrice(bid)}</span>
                       </td>
                       {/* Ask */}
                       <td className="px-3 py-3 text-right hidden md:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: '#ef4444' }}>{formatPrice(inst.ask)}</span>
+                        <span className="text-xs tabular-nums font-mono" style={{ color: '#ef4444' }}>{formatPrice(ask)}</span>
                       </td>
                       {/* High */}
                       <td className="px-3 py-3 text-right hidden lg:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>{formatPrice(inst.high24h)}</span>
+                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>{formatPrice(high)}</span>
                       </td>
                       {/* Low */}
                       <td className="px-3 py-3 text-right hidden lg:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>{formatPrice(inst.low24h)}</span>
+                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>{formatPrice(low)}</span>
                       </td>
                       {/* Action */}
                       <td className="px-3 py-3 text-center">

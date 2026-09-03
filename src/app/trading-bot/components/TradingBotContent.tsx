@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { tradingBotService, Bot, BotConfig, MarketType, BotStrategy, AnalysisResult, BotLifecycleStatus } from '@/services/trading-bot.service';
 import { notificationService } from '@/services/notification.service';
+import { useMarketQuote } from '@/hooks/useMarketQuotes';
 import { Bot as BotIcon, Play, Pause, Square, ChevronRight, ChevronDown, AlertTriangle, CheckCircle, Loader2, TrendingUp, TrendingDown, Minus, BarChart2, Zap, Info } from 'lucide-react';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -38,6 +39,79 @@ const STATUS_COLORS: Record<BotLifecycleStatus, string> = {
   completed: '#6b7280',
   failed: '#ef4444',
 };
+
+// Map bot asset pairs to real data symbols
+const BOT_PAIR_TO_REAL: Record<string, string> = {
+  'BTC/USDT': 'BTC/USD',
+  'ETH/USDT': 'ETH/USD',
+  'SOL/USDT': 'SOL/USD',
+  'XRP/USDT': 'XRP/USD',
+  'BNB/USDT': 'BTC/USD',
+  'EUR/USD': 'EUR/USD',
+  'GBP/USD': 'GBP/USD',
+};
+
+// ─── Market Price Widget ──────────────────────────────────────────────────────
+function MarketPriceWidget({ pair }: { pair: string }) {
+  const realSym = BOT_PAIR_TO_REAL[pair];
+  const { quote, available, loading } = useMarketQuote(realSym ?? '');
+
+  if (!pair) return null;
+
+  return (
+    <div className="rounded-lg border p-3 space-y-2" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>CURRENT MARKET PRICE</p>
+        {available && <div className="flex items-center gap-1 text-xs" style={{ color: '#22c55e' }}>
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span>Live</span>
+        </div>}
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-mono font-semibold" style={{ color: 'var(--foreground)' }}>{pair}</span>
+        {loading ? (
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Loading…</span>
+        ) : available && quote?.price != null ? (
+          <div className="text-right">
+            <p className="text-sm font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
+              {quote.price >= 1000
+                ? quote.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : quote.price.toFixed(4)}
+            </p>
+            {quote.changePercent != null && (
+              <p className={`text-xs font-semibold tabular-nums ${quote.changePercent >= 0 ? 'text-positive' : 'text-negative'}`}>
+                {quote.changePercent >= 0 ? '+' : ''}{quote.changePercent.toFixed(2)}%
+              </p>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Unavailable in preview</span>
+        )}
+      </div>
+      {available && quote && (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
+          {quote.high != null && (
+            <><span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>High</span>
+            <span className="text-xs tabular-nums font-mono text-right" style={{ color: 'var(--foreground)' }}>{quote.high.toFixed(2)}</span></>
+          )}
+          {quote.low != null && (
+            <><span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Low</span>
+            <span className="text-xs tabular-nums font-mono text-right" style={{ color: 'var(--foreground)' }}>{quote.low.toFixed(2)}</span></>
+          )}
+          {quote.volume != null && (
+            <><span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Volume</span>
+            <span className="text-xs tabular-nums font-mono text-right" style={{ color: 'var(--foreground)' }}>
+              {quote.volume >= 1e9 ? `${(quote.volume / 1e9).toFixed(2)}B` : quote.volume >= 1e6 ? `${(quote.volume / 1e6).toFixed(0)}M` : quote.volume.toLocaleString()}
+            </span></>
+          )}
+          <span className="text-xs col-span-2" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>
+            via {quote.provider === 'twelve_data' ? 'Twelve Data' : 'Tiingo'}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function StepIndicator({ current, total }: { current: Step; total: number }) {
   return (
@@ -809,6 +883,9 @@ export default function TradingBotContent() {
 
           {/* Right: AI Assistant Panel */}
           <div className="space-y-4">
+            {/* Market price widget — shown when a pair is selected */}
+            {selectedPair && <MarketPriceWidget pair={selectedPair} />}
+
             <div className="rounded-lg border p-4 space-y-3" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(245,196,0,0.15)', border: '1px solid rgba(245,196,0,0.3)' }}>

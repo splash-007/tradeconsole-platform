@@ -2,22 +2,46 @@
 import React from 'react';
 import Link from 'next/link';
 import { MarketInstrument } from '@/services/markets.service';
-import { useRealTimeMarket } from '@/hooks/useRealTimeMarket';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import MiniCandleChart from '@/components/trading/MiniCandleChart';
+import { useRealTimeMarket } from '@/hooks/useRealTimeMarket';
 
 interface Props { instruments: MarketInstrument[]; }
 
+// Symbols that have real data from Twelve Data / Tiingo
+const REAL_SYMBOLS = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD'];
 const LIVE_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'SOL/USDC', 'BNB/USDC', 'XRP/USDC', 'ADA/USDC', 'AVAX/USDC', 'DOT/USDC'];
 
+// Map instrument symbol to real data symbol
+const REAL_MAP: Record<string, string> = {
+  'BTC/USDT': 'BTC/USD',
+  'ETH/USDT': 'ETH/USD',
+  'SOL/USDT': 'SOL/USD',
+  'XRP/USDT': 'XRP/USD',
+};
+
+// Map instrument symbol to Binance WS symbol
+const BINANCE_MAP: Record<string, string> = {
+  'BTC/USDT': 'BTC/USDC',
+  'ETH/USDT': 'ETH/USDC',
+  'SOL/USDT': 'SOL/USDC',
+  'BNB/USDT': 'BNB/USDC',
+  'XRP/USDT': 'XRP/USDC',
+  'ADA/USDT': 'ADA/USDC',
+};
+
 export default function TopMovers({ instruments }: Props) {
-  const { quotes, candles } = useRealTimeMarket(LIVE_SYMBOLS);
+  const { quotes: realQuotes } = useMarketQuotes(REAL_SYMBOLS);
+  const { quotes: wsQuotes, candles } = useRealTimeMarket(LIVE_SYMBOLS);
+
+  const hasAnyLive = Object.values(realQuotes).some(q => q.available) || Object.keys(wsQuotes).length > 0;
 
   return (
     <div className="rounded-lg border h-full p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Top Movers</h3>
         <div className="flex items-center gap-2">
-          {Object.keys(quotes).length > 0 && (
+          {hasAnyLive && (
             <div className="flex items-center gap-1 text-xs" style={{ color: '#22c55e' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <span>Live</span>
@@ -28,12 +52,24 @@ export default function TopMovers({ instruments }: Props) {
       </div>
       <div className="space-y-1">
         {instruments.map(inst => {
-          const live = quotes[inst.symbol];
-          const price = live?.price ?? inst.lastPrice;
-          const changePct = live?.changePct24h ?? inst.changePct24h;
-          const isPos = changePct >= 0;
-          const liveCandles = candles[inst.symbol];
+          const realSym = REAL_MAP[inst.symbol];
+          const wsSym = BINANCE_MAP[inst.symbol];
+          const realState = realSym ? realQuotes[realSym] : undefined;
+          const wsQuote = wsSym ? wsQuotes[wsSym] : undefined;
+
+          // Prefer real data, fall back to WS, then mock
+          const price = (realState?.available && realState.quote?.price != null)
+            ? realState.quote.price
+            : (wsQuote?.price ?? inst.lastPrice);
+
+          const changePercent = (realState?.available && realState.quote?.changePercent != null)
+            ? realState.quote.changePercent
+            : (wsQuote?.changePct24h ?? inst.changePct24h);
+
+          const isPos = changePercent >= 0;
+          const liveCandles = wsSym ? candles[wsSym] : undefined;
           const hasCandles = liveCandles && liveCandles.length >= 2;
+          const isRealData = realState?.available && realState.quote?.price != null;
 
           return (
             <Link
@@ -46,17 +82,20 @@ export default function TopMovers({ instruments }: Props) {
                 {inst.baseCurrency.slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</p>
+                  {isRealData && (
+                    <div className="w-1 h-1 rounded-full bg-green-500 shrink-0" title="Live data" />
+                  )}
+                </div>
                 <p className="text-xs tabular-nums font-mono" style={{ color: 'var(--muted-foreground)' }}>
                   ${price < 10 ? price.toFixed(4) : price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
-              {/* Mini candlestick chart */}
               <div className="w-16 h-8 shrink-0">
                 {hasCandles ? (
                   <MiniCandleChart candles={liveCandles} width={64} height={32} />
                 ) : (
-                  // Animated loading skeleton
                   <div className="flex items-end gap-px w-full h-full">
                     {Array.from({ length: 8 }, (_, i) => (
                       <div
@@ -72,7 +111,7 @@ export default function TopMovers({ instruments }: Props) {
                 )}
               </div>
               <div className={`text-xs font-semibold tabular-nums w-14 text-right shrink-0 ${isPos ? 'text-positive' : 'text-negative'}`}>
-                {isPos ? '+' : ''}{changePct.toFixed(2)}%
+                {isPos ? '+' : ''}{changePercent.toFixed(2)}%
               </div>
             </Link>
           );

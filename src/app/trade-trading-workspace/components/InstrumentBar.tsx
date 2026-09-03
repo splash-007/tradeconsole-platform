@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { MarketInstrument } from '@/services/markets.service';
+import { useMarketQuote } from '@/hooks/useMarketQuotes';
 import { ChevronDown, Star, Bell, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight } from 'lucide-react';
 
 interface Props {
@@ -10,11 +11,32 @@ interface Props {
   onSelectSymbol: (s: string) => void;
 }
 
+// Map workspace display symbols to real data symbols
+const WORKSPACE_TO_REAL: Record<string, string> = {
+  'BTC/USDC': 'BTC/USD',
+  'ETH/USDC': 'ETH/USD',
+  'SOL/USDC': 'SOL/USD',
+  'XRP/USDC': 'XRP/USD',
+  'BNB/USDC': 'BTC/USD', // no BNB in our registry, fall back gracefully
+  'ADA/USDC': 'BTC/USD', // same
+};
+
 export default function InstrumentBar({ instrument, instruments, selectedSymbol, onSelectSymbol }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const isPos = (instrument?.changePct24h || 0) >= 0;
+  // Fetch real price for selected symbol
+  const realSym = WORKSPACE_TO_REAL[selectedSymbol];
+  const { quote: realQuote, available: realAvailable } = useMarketQuote(realSym ?? '');
+
   const baseSymbol = selectedSymbol.split('/')[0];
+
+  // Prefer real data
+  const price = realAvailable && realQuote?.price != null ? realQuote.price : (instrument?.lastPrice ?? 0);
+  const changePct = realAvailable && realQuote?.changePercent != null ? realQuote.changePercent : (instrument?.changePct24h ?? 0);
+  const high = realAvailable && realQuote?.high != null ? realQuote.high : (instrument?.high24h ?? 0);
+  const low = realAvailable && realQuote?.low != null ? realQuote.low : (instrument?.low24h ?? 0);
+  const volume = instrument?.volume24h ?? 0;
+  const isPos = changePct >= 0;
 
   return (
     <div className="flex items-center gap-3 px-4 border-b shrink-0 overflow-x-auto no-scrollbar"
@@ -33,6 +55,7 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{selectedSymbol}</span>
               <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}>Spot</span>
+              {realAvailable && <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Live data" />}
               <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
             </div>
           </div>
@@ -64,43 +87,43 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
           <div>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Last Price</p>
             <p className="text-base font-bold tabular-nums font-mono leading-tight" style={{ color: isPos ? 'var(--positive)' : 'var(--negative)' }}>
-              {instrument.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
             <p className="text-xs tabular-nums font-mono" style={{ color: 'var(--muted-foreground)' }}>
-              ≈ {instrument.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+              ≈ {price.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
             </p>
           </div>
           <div>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>24h Change</p>
             <p className={`text-sm font-semibold tabular-nums ${isPos ? 'text-positive' : 'text-negative'}`}>
-              {isPos ? '+' : ''}{((instrument.changePct24h / 100) * instrument.lastPrice).toFixed(2)}
+              {isPos ? '+' : ''}{((changePct / 100) * price).toFixed(2)}
             </p>
             <p className={`text-xs font-semibold tabular-nums ${isPos ? 'text-positive' : 'text-negative'}`}>
-              {isPos ? '+' : ''}{instrument.changePct24h.toFixed(2)}%
+              {isPos ? '+' : ''}{changePct.toFixed(2)}%
             </p>
           </div>
           <div>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>24h High</p>
             <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-              {instrument.high24h.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {high > 0 ? high.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}
             </p>
           </div>
           <div>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>24h Low</p>
             <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-              {instrument.low24h.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {low > 0 ? low.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}
             </p>
           </div>
           <div>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>24h Volume ({baseSymbol})</p>
             <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-              {(instrument.volume24h / 1e6).toFixed(3)}M
+              {volume > 0 ? `${(volume / 1e6).toFixed(3)}M` : '—'}
             </p>
           </div>
           <div>
             <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>24h Volume (USDC)</p>
             <p className="text-sm font-semibold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-              {(instrument.volume24h * instrument.lastPrice / 1e9).toFixed(3)}B
+              {volume > 0 ? `${(volume * price / 1e9).toFixed(3)}B` : '—'}
             </p>
           </div>
         </div>
