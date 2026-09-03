@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { MarketInstrument } from '@/services/markets.service';
+import AssetIcon from '@/components/ui/AssetIcon';
 import { Star } from 'lucide-react';
 
 interface Props {
@@ -28,6 +29,15 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
+  // Map category to AssetType for AssetIcon
+  const getAssetType = (category: string) => {
+    if (category === 'Crypto') return 'crypto' as const;
+    if (category === 'Forex') return 'forex' as const;
+    if (category === 'Indices') return 'index' as const;
+    if (category === 'Commodities') return 'commodity' as const;
+    return 'crypto' as const;
+  };
+
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--card)' }}>
       {/* Header + tabs */}
@@ -45,7 +55,8 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
       </div>
 
       {/* Column headers */}
-      <div className="grid px-3 py-1 shrink-0" style={{ gridTemplateColumns: '1.5rem 1fr 5rem 5rem', borderBottom: '1px solid var(--border)' }}>
+      <div className="grid px-3 py-1 shrink-0" style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem', borderBottom: '1px solid var(--border)' }}>
+        <span />
         <span />
         <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Symbol</span>
         <span className="text-xs text-right" style={{ color: 'var(--muted-foreground)' }}>Price</span>
@@ -68,12 +79,13 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
                 key={`wl-${inst.id}`}
                 onClick={() => onSelectSymbol(inst.symbol)}
                 className={`grid items-center px-3 py-1.5 cursor-pointer transition-colors hover:bg-muted ${isSelected ? 'bg-primary-subtle' : ''}`}
-                style={{ gridTemplateColumns: '1.5rem 1fr 5rem 5rem' }}
+                style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem' }}
               >
                 <button onClick={(e) => toggleFav(inst.id, e)} className="p-0.5 rounded" style={{ color: isFav ? 'var(--primary)' : 'var(--muted-foreground)' }}>
                   <Star size={11} fill={isFav ? 'var(--primary)' : 'none'} />
                 </button>
-                <div className="min-w-0">
+                <AssetIcon symbol={inst.symbol} assetType={getAssetType(activeCategory)} size={18} />
+                <div className="min-w-0 pl-1">
                   <p className="text-xs font-semibold truncate" style={{ color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>{inst.symbol}</p>
                 </div>
                 <p className="text-xs tabular-nums font-mono text-right" style={{ color: 'var(--foreground)' }}>

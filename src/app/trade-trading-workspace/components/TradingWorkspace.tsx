@@ -10,6 +10,7 @@ import RecentTradesPanel from './RecentTradesPanel';
 import MarketOverviewPanel from './MarketOverviewPanel';
 import TopMoversPanel from './TopMoversPanel';
 import LiveOrdersPanel from '@/components/trading/LiveOrdersPanel';
+import AssetIcon from '@/components/ui/AssetIcon';
 import { marketsService, MarketInstrument } from '@/services/markets.service';
 import { marketDataService, NormalizedOrderBook, NormalizedTrade } from '@/services/market-data.service';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
@@ -36,6 +37,8 @@ const WORKSPACE_TO_REAL: Record<string, string> = {
   'ETH/USDC': 'ETH/USD',
   'SOL/USDC': 'SOL/USD',
   'XRP/USDC': 'XRP/USD',
+  'BNB/USDC': 'BNB/USD',
+  'ADA/USDC': 'ADA/USD',
 };
 
 // All real symbols needed for the workspace
@@ -252,9 +255,12 @@ export default function TradingWorkspace() {
                     }}
                   >
                     <div className="flex items-center justify-between w-full mb-1">
-                      <span className="text-xs font-bold" style={{ color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
-                        {sym.split('/')[0]}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <AssetIcon symbol={sym} assetType="crypto" size={18} />
+                        <span className="text-xs font-bold" style={{ color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>
+                          {sym.split('/')[0]}
+                        </span>
+                      </div>
                       {price > 0 && (
                         <span className={`text-xs ${changePct >= 0 ? 'text-positive' : 'text-negative'}`}>
                           {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%

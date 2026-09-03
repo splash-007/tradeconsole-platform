@@ -78,6 +78,8 @@ const REAL_SYMBOL_MAP: Record<string, string> = {
   // ETFs
   'SPY': 'SPY',
   'QQQ': 'QQQ',
+  'IWM': 'IWM',
+  'DIA': 'DIA',
 };
 
 const ALL_REAL_SYMBOLS = Object.values(REAL_SYMBOL_MAP).filter((v, i, a) => a.indexOf(v) === i);
