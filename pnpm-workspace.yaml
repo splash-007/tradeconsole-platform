@@ -1,8 +1,7 @@
-packages:
-  - "."
+# pnpm-workspace.yaml intentionally left empty.
+# This project uses a single-package Next.js setup at the repository root.
+# Do NOT add workspace packages here — Rocket Preview requires a standard Next.js root.
+
 allowBuilds:
   sharp: set this to true or false
   unrs-resolver: set this to true or false
-onlyBuiltDependencies:
-  - sharp
-  - unrs-resolver
