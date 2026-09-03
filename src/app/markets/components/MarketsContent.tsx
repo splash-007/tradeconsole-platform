@@ -337,7 +337,7 @@ export default function MarketsContent() {
                             <div className="flex items-center gap-1.5">
                               <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
                               {display.isReal && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title={`Live · ${display.provider}`} />
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Live" />
                               )}
                             </div>
                             <p className="text-xs" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{inst.baseCurrency}</p>

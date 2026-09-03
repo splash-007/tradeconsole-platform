@@ -104,9 +104,6 @@ function MarketPriceWidget({ pair }: { pair: string }) {
               {quote.volume >= 1e9 ? `${(quote.volume / 1e9).toFixed(2)}B` : quote.volume >= 1e6 ? `${(quote.volume / 1e6).toFixed(0)}M` : quote.volume.toLocaleString()}
             </span></>
           )}
-          <span className="text-xs col-span-2" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>
-            via {quote.provider === 'twelve_data' ? 'Twelve Data' : 'Tiingo'}
-          </span>
         </div>
       )}
     </div>
