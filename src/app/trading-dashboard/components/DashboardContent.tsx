@@ -147,24 +147,13 @@ export default function DashboardContent() {
       ? btcReal.quote.changePercent
       : (btcLive?.changePct24h ?? overview.btcChangePct);
 
-    if (btcPrice === overview.btcPrice) return overview;
-
-    const btcPriceRatio = overview.btcPrice > 0 ? btcPrice / overview.btcPrice : 1;
-    const livePortfolioValue = Math.round(overview.portfolioValue * (0.6 + 0.4 * btcPriceRatio) * 100) / 100;
-    const liveChange24h = livePortfolioValue - (overview.portfolioValue - overview.portfolioChange24h);
-    const liveChangePct24h = overview.portfolioValue > 0 ? (liveChange24h / (overview.portfolioValue - overview.portfolioChange24h)) * 100 : overview.portfolioChangePct24h;
-    const livePnl24h = Math.round(liveChange24h * 0.85 * 100) / 100;
-    const livePnlPct24h = overview.portfolioValue > 0 ? (livePnl24h / overview.portfolioValue) * 100 : overview.pnlPct24h;
-
+    // Only update BTC price display — do NOT recalculate mock portfolio P&L from live prices.
+    // Customer holdings, quantities, and cost basis are mock development data.
+    // Portfolio P&L will be live only when real backend positions are connected.
     return {
       ...overview,
       btcPrice,
       btcChangePct,
-      portfolioValue: livePortfolioValue,
-      portfolioChange24h: liveChange24h,
-      portfolioChangePct24h: liveChangePct24h,
-      pnl24h: livePnl24h,
-      pnlPct24h: livePnlPct24h,
     };
   })() : overview;
 
