@@ -3,31 +3,24 @@ import React from 'react';
 import Link from 'next/link';
 import { MarketInstrument } from '@/services/markets.service';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import AssetIcon from '@/components/ui/AssetIcon';
 import MiniCandleChart from '@/components/trading/MiniCandleChart';
 import { useRealTimeMarket } from '@/hooks/useRealTimeMarket';
 
 interface Props { instruments: MarketInstrument[]; }
 
-// Symbols that have real data from Twelve Data / Tiingo
 const REAL_SYMBOLS = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD'];
 const LIVE_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'SOL/USDC', 'BNB/USDC', 'XRP/USDC', 'ADA/USDC', 'AVAX/USDC', 'DOT/USDC'];
 
-// Map instrument symbol to real data symbol
 const REAL_MAP: Record<string, string> = {
-  'BTC/USDT': 'BTC/USD',
-  'ETH/USDT': 'ETH/USD',
-  'SOL/USDT': 'SOL/USD',
-  'XRP/USDT': 'XRP/USD',
+  'BTC/USDT': 'BTC/USD', 'ETH/USDT': 'ETH/USD',
+  'SOL/USDT': 'SOL/USD', 'XRP/USDT': 'XRP/USD',
 };
 
-// Map instrument symbol to Binance WS symbol
 const BINANCE_MAP: Record<string, string> = {
-  'BTC/USDT': 'BTC/USDC',
-  'ETH/USDT': 'ETH/USDC',
-  'SOL/USDT': 'SOL/USDC',
-  'BNB/USDT': 'BNB/USDC',
-  'XRP/USDT': 'XRP/USDC',
-  'ADA/USDT': 'ADA/USDC',
+  'BTC/USDT': 'BTC/USDC', 'ETH/USDT': 'ETH/USDC',
+  'SOL/USDT': 'SOL/USDC', 'BNB/USDT': 'BNB/USDC',
+  'XRP/USDT': 'XRP/USDC', 'ADA/USDT': 'ADA/USDC',
 };
 
 export default function TopMovers({ instruments }: Props) {
@@ -57,7 +50,6 @@ export default function TopMovers({ instruments }: Props) {
           const realState = realSym ? realQuotes[realSym] : undefined;
           const wsQuote = wsSym ? wsQuotes[wsSym] : undefined;
 
-          // Prefer real data, fall back to WS, then mock
           const price = (realState?.available && realState.quote?.price != null)
             ? realState.quote.price
             : (wsQuote?.price ?? inst.lastPrice);
@@ -77,15 +69,12 @@ export default function TopMovers({ instruments }: Props) {
               href="/trade-trading-workspace"
               className="flex items-center gap-2 px-2 py-2 rounded hover:bg-muted transition-colors cursor-pointer"
             >
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                style={{ backgroundColor: 'var(--muted)', color: 'var(--primary)' }}>
-                {inst.baseCurrency.slice(0, 2)}
-              </div>
+              <AssetIcon symbol={inst.symbol} assetType="crypto" size={28} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
                   <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</p>
                   {isRealData && (
-                    <div className="w-1 h-1 rounded-full bg-green-500 shrink-0" title="Live data" />
+                    <div className="w-1 h-1 rounded-full bg-green-500 shrink-0" title="Live" />
                   )}
                 </div>
                 <p className="text-xs tabular-nums font-mono" style={{ color: 'var(--muted-foreground)' }}>
@@ -100,7 +89,7 @@ export default function TopMovers({ instruments }: Props) {
                     {Array.from({ length: 8 }, (_, i) => (
                       <div
                         key={`sk-${inst.id}-${i}`}
-                        className="flex-1 rounded-sm animate-pulse"
+                        className="flex-1 rounded-sm"
                         style={{
                           height: `${35 + Math.sin(i * 1.5) * 25}%`,
                           backgroundColor: isPos ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)',

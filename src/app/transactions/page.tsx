@@ -1,12 +1,5 @@
-'use client';
-import React from 'react';
-import AppLayout from '@/components/AppLayout';
-import TransactionHistoryContent from './components/TransactionHistoryContent';
+import { redirect } from 'next/navigation';
 
 export default function TransactionsPage() {
-  return (
-    <AppLayout>
-      <TransactionHistoryContent />
-    </AppLayout>
-  );
+  redirect('/finance?tab=history');
 }

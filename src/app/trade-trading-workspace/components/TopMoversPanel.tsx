@@ -1,25 +1,12 @@
 'use client';
 import React from 'react';
 import { MarketInstrument } from '@/services/markets.service';
+import AssetIcon from '@/components/ui/AssetIcon';
 
 interface Props {
   instruments: MarketInstrument[];
   onSelectSymbol: (s: string) => void;
 }
-
-const COIN_ICONS: Record<string, string> = {
-  BTC: '₿',
-  ETH: 'Ξ',
-  SOL: '◎',
-  XAU: '⬡',
-};
-
-const COIN_COLORS: Record<string, string> = {
-  BTC: '#F7931A',
-  ETH: '#627EEA',
-  SOL: '#9945FF',
-  XAU: '#FFD700',
-};
 
 export default function TopMoversPanel({ instruments, onSelectSymbol }: Props) {
   const topMovers = instruments
@@ -32,11 +19,8 @@ export default function TopMoversPanel({ instruments, onSelectSymbol }: Props) {
         <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Top Movers</span>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        {topMovers.map((inst, idx) => {
-          const baseSymbol = inst.symbol.split('/')[0];
+        {topMovers.map((inst) => {
           const isPos = inst.changePct24h >= 0;
-          const color = COIN_COLORS[baseSymbol] || 'var(--primary)';
-          const icon = COIN_ICONS[baseSymbol] || baseSymbol.slice(0, 1);
 
           return (
             <div
@@ -45,14 +29,8 @@ export default function TopMoversPanel({ instruments, onSelectSymbol }: Props) {
               className="flex items-center gap-2 px-3 py-2 hover:bg-muted transition-colors cursor-pointer border-b last:border-b-0"
               style={{ borderColor: 'rgba(255,255,255,0.04)' }}
             >
-              {/* Icon */}
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                style={{ backgroundColor: `${color}22`, color }}>
-                {icon}
-              </div>
-              {/* Symbol */}
-              <span className="text-xs font-semibold flex-1" style={{ color: 'var(--foreground)' }}>{baseSymbol}</span>
-              {/* Change */}
+              <AssetIcon symbol={inst.symbol} assetType="crypto" size={24} />
+              <span className="text-xs font-semibold flex-1" style={{ color: 'var(--foreground)' }}>{inst.symbol.split('/')[0]}</span>
               <span className={`text-xs font-semibold tabular-nums font-mono ${isPos ? 'text-positive' : 'text-negative'}`}>
                 {isPos ? '+' : ''}{inst.changePct24h.toFixed(2)}%
               </span>

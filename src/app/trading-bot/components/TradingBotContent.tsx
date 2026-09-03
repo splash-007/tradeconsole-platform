@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { tradingBotService, Bot, BotConfig, MarketType, BotStrategy, AnalysisResult, BotLifecycleStatus } from '@/services/trading-bot.service';
 import { notificationService } from '@/services/notification.service';
 import { useMarketQuote } from '@/hooks/useMarketQuotes';
+import AssetIcon from '@/components/ui/AssetIcon';
 import { Bot as BotIcon, Play, Pause, Square, ChevronRight, ChevronDown, AlertTriangle, CheckCircle, Loader2, TrendingUp, TrendingDown, Minus, BarChart2, Zap, Info } from 'lucide-react';
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -451,20 +452,26 @@ export default function TradingBotContent() {
               <div className="rounded-lg border p-4 space-y-3" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Step 2 — Select Asset / Pair</h3>
                 <div className="flex flex-wrap gap-2">
-                  {(ASSET_PAIRS[marketType] || []).map(pair => (
+                  {(ASSET_PAIRS[marketType] || []).map(pair => {
+                    const base = pair.split('/')[0];
+                    const isCrypto = !['EUR', 'GBP', 'USD', 'XAU'].includes(base);
+                    const assetType = isCrypto ? 'crypto' as const : (base === 'XAU' ? 'metal' as const : 'forex' as const);
+                    return (
                     <button
                       key={pair}
                       onClick={() => { setSelectedPair(pair); if (step === 2) setStep(3); }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                       style={{
                         backgroundColor: selectedPair === pair ? 'rgba(245,196,0,0.15)' : 'var(--muted)',
                         color: selectedPair === pair ? 'var(--primary)' : 'var(--foreground)',
                         border: `1px solid ${selectedPair === pair ? 'rgba(245,196,0,0.4)' : 'var(--border)'}`,
                       }}
                     >
+                      <AssetIcon symbol={pair} assetType={assetType} size={16} />
                       {pair}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

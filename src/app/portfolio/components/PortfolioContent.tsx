@@ -1,14 +1,17 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { portfolioService, Position, PortfolioAllocation } from '@/services/portfolio.service';
-import PortfolioKpis from './PortfolioKpis';
+import { dashboardService, DashboardOverview } from '@/services/dashboard.service';
+import { kycService, KYCStatus } from '@/services/kyc.service';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import AllocationChart from './AllocationChart';
 import PositionsTable from './PositionsTable';
 import TradeHistoryTable from './TradeHistoryTable';
+import AssetIcon from '@/components/ui/AssetIcon';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Activity, BarChart2, Clock } from 'lucide-react';
+import { TrendingUp, Activity, BarChart2, Clock, Wallet, AlertTriangle, CheckCircle2, ArrowUpRight, ArrowDownLeft, Star, Zap, DollarSign } from 'lucide-react';
+import Link from 'next/link';
 
-// Mock portfolio performance data
 const PERFORMANCE_DATA = [
   { date: 'Aug 1', value: 40000 },
   { date: 'Aug 5', value: 41200 },
@@ -22,11 +25,20 @@ const PERFORMANCE_DATA = [
   { date: 'Aug 27', value: 48284 },
 ];
 
-const RISK_METRICS = [
-  { label: 'Sharpe Ratio', value: '1.84', sub: 'Risk-adjusted return', positive: true },
-  { label: 'Max Drawdown', value: '-8.2%', sub: 'Peak to trough', positive: false },
-  { label: 'Win Rate', value: '68%', sub: 'Profitable trades', positive: true },
-  { label: 'Avg Hold Time', value: '4.2d', sub: 'Per position', positive: null },
+const REAL_DATA_SYMBOLS = [
+  'BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD',
+  'EUR/USD', 'GBP/USD', 'USD/JPY',
+  'AAPL', 'NVDA', 'MSFT', 'TSLA', 'AMZN',
+  'SPY', 'QQQ',
+];
+
+const MARKET_SNAPSHOT = [
+  { symbol: 'BTC/USD', name: 'Bitcoin', assetType: 'crypto' as const, realKey: 'BTC/USD' },
+  { symbol: 'ETH/USD', name: 'Ethereum', assetType: 'crypto' as const, realKey: 'ETH/USD' },
+  { symbol: 'EUR/USD', name: 'Euro / Dollar', assetType: 'forex' as const, realKey: 'EUR/USD' },
+  { symbol: 'GBP/USD', name: 'Pound / Dollar', assetType: 'forex' as const, realKey: 'GBP/USD' },
+  { symbol: 'AAPL', name: 'Apple Inc.', assetType: 'stock' as const, realKey: 'AAPL' },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.', assetType: 'stock' as const, realKey: 'NVDA' },
 ];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -41,22 +53,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+type PortfolioTab = 'overview' | 'performance' | 'history';
+
 export default function PortfolioContent() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [allocation, setAllocation] = useState<PortfolioAllocation[]>([]);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof portfolioService.getTradeHistory>>>([]);
+  const [overview, setOverview] = useState<DashboardOverview | null>(null);
+  const [kycStatus, setKycStatus] = useState<KYCStatus>('not_started');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<PortfolioTab>('overview');
+
+  const { quotes: realQuotes, loading: realLoading } = useMarketQuotes(REAL_DATA_SYMBOLS);
+  const isLive = Object.values(realQuotes).some(q => q.available);
 
   useEffect(() => {
     Promise.all([
       portfolioService.getPositions(),
       portfolioService.getAllocation(),
       portfolioService.getTradeHistory(),
-    ]).then(([pos, alloc, hist]) => {
+      dashboardService.getOverview(),
+      kycService.getKYCStatus('cust-001'),
+    ]).then(([pos, alloc, hist, ov, kyc]) => {
       setPositions(pos);
       setAllocation(alloc);
       setHistory(hist);
+      setOverview(ov);
+      setKycStatus(kyc.status);
       setLoading(false);
     });
   }, []);
@@ -65,8 +88,8 @@ export default function PortfolioContent() {
     return (
       <div className="py-4 space-y-4 animate-pulse">
         <div className="h-8 w-40 rounded" style={{ backgroundColor: 'var(--muted)' }} />
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }, (_, i) => <div key={`pf-sk-${i}`} className="h-24 rounded-lg" style={{ backgroundColor: 'var(--card)' }} />)}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }, (_, i) => <div key={i} className="h-24 rounded-lg" style={{ backgroundColor: 'var(--card)' }} />)}
         </div>
         <div className="grid xl:grid-cols-3 gap-4">
           <div className="h-72 rounded-lg" style={{ backgroundColor: 'var(--card)' }} />
@@ -79,53 +102,212 @@ export default function PortfolioContent() {
   const totalValue = positions.reduce((a, b) => a + b.value, 0) + 12480;
   const totalPnl = positions.reduce((a, b) => a + b.pnl, 0);
   const totalPnlPct = (totalPnl / (totalValue - totalPnl)) * 100;
-  const totalDeposited = 40000;
-  const totalRoi = ((totalValue - totalDeposited) / totalDeposited) * 100;
+  const availableBalance = overview?.availableBalance ?? 12480;
 
-  const TABS = [
-    { id: 'overview' as const, label: 'Overview', icon: BarChart2 },
-    { id: 'analytics' as const, label: 'Analytics', icon: Activity },
-    { id: 'history' as const, label: 'Trade History', icon: Clock },
+  const btcReal = realQuotes['BTC/USD'];
+  const btcPrice = btcReal?.available && btcReal.quote?.price != null
+    ? btcReal.quote.price
+    : (overview?.btcPrice ?? 0);
+  const btcChangePct = btcReal?.available && btcReal.quote?.changePercent != null
+    ? btcReal.quote.changePercent
+    : (overview?.btcChangePct ?? 0);
+
+  const TABS: { id: PortfolioTab; label: string; icon: React.ElementType }[] = [
+    { id: 'overview', label: 'Overview', icon: BarChart2 },
+    { id: 'performance', label: 'Performance', icon: Activity },
+    { id: 'history', label: 'Trade History', icon: Clock },
   ];
 
   return (
     <div className="py-4 space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Portfolio</h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Account overview · Aug 27, 2026</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Account overview · Sep 3, 2026</p>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isLive ? '#22c55e' : '#6b7280' }} />
+              <span className="text-xs" style={{ color: isLive ? '#22c55e' : 'var(--muted-foreground)' }}>
+                {isLive ? 'Live' : realLoading ? 'Connecting…' : 'Market data unavailable'}
+              </span>
+            </div>
+          </div>
         </div>
-        {/* Tab switcher */}
-        <div className="flex items-center gap-1 p-1 rounded-lg border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all"
-              style={{
-                backgroundColor: activeTab === tab.id ? 'var(--primary)' : 'transparent',
-                color: activeTab === tab.id ? '#000' : 'var(--muted-foreground)',
-              }}
-            >
-              <tab.icon size={12} />
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/finance?tab=deposit"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all hover:opacity-90"
+            style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}
+          >
+            <ArrowDownLeft size={12} /> Deposit
+          </Link>
+          <Link
+            href="/finance?tab=withdraw"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all hover:opacity-90"
+            style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
+          >
+            <ArrowUpRight size={12} /> Withdraw
+          </Link>
+          <Link
+            href="/trade-trading-workspace"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all hover:opacity-90"
+            style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+          >
+            <TrendingUp size={12} /> Trade
+          </Link>
         </div>
       </div>
 
-      <PortfolioKpis
-        totalValue={totalValue}
-        pnl24h={totalPnl}
-        pnlPct24h={totalPnlPct}
-        totalRoi={totalRoi}
-        openPositions={positions.length}
-      />
+      {/* KYC notice */}
+      {kycStatus !== 'verified' && kycStatus !== 'submitted' && kycStatus !== 'under_review' && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded border" style={{ backgroundColor: 'rgba(245,158,11,0.05)', borderColor: 'rgba(245,158,11,0.2)' }}>
+          <AlertTriangle size={13} className="shrink-0" style={{ color: '#f59e0b' }} />
+          <div className="flex-1 min-w-0">
+            <span className="text-xs font-semibold" style={{ color: '#f59e0b' }}>Identity verification required</span>
+            <span className="text-xs ml-2" style={{ color: 'var(--muted-foreground)' }}>Complete your verification to unlock all account functionality.</span>
+          </div>
+          <Link href="/settings?tab=kyc" className="text-xs px-3 py-1.5 rounded font-semibold shrink-0 transition-all hover:opacity-90" style={{ backgroundColor: '#f59e0b', color: '#000' }}>
+            Complete Verification
+          </Link>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
+        {/* Portfolio Value — hero */}
+        <div className="col-span-2 rounded-lg p-4 border relative overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'rgba(212,168,0,0.25)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>Portfolio Value</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data — not live account balance</p>
+            </div>
+            <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.1)' }}>
+              <Wallet size={15} style={{ color: 'var(--primary)' }} />
+            </div>
+          </div>
+          <p className="text-2xl font-bold tabular-nums mb-1" style={{ color: 'var(--foreground)' }}>
+            ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+          <div className="flex items-center gap-2">
+            <TrendingUp size={12} style={{ color: 'var(--positive)' }} />
+            <span className="text-xs font-semibold tabular-nums text-positive">+20.7% this month</span>
+          </div>
+        </div>
+
+        {/* Available Balance */}
+        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-foreground)' }}>Available</p>
+          <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--foreground)' }}>
+            ${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+          </p>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data</p>
+        </div>
+
+        {/* 24h P&L */}
+        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-foreground)' }}>24h P&L</p>
+          <p className={`text-xl font-bold tabular-nums ${totalPnl >= 0 ? 'text-positive' : 'text-negative'}`}>
+            {totalPnl >= 0 ? '+' : ''}${Math.abs(totalPnl).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data</p>
+        </div>
+
+        {/* BTC Price — live */}
+        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-1 mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>BTC/USD</p>
+            {isLive && <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+          </div>
+          <p className="text-xl font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
+            ${btcPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+          </p>
+          <p className={`text-xs mt-1 font-medium tabular-nums ${btcChangePct >= 0 ? 'text-positive' : 'text-negative'}`}>
+            {btcChangePct >= 0 ? '+' : ''}{btcChangePct.toFixed(2)}%
+          </p>
+        </div>
+
+        {/* Account Status */}
+        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-foreground)' }}>Account</p>
+          <div className="flex items-center gap-1.5">
+            {kycStatus === 'verified' ? (
+              <CheckCircle2 size={14} style={{ color: '#22c55e' }} />
+            ) : (
+              <AlertTriangle size={14} style={{ color: '#f59e0b' }} />
+            )}
+            <span className="text-sm font-semibold" style={{ color: kycStatus === 'verified' ? '#22c55e' : '#f59e0b' }}>
+              {kycStatus === 'verified' ? 'Verified' : 'Pending KYC'}
+            </span>
+          </div>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>{positions.length} open positions</p>
+        </div>
+      </div>
+
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1 p-1 rounded-lg border w-fit" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all"
+            style={{
+              backgroundColor: activeTab === tab.id ? 'var(--primary)' : 'transparent',
+              color: activeTab === tab.id ? '#000' : 'var(--muted-foreground)',
+            }}
+          >
+            <tab.icon size={12} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* Overview tab */}
       {activeTab === 'overview' && (
         <>
+          {/* Market Snapshot */}
+          <div className="rounded-lg border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Market Snapshot</h3>
+              <Link href="/markets" className="text-xs hover:underline" style={{ color: 'var(--primary)' }}>View all markets</Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0" style={{ borderColor: 'var(--border)' }}>
+              {MARKET_SNAPSHOT.map(item => {
+                const q = realQuotes[item.realKey];
+                const isReal = q?.available && q.quote?.price != null;
+                const price = isReal ? q.quote!.price! : null;
+                const changePct = isReal && q.quote?.changePercent != null ? q.quote.changePercent : null;
+                const isPos = (changePct ?? 0) >= 0;
+                return (
+                  <div key={item.symbol} className="px-4 py-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AssetIcon symbol={item.symbol} assetType={item.assetType} size={20} />
+                      <div>
+                        <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{item.symbol}</p>
+                        <p className="text-xs" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{item.name}</p>
+                      </div>
+                    </div>
+                    {price != null ? (
+                      <>
+                        <p className="text-sm font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
+                          {item.assetType === 'forex' ? price.toFixed(4) : price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </p>
+                        {changePct != null && (
+                          <p className={`text-xs font-semibold tabular-nums ${isPos ? 'text-positive' : 'text-negative'}`}>
+                            {isPos ? '+' : ''}{changePct.toFixed(2)}%
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Allocation + Positions */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <AllocationChart allocation={allocation} totalValue={totalValue} />
             <div className="xl:col-span-2">
@@ -133,12 +315,12 @@ export default function PortfolioContent() {
             </div>
           </div>
 
-          {/* Portfolio value chart */}
+          {/* Portfolio chart */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Portfolio Value</h3>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Aug 2026 performance</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Aug 2026 — Development data</p>
               </div>
               <div className="flex items-center gap-1.5">
                 <TrendingUp size={14} style={{ color: 'var(--positive)' }} />
@@ -153,32 +335,50 @@ export default function PortfolioContent() {
                     <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,0,0,0.04)" />
                 <XAxis dataKey="date" tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={v => `$${(v / 1000).toFixed(0)}K`}
-                  width={44}
-                />
+                <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} width={44} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2} fill="url(#pfGrad)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Programs preview */}
+          <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Available Programs</h3>
+              <Link href="/programs" className="text-xs hover:underline" style={{ color: 'var(--primary)' }}>View all</Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { icon: Star, label: 'Loyalty Rewards', desc: 'Earn points on every trade', color: '#f59e0b' },
+                { icon: Zap, label: 'Trading Boost', desc: 'Enhanced leverage for verified accounts', color: '#8b5cf6' },
+                { icon: DollarSign, label: 'Referral Bonus', desc: 'Earn for every referral', color: '#22c55e' },
+              ].map(p => (
+                <div key={p.label} className="flex items-start gap-3 p-3 rounded border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
+                  <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: `${p.color}15` }}>
+                    <p.icon size={15} style={{ color: p.color }} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{p.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{p.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </>
       )}
 
-      {/* Analytics tab */}
-      {activeTab === 'analytics' && (
+      {/* Performance tab */}
+      {activeTab === 'performance' && (
         <div className="space-y-4">
-          {/* Portfolio value chart */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Portfolio Performance</h3>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Equity curve — Aug 2026</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Equity curve — Aug 2026 · Development data</p>
               </div>
               <span className="text-xs px-2 py-1 rounded font-medium" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--positive)' }}>
                 +$8,284 this month
@@ -192,29 +392,25 @@ export default function PortfolioContent() {
                     <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" />
+                <CartesianGrid strokeDasharray="2 4" stroke="rgba(0,0,0,0.04)" />
                 <XAxis dataKey="date" tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={v => `$${(v / 1000).toFixed(0)}K`}
-                  width={44}
-                />
+                <YAxis tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}K`} width={44} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2} fill="url(#pfGrad2)" dot={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Risk metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {RISK_METRICS.map(m => (
+            {[
+              { label: 'Sharpe Ratio', value: '1.84', sub: 'Risk-adjusted return', positive: true },
+              { label: 'Max Drawdown', value: '-8.2%', sub: 'Peak to trough', positive: false },
+              { label: 'Win Rate', value: '68%', sub: 'Profitable trades', positive: true },
+              { label: 'Avg Hold Time', value: '4.2d', sub: 'Per position', positive: null },
+            ].map(m => (
               <div key={m.label} className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
                 <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--muted-foreground)' }}>{m.label}</p>
-                <p className="text-xl font-bold tabular-nums" style={{
-                  color: m.positive === true ? 'var(--positive)' : m.positive === false ? 'var(--negative)' : 'var(--foreground)'
-                }}>
+                <p className="text-xl font-bold tabular-nums" style={{ color: m.positive === true ? 'var(--positive)' : m.positive === false ? 'var(--negative)' : 'var(--foreground)' }}>
                   {m.value}
                 </p>
                 <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>{m.sub}</p>
@@ -222,7 +418,6 @@ export default function PortfolioContent() {
             ))}
           </div>
 
-          {/* Asset performance breakdown */}
           <div className="rounded-lg border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
               <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Position Performance</h3>
@@ -231,83 +426,36 @@ export default function PortfolioContent() {
               {positions.map(pos => {
                 const isPos = pos.pnl >= 0;
                 const barWidth = Math.min(Math.abs(pos.pnlPct) * 4, 100);
+                const base = pos.symbol.split('/')[0];
                 return (
                   <div key={pos.id} className="px-4 py-3 flex items-center gap-4">
-                    <div className="w-20 shrink-0">
-                      <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{pos.symbol.split('/')[0]}</p>
-                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{pos.side.toUpperCase()}</p>
+                    <div className="flex items-center gap-2 w-24 shrink-0">
+                      <AssetIcon symbol={pos.symbol} assetType="crypto" size={24} />
+                      <div>
+                        <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{base}</p>
+                        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{pos.side.toUpperCase()}</p>
+                      </div>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                          Entry ${pos.entryPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
+                        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Entry ${pos.entryPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                         <span className={`text-xs font-semibold ${isPos ? 'text-positive' : 'text-negative'}`}>
                           {isPos ? '+' : ''}${pos.pnl.toLocaleString('en-US', { minimumFractionDigits: 2 })} ({isPos ? '+' : ''}{pos.pnlPct.toFixed(2)}%)
                         </span>
                       </div>
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--muted)' }}>
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${barWidth}%`,
-                            backgroundColor: isPos ? 'var(--positive)' : 'var(--negative)',
-                          }}
-                        />
+                        <div className="h-full rounded-full transition-all" style={{ width: `${barWidth}%`, backgroundColor: isPos ? 'var(--positive)' : 'var(--negative)' }} />
                       </div>
-                    </div>
-                    <div className="w-24 text-right shrink-0">
-                      <p className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>
-                        ${pos.value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{pos.size} units</p>
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
-
-          {/* Trade stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-              <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--foreground)' }}>Trade Statistics</h3>
-              <div className="space-y-2.5">
-                {[
-                  { label: 'Total Trades', value: history.length.toString() },
-                  { label: 'Profitable', value: `${history.filter(h => h.side === 'sell').length} (${Math.round(history.filter(h => h.side === 'sell').length / history.length * 100)}%)` },
-                  { label: 'Total Volume', value: `$${history.reduce((s, h) => s + h.total, 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}` },
-                  { label: 'Total Fees', value: `$${history.reduce((s, h) => s + h.fee, 0).toFixed(2)}` },
-                  { label: 'Avg Trade Size', value: `$${(history.reduce((s, h) => s + h.total, 0) / history.length).toLocaleString('en-US', { maximumFractionDigits: 0 })}` },
-                ].map(stat => (
-                  <div key={stat.label} className="flex items-center justify-between">
-                    <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{stat.label}</span>
-                    <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{stat.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-              <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--foreground)' }}>Asset Exposure</h3>
-              <div className="space-y-2.5">
-                {allocation.map(item => (
-                  <div key={item.symbol} className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-                    <span className="text-xs font-medium w-10" style={{ color: 'var(--foreground)' }}>{item.symbol}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--muted)' }}>
-                      <div className="h-full rounded-full" style={{ width: `${item.pct}%`, backgroundColor: item.color }} />
-                    </div>
-                    <span className="text-xs tabular-nums w-10 text-right" style={{ color: 'var(--muted-foreground)' }}>{item.pct.toFixed(1)}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* Trade History tab */}
+      {/* History tab */}
       {activeTab === 'history' && (
         <TradeHistoryTable history={history} />
       )}

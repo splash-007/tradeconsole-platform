@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarketInstrument } from '@/services/markets.service';
 import type { QuoteState } from '@/hooks/useMarketQuotes';
+import AssetIcon from '@/components/ui/AssetIcon';
 import { ChevronDown, Star, Bell, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight } from 'lucide-react';
 
 interface Props {
@@ -19,8 +20,8 @@ const WORKSPACE_TO_REAL: Record<string, string> = {
   'ETH/USDC': 'ETH/USD',
   'SOL/USDC': 'SOL/USD',
   'XRP/USDC': 'XRP/USD',
-  'BNB/USDC': 'BTC/USD',
-  'ADA/USDC': 'BTC/USD',
+  'BNB/USDC': 'BNB/USD',
+  'ADA/USDC': 'ADA/USD',
 };
 
 export default function InstrumentBar({ instrument, instruments, selectedSymbol, onSelectSymbol, liveQuotes }: Props) {
@@ -54,10 +55,7 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
           onClick={() => setDropdownOpen(!dropdownOpen)}
           className="flex items-center gap-2 hover:bg-muted px-2 py-1.5 rounded transition-colors"
         >
-          <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-            {baseSymbol.slice(0, 1)}
-          </div>
+          <AssetIcon symbol={selectedSymbol} assetType="crypto" size={28} />
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{selectedSymbol}</span>
@@ -79,9 +77,10 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
               <button
                 key={`ib-drop-${inst.id}`}
                 onClick={() => { onSelectSymbol(inst.symbol); setDropdownOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-muted transition-colors ${inst.symbol === selectedSymbol ? 'bg-primary-subtle' : ''}`}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors ${inst.symbol === selectedSymbol ? 'bg-primary-subtle' : ''}`}
               >
-                <span className="font-semibold" style={{ color: inst.symbol === selectedSymbol ? 'var(--primary)' : 'var(--foreground)' }}>{inst.symbol}</span>
+                <AssetIcon symbol={inst.symbol} assetType="crypto" size={20} />
+                <span className="font-semibold flex-1 text-left" style={{ color: inst.symbol === selectedSymbol ? 'var(--primary)' : 'var(--foreground)' }}>{inst.symbol}</span>
                 <span className={`font-mono ${inst.changePct24h >= 0 ? 'text-positive' : 'text-negative'}`}>
                   {inst.changePct24h >= 0 ? '+' : ''}{inst.changePct24h.toFixed(2)}%
                 </span>
