@@ -29,7 +29,6 @@ export default function KpiGrid({ overview }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>Portfolio Value</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data — not live account balance</p>
             </div>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: isPositive ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)' }}>
               <Wallet size={16} style={{ color: isPositive ? 'var(--positive)' : 'var(--negative)' }} />
@@ -57,7 +56,6 @@ export default function KpiGrid({ overview }: Props) {
         <p className="text-xs mt-1 font-medium tabular-nums" style={{ color: isPnlPositive ? 'var(--positive)' : 'var(--negative)' }}>
           {isPnlPositive ? '+' : ''}{overview.pnlPct24h.toFixed(2)}%
         </p>
-        <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data</p>
       </div>
 
       {/* BTC Price */}
@@ -75,7 +73,7 @@ export default function KpiGrid({ overview }: Props) {
         <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           ${overview.availableBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}
         </p>
-        <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Cash balance</p>
       </div>
 
       {/* Open Positions */}

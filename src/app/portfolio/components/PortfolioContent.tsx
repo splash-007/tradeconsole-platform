@@ -9,11 +9,7 @@ import PositionsTable from './PositionsTable';
 import TradeHistoryTable from './TradeHistoryTable';
 import AssetIcon from '@/components/ui/AssetIcon';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import {
-  TrendingUp, Activity, BarChart2, Clock, Wallet, AlertTriangle,
-  CheckCircle2, ArrowUpRight, ArrowDownLeft, Star, Zap, DollarSign,
-  Database, RefreshCw,
-} from 'lucide-react';
+import { TrendingUp, Activity, BarChart2, Clock, Wallet, AlertTriangle, CheckCircle2, ArrowUpRight, ArrowDownLeft, Zap, Gift, Users, Shield, ChevronRight,  } from 'lucide-react';
 import Link from 'next/link';
 
 const PERFORMANCE_DATA = [
@@ -59,18 +55,44 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 type PortfolioTab = 'overview' | 'performance' | 'history';
 
-// Dev state badge — shown wherever backend data is not yet connected
-function DevBadge({ label = 'Dev data' }: { label?: string }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
-      style={{ backgroundColor: 'rgba(107,114,128,0.1)', color: 'var(--muted-foreground)', fontSize: '10px' }}
-    >
-      <Database size={9} />
-      {label}
-    </span>
-  );
-}
+const PROGRAMS_BENEFITS = [
+  {
+    icon: Gift,
+    title: 'Deposit Bonus',
+    description: 'Get a bonus credit on your qualifying deposit. Activate your promotional offer and boost your starting balance.',
+    accentColor: '#D4A800',
+    href: '/programs',
+    badge: 'Available',
+    badgeColor: '#22c55e',
+  },
+  {
+    icon: Users,
+    title: 'Referral Program',
+    description: 'Invite friends and earn rewards for every qualified referral. Share your unique code and grow together.',
+    accentColor: '#22c55e',
+    href: '/programs',
+    badge: 'Active',
+    badgeColor: '#22c55e',
+  },
+  {
+    icon: Zap,
+    title: 'Trading Boost',
+    description: 'Unlock enhanced leverage and reduced fees for verified accounts. Trade more with less capital.',
+    accentColor: '#8b5cf6',
+    href: '/programs',
+    badge: 'Eligible',
+    badgeColor: '#8b5cf6',
+  },
+  {
+    icon: Shield,
+    title: 'Loyalty Rewards',
+    description: 'Earn loyalty points on every trade. Redeem for fee discounts, exclusive perks, and premium features.',
+    accentColor: '#f59e0b',
+    href: '/programs',
+    badge: 'Earn Points',
+    badgeColor: '#f59e0b',
+  },
+];
 
 export default function PortfolioContent() {
   const [positions, setPositions] = useState<Position[]>([]);
@@ -116,12 +138,10 @@ export default function PortfolioContent() {
     );
   }
 
-  // Portfolio value — dev data, clearly labeled
   const totalValue = positions.reduce((a, b) => a + b.value, 0) + 12480;
   const totalPnl = positions.reduce((a, b) => a + b.pnl, 0);
   const availableBalance = overview?.availableBalance ?? 12480;
 
-  // BTC price — real when available
   const btcReal = realQuotes['BTC/USD'];
   const btcPrice = btcReal?.available && btcReal.quote?.price != null
     ? btcReal.quote.price
@@ -192,23 +212,12 @@ export default function PortfolioContent() {
         </div>
       )}
 
-      {/* Backend data notice */}
-      <div className="flex items-center gap-2 px-3 py-2 rounded border text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.05)', borderColor: 'var(--border)' }}>
-        <Database size={11} style={{ color: 'var(--muted-foreground)' }} />
-        <span style={{ color: 'var(--muted-foreground)' }}>
-          Portfolio balances, positions, and P&amp;L are <strong>development data</strong> — not connected to a live account. Market prices marked <span className="inline-flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /></span> are live.
-        </span>
-      </div>
-
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
-        {/* Portfolio Value — hero, dev data */}
+        {/* Portfolio Value */}
         <div className="col-span-2 rounded-lg p-4 border relative overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'rgba(212,168,0,0.2)' }}>
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>Portfolio Value</p>
-              <DevBadge />
-            </div>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>Portfolio Value</p>
             <div className="w-7 h-7 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.1)' }}>
               <Wallet size={13} style={{ color: 'var(--primary)' }} />
             </div>
@@ -219,28 +228,21 @@ export default function PortfolioContent() {
           <div className="flex items-center gap-1.5">
             <TrendingUp size={11} style={{ color: 'var(--positive)' }} />
             <span className="text-xs font-medium tabular-nums text-positive">+20.7% this month</span>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>(dev)</span>
           </div>
         </div>
 
-        {/* Available Balance — dev data */}
+        {/* Available Balance */}
         <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>Available</p>
-            <DevBadge />
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-foreground)' }}>Available</p>
           <p className="text-xl font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
             ${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Cash balance</p>
         </div>
 
-        {/* 24h P&L — dev data */}
+        {/* 24h P&L */}
         <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>24h P&amp;L</p>
-            <DevBadge />
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-foreground)' }}>24h P&amp;L</p>
           <p className={`text-xl font-bold tabular-nums font-mono ${totalPnl >= 0 ? 'text-positive' : 'text-negative'}`}>
             {totalPnl >= 0 ? '+' : ''}${Math.abs(totalPnl).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
@@ -287,7 +289,7 @@ export default function PortfolioContent() {
               {kycStatus === 'verified' ? 'Verified' : 'Pending KYC'}
             </span>
           </div>
-          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>{positions.length} positions (dev)</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>{positions.length} open positions</p>
         </div>
       </div>
 
@@ -375,15 +377,12 @@ export default function PortfolioContent() {
             </div>
           </div>
 
-          {/* Portfolio chart — dev data */}
+          {/* Portfolio chart */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Portfolio Value</h3>
-                  <DevBadge label="Dev chart" />
-                </div>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Aug 2026 — not connected to live account</p>
+                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Portfolio Value</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Aug 2026</p>
               </div>
               <div className="flex items-center gap-1.5">
                 <TrendingUp size={13} style={{ color: 'var(--positive)' }} />
@@ -407,27 +406,48 @@ export default function PortfolioContent() {
             </ResponsiveContainer>
           </div>
 
-          {/* Programs preview */}
+          {/* Programs & Benefits — 4 offer cards */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Available Programs</h3>
-              <Link href="/programs" className="text-xs font-medium hover:underline" style={{ color: 'var(--primary)' }}>View all</Link>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Programs &amp; Benefits</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Exclusive offers available for your account</p>
+              </div>
+              <Link href="/programs" className="flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: 'var(--primary)' }}>
+                View all <ChevronRight size={12} />
+              </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { icon: Star, label: 'Loyalty Rewards', desc: 'Earn points on every trade', color: '#f59e0b' },
-                { icon: Zap, label: 'Trading Boost', desc: 'Enhanced leverage for verified accounts', color: '#8b5cf6' },
-                { icon: DollarSign, label: 'Referral Bonus', desc: 'Earn for every referral', color: '#22c55e' },
-              ].map(p => (
-                <div key={p.label} className="flex items-start gap-3 p-3 rounded border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                  <div className="w-7 h-7 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: `${p.color}15` }}>
-                    <p.icon size={13} style={{ color: p.color }} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              {PROGRAMS_BENEFITS.map(program => (
+                <Link
+                  key={program.title}
+                  href={program.href}
+                  className="group flex flex-col p-4 rounded-xl border transition-all hover:shadow-md hover:scale-[1.01]"
+                  style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${program.accentColor}18`, border: `1px solid ${program.accentColor}30` }}
+                    >
+                      <program.icon size={16} style={{ color: program.accentColor }} />
+                    </div>
+                    <span
+                      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: `${program.badgeColor}15`, color: program.badgeColor }}
+                    >
+                      {program.badge}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{p.label}</p>
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{p.desc}</p>
+                  <h4 className="text-sm font-bold mb-1.5" style={{ color: 'var(--foreground)' }}>{program.title}</h4>
+                  <p className="text-xs leading-relaxed flex-1" style={{ color: 'var(--muted-foreground)' }}>{program.description}</p>
+                  <div
+                    className="flex items-center gap-1 mt-3 text-xs font-semibold group-hover:gap-2 transition-all"
+                    style={{ color: program.accentColor }}
+                  >
+                    Learn more <ChevronRight size={11} />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -437,25 +457,14 @@ export default function PortfolioContent() {
       {/* Performance tab */}
       {activeTab === 'performance' && (
         <div className="space-y-4">
-          {/* Dev state notice */}
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded border text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.05)', borderColor: 'var(--border)' }}>
-            <RefreshCw size={11} style={{ color: 'var(--muted-foreground)' }} />
-            <span style={{ color: 'var(--muted-foreground)' }}>
-              Performance metrics below are <strong>development data</strong>. Connect backend account API to show real equity curve and statistics.
-            </span>
-          </div>
-
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Portfolio Performance</h3>
-                  <DevBadge label="Dev chart" />
-                </div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Portfolio Performance</h3>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Equity curve · Aug 2026</p>
               </div>
               <span className="text-xs px-2 py-1 rounded font-medium" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--positive)' }}>
-                +$8,284 (dev)
+                +$8,284
               </span>
             </div>
             <ResponsiveContainer width="100%" height={200}>
@@ -483,10 +492,7 @@ export default function PortfolioContent() {
               { label: 'Avg Hold Time', value: '4.2d', sub: 'Per position', positive: null },
             ].map(m => (
               <div key={m.label} className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>{m.label}</p>
-                  <DevBadge />
-                </div>
+                <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: 'var(--muted-foreground)' }}>{m.label}</p>
                 <p className="text-xl font-bold tabular-nums font-mono" style={{ color: m.positive === true ? 'var(--positive)' : m.positive === false ? 'var(--negative)' : 'var(--foreground)' }}>
                   {m.value}
                 </p>
@@ -498,7 +504,6 @@ export default function PortfolioContent() {
           <div className="rounded-lg border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
               <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Position Performance</h3>
-              <DevBadge label="Dev positions" />
             </div>
             <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {positions.map(pos => {
