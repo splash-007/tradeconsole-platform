@@ -13,51 +13,47 @@ function formatTime(ms: number) {
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
 }
 
-const termBg = '#000000';
-const termSurface = '#080808';
-const termBorder = '#1a1a1a';
-
 export default function RecentTradesPanel({ trades }: Props) {
   return (
     <div
       className="flex flex-col h-full rounded-xl overflow-hidden"
-      style={{ backgroundColor: termBg, border: `1px solid ${termBorder}` }}
+      style={{ backgroundColor: 'var(--tc-bg)', border: '1px solid var(--tc-border)' }}
     >
       <div
         className="px-3 py-2 border-b shrink-0"
-        style={{ borderColor: termBorder, backgroundColor: termSurface }}
+        style={{ borderColor: 'var(--tc-border)', backgroundColor: 'var(--tc-surface)' }}
       >
-        <span className="text-xs font-semibold text-white tracking-wide uppercase">Recent Trades</span>
+        <span className="text-xs font-bold tracking-wide uppercase" style={{ color: 'var(--tc-text-primary)' }}>Recent Trades</span>
       </div>
       <div
-        className="grid px-3 py-1 shrink-0"
-        style={{ gridTemplateColumns: '1fr 1fr 1fr', borderBottom: `1px solid ${termBorder}`, backgroundColor: termSurface }}
+        className="grid px-3 py-1.5 shrink-0"
+        style={{ gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1px solid var(--tc-border)', backgroundColor: 'var(--tc-surface)' }}
       >
         {['Price', 'Amount (BTC)', 'Time'].map(h => (
-          <span key={`rt-hdr-${h}`} className="text-xs text-right first:text-left text-gray-600">{h}</span>
+          <span key={`rt-hdr-${h}`} className="text-xs font-semibold uppercase tracking-wide text-right first:text-left" style={{ color: 'var(--tc-text-muted)' }}>{h}</span>
         ))}
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {trades.map(trade => (
           <div
             key={`rt-${trade.id}`}
-            className="grid px-3 py-0.5 transition-colors hover:bg-white/5"
-            style={{ gridTemplateColumns: '1fr 1fr 1fr', borderBottom: `1px solid ${termBorder}` }}
+            className="grid px-3 py-1 transition-colors"
+            style={{ gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1px solid var(--tc-border)' }}
           >
-            <span className={`text-xs tabular-nums font-mono ${trade.side === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
+            <span className={`text-sm tabular-nums font-mono font-semibold ${trade.side === 'buy' ? 'text-green-600' : 'text-red-600'}`}>
               {trade.price >= 1 ? trade.price.toFixed(2) : trade.price.toFixed(6)}
             </span>
-            <span className="text-xs tabular-nums font-mono text-right text-white">
+            <span className="text-sm tabular-nums font-mono text-right font-medium" style={{ color: 'var(--tc-text-primary)' }}>
               {trade.size.toFixed(4)}
             </span>
-            <span className="text-xs text-right text-gray-500">
+            <span className="text-xs text-right" style={{ color: 'var(--tc-text-muted)' }}>
               {formatTime(trade.timestamp)}
             </span>
           </div>
         ))}
         {trades.length === 0 && (
           <div className="flex items-center justify-center h-16">
-            <span className="text-xs text-gray-600">Waiting for trades…</span>
+            <span className="text-sm" style={{ color: 'var(--tc-text-muted)' }}>Waiting for trades…</span>
           </div>
         )}
       </div>

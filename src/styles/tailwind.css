@@ -81,6 +81,32 @@
   --tc-surface: #080808;
   --tc-panel: #0d0d0d;
   --tc-border: #1a1a1a;
+  --tc-text-primary: #ffffff;
+  --tc-text-secondary: #a1a1aa;
+  --tc-text-muted: #71717a;
+  --tc-input-bg: #0d0d0d;
+}
+
+.light {
+  --tc-bg: #ffffff;
+  --tc-surface: #f8f9fb;
+  --tc-panel: #f1f3f7;
+  --tc-border: #e2e5ef;
+  --tc-text-primary: #0d0f14;
+  --tc-text-secondary: #374151;
+  --tc-text-muted: #6b7280;
+  --tc-input-bg: #f5f6fa;
+}
+
+.dark {
+  --tc-bg: #000000;
+  --tc-surface: #080808;
+  --tc-panel: #0d0d0d;
+  --tc-border: #1a1a1a;
+  --tc-text-primary: #ffffff;
+  --tc-text-secondary: #a1a1aa;
+  --tc-text-muted: #71717a;
+  --tc-input-bg: #0d0d0d;
 }
 
 .trade-terminal {
@@ -88,6 +114,21 @@
   --tc-surface: #080808;
   --tc-panel: #0d0d0d;
   --tc-border: #1a1a1a;
+  --tc-text-primary: #ffffff;
+  --tc-text-secondary: #a1a1aa;
+  --tc-text-muted: #71717a;
+  --tc-input-bg: #0d0d0d;
+}
+
+.light .trade-terminal {
+  --tc-bg: #ffffff;
+  --tc-surface: #f8f9fb;
+  --tc-panel: #f1f3f7;
+  --tc-border: #e2e5ef;
+  --tc-text-primary: #0d0f14;
+  --tc-text-secondary: #374151;
+  --tc-text-muted: #6b7280;
+  --tc-input-bg: #f5f6fa;
 }
 
 @layer base {

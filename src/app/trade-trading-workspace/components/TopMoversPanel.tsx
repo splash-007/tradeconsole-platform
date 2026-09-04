@@ -9,10 +9,6 @@ interface Props {
   onSelectSymbol: (s: string) => void;
 }
 
-const termBg = '#000000';
-const termSurface = '#080808';
-const termBorder = '#1a1a1a';
-
 interface FallbackMover {
   symbol: string;
   name: string;
@@ -83,33 +79,33 @@ export default function TopMoversPanel({ instruments, onSelectSymbol }: Props) {
   return (
     <div
       className="flex flex-col h-full rounded-xl overflow-hidden"
-      style={{ backgroundColor: termBg, border: `1px solid ${termBorder}` }}
+      style={{ backgroundColor: 'var(--tc-bg)', border: '1px solid var(--tc-border)' }}
     >
       <div
         className="px-3 py-2 border-b shrink-0"
-        style={{ borderColor: termBorder, backgroundColor: termSurface }}
+        style={{ borderColor: 'var(--tc-border)', backgroundColor: 'var(--tc-surface)' }}
       >
-        <span className="text-xs font-semibold text-white tracking-wide uppercase">Top Movers</span>
+        <span className="text-xs font-bold tracking-wide uppercase" style={{ color: 'var(--tc-text-primary)' }}>Top Movers</span>
       </div>
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {topMovers.map((inst, idx) => {
           const isPos = inst.changePct24h >= 0;
           const sparkData = sparklines[idx] || [];
-          const strokeColor = isPos ? '#22c55e' : '#ef4444';
+          const strokeColor = isPos ? '#16a34a' : '#dc2626';
 
           return (
             <div
               key={`tm-${inst.id}-${idx}`}
               onClick={() => onSelectSymbol(inst.symbol)}
-              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b last:border-b-0 transition-colors hover:bg-white/5"
-              style={{ borderColor: termBorder }}
+              className="flex items-center gap-2 px-3 py-2 cursor-pointer border-b last:border-b-0 transition-colors"
+              style={{ borderColor: 'var(--tc-border)' }}
             >
-              <span className="text-xs font-mono text-gray-600 w-4 shrink-0">{idx + 1}</span>
-              <AssetIcon symbol={inst.symbol} assetType="crypto" size={20} />
+              <span className="text-xs font-mono w-4 shrink-0" style={{ color: 'var(--tc-text-muted)' }}>{idx + 1}</span>
+              <AssetIcon symbol={inst.symbol} assetType="crypto" size={22} />
               <div className="flex-1 min-w-0">
-                <span className="text-xs font-semibold text-white block truncate">{inst.symbol.split('/')[0]}</span>
+                <span className="text-sm font-semibold block truncate" style={{ color: 'var(--tc-text-primary)' }}>{inst.symbol.split('/')[0]}</span>
                 {inst.lastPrice > 0 && (
-                  <span className="text-xs font-mono text-gray-500">
+                  <span className="text-xs font-mono" style={{ color: 'var(--tc-text-muted)' }}>
                     ${inst.lastPrice >= 1 ? inst.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : inst.lastPrice.toFixed(6)}
                   </span>
                 )}
@@ -129,7 +125,7 @@ export default function TopMoversPanel({ instruments, onSelectSymbol }: Props) {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              <span className={`text-xs font-bold tabular-nums font-mono w-14 text-right shrink-0 ${isPos ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`text-sm font-bold tabular-nums font-mono w-14 text-right shrink-0 ${isPos ? 'text-green-600' : 'text-red-600'}`}>
                 {isPos ? '+' : ''}{inst.changePct24h.toFixed(2)}%
               </span>
             </div>

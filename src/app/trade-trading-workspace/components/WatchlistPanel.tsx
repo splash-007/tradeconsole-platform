@@ -12,15 +12,10 @@ interface Props {
 
 const CATEGORIES = ['Crypto', 'Forex', 'Indices', 'Commodities'] as const;
 
-const termBg = '#000000';
-const termSurface = '#080808';
-const termBorder = '#1a1a1a';
-
 export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSymbol }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('Crypto');
   const [favorites, setFavorites] = useState<string[]>(['inst-btc', 'inst-eth', 'inst-sol']);
 
-  // Show ALL instruments for each category (not just a few)
   const filtered = instruments.filter(i => {
     if (activeCategory === 'Crypto') return i.category === 'crypto';
     if (activeCategory === 'Forex') return i.category === 'forex';
@@ -45,24 +40,24 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
   return (
     <div
       className="flex flex-col h-full rounded-xl overflow-hidden"
-      style={{ backgroundColor: termBg, border: `1px solid ${termBorder}` }}
+      style={{ backgroundColor: 'var(--tc-bg)', border: '1px solid var(--tc-border)' }}
     >
       {/* Header + tabs */}
       <div
         className="flex items-center gap-1 px-3 py-2 border-b shrink-0"
-        style={{ borderColor: termBorder, backgroundColor: termSurface }}
+        style={{ borderColor: 'var(--tc-border)', backgroundColor: 'var(--tc-surface)' }}
       >
-        <span className="text-xs font-semibold text-white mr-2 tracking-wide uppercase">Watchlist</span>
+        <span className="text-xs font-bold mr-2 tracking-wide uppercase" style={{ color: 'var(--tc-text-primary)' }}>Watchlist</span>
         {CATEGORIES.map(cat => (
           <button
             key={`wl-cat-${cat}`}
             onClick={() => setActiveCategory(cat)}
             className="px-2 py-0.5 text-xs rounded transition-all"
             style={{
-              backgroundColor: activeCategory === cat ? 'rgba(245,196,0,0.12)' : 'transparent',
-              color: activeCategory === cat ? 'var(--primary)' : '#6b7280',
+              backgroundColor: activeCategory === cat ? 'rgba(201,160,0,0.12)' : 'transparent',
+              color: activeCategory === cat ? 'var(--primary)' : 'var(--tc-text-muted)',
               fontWeight: activeCategory === cat ? 600 : 400,
-              border: activeCategory === cat ? '1px solid rgba(245,196,0,0.3)' : '1px solid transparent',
+              border: activeCategory === cat ? '1px solid rgba(201,160,0,0.3)' : '1px solid transparent',
             }}
           >
             {cat}
@@ -72,21 +67,21 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
 
       {/* Column headers */}
       <div
-        className="grid px-3 py-1 shrink-0"
-        style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem', borderBottom: `1px solid ${termBorder}`, backgroundColor: termSurface }}
+        className="grid px-3 py-1.5 shrink-0"
+        style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem', borderBottom: '1px solid var(--tc-border)', backgroundColor: 'var(--tc-surface)' }}
       >
         <span />
         <span />
-        <span className="text-xs text-gray-600">Symbol</span>
-        <span className="text-xs text-right text-gray-600">Price</span>
-        <span className="text-xs text-right text-gray-600">24h %</span>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--tc-text-muted)' }}>Symbol</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-right" style={{ color: 'var(--tc-text-muted)' }}>Price</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-right" style={{ color: 'var(--tc-text-muted)' }}>24h %</span>
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-xs text-gray-600">No instruments in this category</p>
+            <p className="text-sm" style={{ color: 'var(--tc-text-muted)' }}>No instruments in this category</p>
           </div>
         ) : (
           filtered.map(inst => {
@@ -97,24 +92,24 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
               <div
                 key={`wl-${inst.id}`}
                 onClick={() => onSelectSymbol(inst.symbol)}
-                className="grid items-center px-3 py-1.5 cursor-pointer transition-colors hover:bg-white/5"
+                className="grid items-center px-3 py-2 cursor-pointer transition-colors"
                 style={{
                   gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem',
-                  backgroundColor: isSelected ? 'rgba(245,196,0,0.06)' : 'transparent',
-                  borderBottom: `1px solid ${termBorder}`,
+                  backgroundColor: isSelected ? 'rgba(201,160,0,0.06)' : 'transparent',
+                  borderBottom: '1px solid var(--tc-border)',
                 }}
               >
-                <button onClick={(e) => toggleFav(inst.id, e)} className="p-0.5 rounded" style={{ color: isFav ? 'var(--primary)' : '#333333' }}>
+                <button onClick={(e) => toggleFav(inst.id, e)} className="p-0.5 rounded" style={{ color: isFav ? 'var(--primary)' : 'var(--tc-border)' }}>
                   <Star size={11} fill={isFav ? 'var(--primary)' : 'none'} />
                 </button>
-                <AssetIcon symbol={inst.symbol} assetType={getAssetType(activeCategory)} size={16} />
+                <AssetIcon symbol={inst.symbol} assetType={getAssetType(activeCategory)} size={18} />
                 <div className="min-w-0 pl-1">
-                  <p className="text-xs font-semibold truncate" style={{ color: isSelected ? 'var(--primary)' : '#ffffff' }}>{inst.symbol}</p>
+                  <p className="text-sm font-semibold truncate" style={{ color: isSelected ? 'var(--primary)' : 'var(--tc-text-primary)' }}>{inst.symbol}</p>
                 </div>
-                <p className="text-xs tabular-nums font-mono text-right text-white">
+                <p className="text-sm tabular-nums font-mono text-right font-medium" style={{ color: 'var(--tc-text-primary)' }}>
                   {inst.lastPrice < 0.01 ? inst.lastPrice.toFixed(7) : inst.lastPrice < 10 ? inst.lastPrice.toFixed(4) : inst.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className={`text-xs tabular-nums font-mono text-right font-semibold ${isPos ? 'text-green-400' : 'text-red-400'}`}>
+                <p className={`text-sm tabular-nums font-mono text-right font-semibold ${isPos ? 'text-green-600' : 'text-red-600'}`}>
                   {isPos ? '+' : ''}{inst.changePct24h.toFixed(2)}%
                 </p>
               </div>

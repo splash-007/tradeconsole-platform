@@ -167,11 +167,11 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
   const mainChartHeight = Math.floor(availableHeight * 0.78);
   const volumeChartHeight = Math.floor(availableHeight * 0.20);
 
-  // Terminal colors
-  const termBg = '#000000';
-  const termSurface = '#080808';
-  const termBorder = '#1a1a1a';
-  const termMuted = '#555555';
+  // Terminal colors — use CSS variables for day/dark mode
+  const termBg = 'var(--tc-bg)';
+  const termSurface = 'var(--tc-surface)';
+  const termBorder = 'var(--tc-border)';
+  const termMuted = 'var(--tc-text-muted)';
 
   return (
     <div className="flex flex-col h-full w-full" style={{ backgroundColor: termBg }}>
@@ -186,10 +186,10 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
             <button
               key={`tf-${tf}-${idx}`}
               onClick={() => onTimeframeChange(tf)}
-              className="px-2 py-0.5 text-xs rounded transition-all duration-150 font-medium"
+              className="px-2 py-0.5 text-sm rounded transition-all duration-150 font-semibold"
               style={timeframe === tf
-                ? { color: 'var(--primary)', fontWeight: 700, backgroundColor: 'rgba(245,196,0,0.1)' }
-                : { color: termMuted }}
+                ? { color: 'var(--primary)', fontWeight: 700, backgroundColor: 'rgba(201,160,0,0.1)' }
+                : { color: 'var(--tc-text-secondary)' }}
             >
               {tf}
             </button>
@@ -200,8 +200,8 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
 
         {/* Indicators button */}
         <button
-          className="flex items-center gap-1 px-2 py-0.5 text-xs rounded border transition-all"
-          style={{ borderColor: termBorder, color: termMuted, backgroundColor: 'transparent' }}
+          className="flex items-center gap-1 px-2 py-0.5 text-sm rounded border transition-all"
+          style={{ borderColor: termBorder, color: 'var(--tc-text-secondary)', backgroundColor: 'transparent' }}
         >
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 9L4 5L7 7L11 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           Indicators
@@ -213,12 +213,12 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         <div
           className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
           style={{
-            backgroundColor: isLive ? 'rgba(34,197,94,0.08)' : 'rgba(245,196,0,0.06)',
-            color: isLive ? '#22c55e' : '#6b7280',
+            backgroundColor: isLive ? 'rgba(22,163,74,0.08)' : 'rgba(201,160,0,0.06)',
+            color: isLive ? '#16a34a' : 'var(--tc-text-muted)',
           }}
         >
           {isLive ? <Wifi size={10} /> : <WifiOff size={10} />}
-          <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-yellow-600 animate-pulse'}`} />
+          <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-600 animate-pulse' : 'bg-yellow-600 animate-pulse'}`} />
           <span className="hidden sm:inline">{isLive ? 'Live' : 'Mock'}</span>
         </div>
 
@@ -243,16 +243,16 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         className="flex items-center gap-2 px-3 shrink-0"
         style={{ backgroundColor: termBg, height: `${ohlcBarHeight}px` }}
       >
-        <span className="text-xs font-semibold text-gray-500">
+        <span className="text-xs font-semibold" style={{ color: 'var(--tc-text-muted)' }}>
           {symbol} · {timeframe} · Trade Console
         </span>
         {displayLast && (
           <>
-            <span className="text-xs text-gray-600">O <span className="font-mono text-white">{displayLast.open.toFixed(2)}</span></span>
-            <span className="text-xs text-gray-600">H <span className="font-mono text-green-400">{displayLast.high.toFixed(2)}</span></span>
-            <span className="text-xs text-gray-600">L <span className="font-mono text-red-400">{displayLast.low.toFixed(2)}</span></span>
-            <span className="text-xs text-gray-600">C <span className={`font-mono ${changeVal >= 0 ? 'text-green-400' : 'text-red-400'}`}>{liveClose.toFixed(2)}</span></span>
-            <span className={`text-xs font-semibold ${changeVal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <span className="text-xs" style={{ color: 'var(--tc-text-muted)' }}>O <span className="font-mono" style={{ color: 'var(--tc-text-primary)' }}>{displayLast.open.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--tc-text-muted)' }}>H <span className="font-mono text-green-600">{displayLast.high.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--tc-text-muted)' }}>L <span className="font-mono text-red-600">{displayLast.low.toFixed(2)}</span></span>
+            <span className="text-xs" style={{ color: 'var(--tc-text-muted)' }}>C <span className={`font-mono ${changeVal >= 0 ? 'text-green-600' : 'text-red-600'}`}>{liveClose.toFixed(2)}</span></span>
+            <span className={`text-xs font-semibold ${changeVal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {changeVal >= 0 ? '+' : ''}{changeVal.toFixed(2)} ({changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%)
             </span>
             {isLive && liveQuote && (
@@ -264,25 +264,25 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         )}
       </div>
 
-      {/* Chart body — measured container, fills all remaining height */}
+      {/* Chart body */}
       <div ref={containerRef} className="flex-1 min-h-0 flex flex-col" style={{ backgroundColor: termBg }}>
-        {/* Main candlestick chart — X-axis at bottom of this chart */}
+        {/* Main candlestick chart */}
         {mainChartHeight > 0 && (
           <div style={{ height: mainChartHeight, width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 6, right: 60, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <CartesianGrid strokeDasharray="2 6" stroke="rgba(128,128,128,0.1)" vertical={false} />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: '#555555', fontSize: 9, fontFamily: 'monospace' }}
-                  axisLine={{ stroke: '#222222' }}
+                  tick={{ fill: 'var(--tc-text-muted)', fontSize: 9, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: 'var(--tc-border)' }}
                   tickLine={false}
                   interval={Math.floor(chartData.length / 8)}
                   height={18}
                 />
                 <YAxis
                   domain={['auto', 'auto']}
-                  tick={{ fill: '#555555', fontSize: 9, fontFamily: 'monospace' }}
+                  tick={{ fill: 'var(--tc-text-muted)', fontSize: 9, fontFamily: 'monospace' }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v >= 1 ? v.toFixed(0) : v.toFixed(4)}
@@ -296,8 +296,8 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
                   {chartData.map((entry, idx) => (
                     <Cell
                       key={`cell-body-${idx}`}
-                      fill={entry.isUp ? '#22c55e' : '#ef4444'}
-                      stroke={entry.isUp ? '#22c55e' : '#ef4444'}
+                      fill={entry.isUp ? '#16a34a' : '#dc2626'}
+                      stroke={entry.isUp ? '#16a34a' : '#dc2626'}
                     />
                   ))}
                 </Bar>
@@ -327,7 +327,7 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
           </div>
         )}
 
-        {/* Volume sub-chart — no X-axis (already shown above), sits directly below */}
+        {/* Volume sub-chart */}
         {volumeChartHeight > 0 && (
           <div style={{ height: volumeChartHeight, width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -338,7 +338,7 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
                   {chartData.map((entry, idx) => (
                     <Cell
                       key={`cell-vol-${idx}`}
-                      fill={entry.isUp ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}
+                      fill={entry.isUp ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)'}
                     />
                   ))}
                 </Bar>
@@ -351,8 +351,8 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         {containerHeight === 0 && (
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
-              <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#222', borderTopColor: 'var(--primary)' }} />
-              <span className="text-xs text-gray-600">Loading chart…</span>
+              <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--tc-border)', borderTopColor: 'var(--primary)' }} />
+              <span className="text-xs" style={{ color: 'var(--tc-text-muted)' }}>Loading chart…</span>
             </div>
           </div>
         )}
