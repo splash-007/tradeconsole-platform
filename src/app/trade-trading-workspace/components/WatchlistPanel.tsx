@@ -20,11 +20,12 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
   const [activeCategory, setActiveCategory] = useState<string>('Crypto');
   const [favorites, setFavorites] = useState<string[]>(['inst-btc', 'inst-eth', 'inst-sol']);
 
+  // Show ALL instruments for each category (not just a few)
   const filtered = instruments.filter(i => {
     if (activeCategory === 'Crypto') return i.category === 'crypto';
     if (activeCategory === 'Forex') return i.category === 'forex';
     if (activeCategory === 'Indices') return i.category === 'indices';
-    if (activeCategory === 'Commodities') return i.category === 'commodities';
+    if (activeCategory === 'Commodities') return i.category === 'commodities' || i.category === 'metals' || i.category === 'energy';
     return true;
   });
 
@@ -42,22 +43,26 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: termBg }}>
+    <div
+      className="flex flex-col h-full rounded-xl overflow-hidden"
+      style={{ backgroundColor: termBg, border: `1px solid ${termBorder}` }}
+    >
       {/* Header + tabs */}
       <div
-        className="flex items-center gap-1 px-3 py-1.5 border-b shrink-0"
+        className="flex items-center gap-1 px-3 py-2 border-b shrink-0"
         style={{ borderColor: termBorder, backgroundColor: termSurface }}
       >
-        <span className="text-xs font-semibold text-white mr-1">Watchlist</span>
+        <span className="text-xs font-semibold text-white mr-2 tracking-wide uppercase">Watchlist</span>
         {CATEGORIES.map(cat => (
           <button
             key={`wl-cat-${cat}`}
             onClick={() => setActiveCategory(cat)}
             className="px-2 py-0.5 text-xs rounded transition-all"
             style={{
-              backgroundColor: activeCategory === cat ? 'rgba(245,196,0,0.1)' : 'transparent',
+              backgroundColor: activeCategory === cat ? 'rgba(245,196,0,0.12)' : 'transparent',
               color: activeCategory === cat ? 'var(--primary)' : '#6b7280',
               fontWeight: activeCategory === cat ? 600 : 400,
+              border: activeCategory === cat ? '1px solid rgba(245,196,0,0.3)' : '1px solid transparent',
             }}
           >
             {cat}
@@ -68,7 +73,7 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
       {/* Column headers */}
       <div
         className="grid px-3 py-1 shrink-0"
-        style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem', borderBottom: `1px solid ${termBorder}` }}
+        style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem', borderBottom: `1px solid ${termBorder}`, backgroundColor: termSurface }}
       >
         <span />
         <span />
@@ -92,13 +97,14 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
               <div
                 key={`wl-${inst.id}`}
                 onClick={() => onSelectSymbol(inst.symbol)}
-                className="grid items-center px-3 py-1.5 cursor-pointer transition-colors"
+                className="grid items-center px-3 py-1.5 cursor-pointer transition-colors hover:bg-white/5"
                 style={{
                   gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem',
                   backgroundColor: isSelected ? 'rgba(245,196,0,0.06)' : 'transparent',
+                  borderBottom: `1px solid ${termBorder}`,
                 }}
               >
-                <button onClick={(e) => toggleFav(inst.id, e)} className="p-0.5 rounded" style={{ color: isFav ? 'var(--primary)' : '#444444' }}>
+                <button onClick={(e) => toggleFav(inst.id, e)} className="p-0.5 rounded" style={{ color: isFav ? 'var(--primary)' : '#333333' }}>
                   <Star size={11} fill={isFav ? 'var(--primary)' : 'none'} />
                 </button>
                 <AssetIcon symbol={inst.symbol} assetType={getAssetType(activeCategory)} size={16} />
@@ -106,7 +112,7 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
                   <p className="text-xs font-semibold truncate" style={{ color: isSelected ? 'var(--primary)' : '#ffffff' }}>{inst.symbol}</p>
                 </div>
                 <p className="text-xs tabular-nums font-mono text-right text-white">
-                  {inst.lastPrice < 10 ? inst.lastPrice.toFixed(4) : inst.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {inst.lastPrice < 0.01 ? inst.lastPrice.toFixed(7) : inst.lastPrice < 10 ? inst.lastPrice.toFixed(4) : inst.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className={`text-xs tabular-nums font-mono text-right font-semibold ${isPos ? 'text-green-400' : 'text-red-400'}`}>
                   {isPos ? '+' : ''}{inst.changePct24h.toFixed(2)}%

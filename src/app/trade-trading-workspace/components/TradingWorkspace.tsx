@@ -286,11 +286,14 @@ export default function TradingWorkspace() {
       />
 
       {/* ===== DESKTOP LAYOUT ===== */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0">
+      <div className="hidden md:flex flex-col flex-1 min-h-0 p-2 gap-2" style={{ backgroundColor: '#000000' }}>
         {/* Main workspace — full height trading row */}
-        <div className="flex min-h-0" style={{ flex: '1 1 0' }}>
+        <div className="flex min-h-0 gap-2" style={{ flex: '1 1 0' }}>
           {/* LEFT: Drawing toolbar + Chart */}
-          <div className="flex min-w-0 min-h-0" style={{ flex: '1 1 0' }}>
+          <div
+            className="flex min-w-0 min-h-0 rounded-xl overflow-hidden"
+            style={{ flex: '1 1 0', border: '1px solid #1a1a1a' }}
+          >
             {/* Drawing toolbar on LEFT */}
             <ChartToolbar selectedTool={selectedTool} onSelectTool={setSelectedTool} />
             {/* Chart fills remaining space */}
@@ -307,8 +310,8 @@ export default function TradingWorkspace() {
 
           {/* Order Book */}
           <div
-            className="shrink-0 flex flex-col border-l"
-            style={{ width: '210px', borderColor: 'var(--tc-border, #1a1a1a)' }}
+            className="shrink-0 flex flex-col rounded-xl overflow-hidden"
+            style={{ width: '210px', border: '1px solid #1a1a1a' }}
           >
             {orderBook && (
               <OrderBook
@@ -321,25 +324,25 @@ export default function TradingWorkspace() {
 
           {/* Order Form */}
           <div
-            className="shrink-0 flex flex-col border-l overflow-y-auto no-scrollbar"
-            style={{ width: '230px', borderColor: 'var(--tc-border, #1a1a1a)' }}
+            className="shrink-0 flex flex-col overflow-y-auto no-scrollbar rounded-xl"
+            style={{ width: '230px', border: '1px solid #1a1a1a' }}
           >
             <OrderForm symbol={selectedSymbol} currentPrice={selectedLive.price || currentInstrument?.lastPrice || 0} />
           </div>
         </div>
 
-        {/* Bottom row — sits directly below trading workspace, no Live Orders gap */}
+        {/* Bottom row — sits directly below trading workspace */}
         <div
-          className="flex shrink-0 border-t"
-          style={{ height: '195px', borderColor: 'var(--tc-border, #1a1a1a)' }}
+          className="flex shrink-0 gap-2"
+          style={{ height: '200px' }}
         >
-          <div className="flex-1 min-w-0 border-r" style={{ borderColor: 'var(--tc-border, #1a1a1a)' }}>
+          <div className="flex-1 min-w-0">
             <WatchlistPanel instruments={instruments} selectedSymbol={selectedSymbol} onSelectSymbol={setSelectedSymbol} />
           </div>
-          <div className="shrink-0 border-r" style={{ width: '260px', borderColor: 'var(--tc-border, #1a1a1a)' }}>
+          <div className="shrink-0" style={{ width: '260px' }}>
             <RecentTradesPanel trades={recentTrades} />
           </div>
-          <div className="shrink-0 border-r" style={{ width: '280px', borderColor: 'var(--tc-border, #1a1a1a)' }}>
+          <div className="shrink-0" style={{ width: '280px' }}>
             <MarketOverviewPanel symbol={selectedSymbol} instrument={currentInstrument} />
           </div>
           <div className="shrink-0" style={{ width: '240px' }}>

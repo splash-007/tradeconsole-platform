@@ -19,16 +19,19 @@ const termBorder = '#1a1a1a';
 
 export default function RecentTradesPanel({ trades }: Props) {
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: termBg }}>
+    <div
+      className="flex flex-col h-full rounded-xl overflow-hidden"
+      style={{ backgroundColor: termBg, border: `1px solid ${termBorder}` }}
+    >
       <div
-        className="px-3 py-1.5 border-b shrink-0"
+        className="px-3 py-2 border-b shrink-0"
         style={{ borderColor: termBorder, backgroundColor: termSurface }}
       >
-        <span className="text-xs font-semibold text-white">Recent Trades</span>
+        <span className="text-xs font-semibold text-white tracking-wide uppercase">Recent Trades</span>
       </div>
       <div
         className="grid px-3 py-1 shrink-0"
-        style={{ gridTemplateColumns: '1fr 1fr 1fr', borderBottom: `1px solid ${termBorder}` }}
+        style={{ gridTemplateColumns: '1fr 1fr 1fr', borderBottom: `1px solid ${termBorder}`, backgroundColor: termSurface }}
       >
         {['Price', 'Amount (BTC)', 'Time'].map(h => (
           <span key={`rt-hdr-${h}`} className="text-xs text-right first:text-left text-gray-600">{h}</span>
@@ -38,8 +41,8 @@ export default function RecentTradesPanel({ trades }: Props) {
         {trades.map(trade => (
           <div
             key={`rt-${trade.id}`}
-            className="grid px-3 py-0.5 transition-colors"
-            style={{ gridTemplateColumns: '1fr 1fr 1fr' }}
+            className="grid px-3 py-0.5 transition-colors hover:bg-white/5"
+            style={{ gridTemplateColumns: '1fr 1fr 1fr', borderBottom: `1px solid ${termBorder}` }}
           >
             <span className={`text-xs tabular-nums font-mono ${trade.side === 'buy' ? 'text-green-400' : 'text-red-400'}`}>
               {trade.price >= 1 ? trade.price.toFixed(2) : trade.price.toFixed(6)}

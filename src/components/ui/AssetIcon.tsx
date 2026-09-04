@@ -119,6 +119,91 @@ function UNIIcon({ size }: { size: number }) {
   );
 }
 
+function DOGEIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#C2A633" />
+      <text x="16" y="21" textAnchor="middle" fontSize="14" fontWeight="bold" fill="white" fontFamily="serif">Ð</text>
+    </svg>
+  );
+}
+
+function SHIBIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#E0531B" />
+      <path d="M8 20c2-4 4-6 8-6s6 2 8 6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <circle cx="12" cy="14" r="1.5" fill="white" />
+      <circle cx="20" cy="14" r="1.5" fill="white" />
+      <path d="M13 22c1-1 5-1 6 0" stroke="white" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PEPEIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#00A550" />
+      <ellipse cx="16" cy="18" rx="7" ry="6" fill="#4CAF50" />
+      <circle cx="13" cy="15" r="2" fill="white" />
+      <circle cx="19" cy="15" r="2" fill="white" />
+      <circle cx="13.5" cy="15" r="1" fill="#1a1a1a" />
+      <circle cx="19.5" cy="15" r="1" fill="#1a1a1a" />
+      <path d="M13 20c1-1.5 5-1.5 6 0" stroke="#1a1a1a" strokeWidth="1" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+function FLOKIIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#F5A623" />
+      <path d="M10 22L16 10L22 22H10z" fill="white" fillOpacity="0.9" />
+      <path d="M13 18h6" stroke="#F5A623" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ATOMIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#2E3148" />
+      <circle cx="16" cy="16" r="3" fill="white" />
+      <ellipse cx="16" cy="16" rx="9" ry="4" stroke="white" strokeWidth="1.2" fill="none" />
+      <ellipse cx="16" cy="16" rx="9" ry="4" stroke="white" strokeWidth="1.2" fill="none" transform="rotate(60 16 16)" />
+      <ellipse cx="16" cy="16" rx="9" ry="4" stroke="white" strokeWidth="1.2" fill="none" transform="rotate(120 16 16)" />
+    </svg>
+  );
+}
+
+function MATICIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#8247E5" />
+      <path d="M20.5 13.5c-.4-.2-.9-.2-1.3 0l-3 1.7-2 1.1-3 1.7c-.4.2-.9.2-1.3 0l-2.4-1.4c-.4-.2-.6-.6-.6-1.1v-2.7c0-.4.2-.8.6-1.1l2.4-1.4c.4-.2.9-.2 1.3 0l2.4 1.4c.4.2.6.6.6 1.1v1.7l2-1.1v-1.7c0-.4-.2-.8-.6-1.1l-4.3-2.5c-.4-.2-.9-.2-1.3 0l-4.4 2.5c-.4.2-.6.6-.6 1.1v5c0 .4.2.8.6 1.1l4.4 2.5c.4.2.9.2 1.3 0l3-1.7 2-1.1 3-1.7c.4-.2.9-.2 1.3 0l2.4 1.4c.4.2.6.6.6 1.1v2.7c0 .4-.2.8-.6 1.1l-2.4 1.4c-.4.2-.9.2-1.3 0l-2.4-1.4c-.4-.2-.6-.6-.6-1.1v-1.7l-2 1.1v1.7c0 .4.2.8.6 1.1l4.3 2.5c.4.2.9.2 1.3 0l4.4-2.5c.4-.2.6-.6.6-1.1v-5c0-.4-.2-.8-.6-1.1l-4.4-2.5z" fill="white" />
+    </svg>
+  );
+}
+
+function CRVIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#FF0000" />
+      <path d="M8 16c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <path d="M10 20c1.5-2 3.5-3 6-3s4.5 1 6 3" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function AAVEIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#B6509E" />
+      <path d="M16 8l-6 14h3l1.5-3.5h3L19 22h3L16 8zm0 4.5l1.5 4h-3L16 12.5z" fill="white" />
+    </svg>
+  );
+}
+
 // ── Forex flag pairs ──────────────────────────────────────────────────────────
 
 const CURRENCY_FLAGS: Record<string, string> = {
@@ -372,6 +457,15 @@ const CRYPTO_ICONS: Record<string, (size: number) => React.ReactElement> = {
   AVAX: (s) => <AVAXIcon size={s} />,
   LINK: (s) => <LINKIcon size={s} />,
   UNI: (s) => <UNIIcon size={s} />,
+  DOGE: (s) => <DOGEIcon size={s} />,
+  SHIB: (s) => <SHIBIcon size={s} />,
+  PEPE: (s) => <PEPEIcon size={s} />,
+  FLOKI: (s) => <FLOKIIcon size={s} />,
+  ATOM: (s) => <ATOMIcon size={s} />,
+  MATIC: (s) => <MATICIcon size={s} />,
+  POL: (s) => <MATICIcon size={s} />,
+  CRV: (s) => <CRVIcon size={s} />,
+  AAVE: (s) => <AAVEIcon size={s} />,
 };
 
 const ENERGY_ICONS: Record<string, (size: number) => React.ReactElement> = {

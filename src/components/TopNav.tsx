@@ -169,11 +169,11 @@ export default function TopNav() {
       <header
         className="sticky top-0 z-50 w-full"
         style={{
-          backgroundColor: 'rgba(var(--card-rgb, 255,255,255), 0.85)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          borderBottom: '1px solid var(--border)',
-          boxShadow: '0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.04)',
+          backgroundColor: isDark ? '#000000' : 'rgba(255,255,255, 0.92)',
+          backdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
+          borderBottom: isDark ? '1px solid #1a1a1a' : '1px solid var(--border)',
+          boxShadow: isDark ? '0 1px 0 #1a1a1a' : '0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.04)',
         }}
       >
         <div className="max-w-screen-2xl mx-auto flex items-center h-14 px-4 xl:px-6 gap-3">
@@ -199,12 +199,12 @@ export default function TopNav() {
                   href={item.href}
                   className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150"
                   style={{
-                    color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
+                    color: isActive ? 'var(--primary)' : isDark ? '#9CA3AF' : 'var(--muted-foreground)',
                     backgroundColor: isActive ? 'rgba(212,168,0,0.10)' : 'transparent',
                     fontWeight: isActive ? 600 : 500,
                   }}
-                  onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--muted)'; (e.currentTarget as HTMLElement).style.color = 'var(--foreground)'; } }}
-                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)'; } }}
+                  onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = isDark ? '#111111' : 'var(--muted)'; (e.currentTarget as HTMLElement).style.color = isDark ? '#ffffff' : 'var(--foreground)'; } }}
+                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = isDark ? '#9CA3AF' : 'var(--muted-foreground)'; } }}
                 >
                   {item.label}
                   {isSupport && supportUnread > 0 && (
