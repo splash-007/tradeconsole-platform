@@ -29,7 +29,6 @@ const COUNTRIES = [
   'Brazil', 'Mexico', 'Netherlands', 'Sweden', 'Switzerland', 'Other',
 ];
 
-/* ── Custom SVG icons — hand-crafted look ── */
 function IconEye({ off = false }: { off?: boolean }) {
   if (off) return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -48,7 +47,7 @@ function IconEye({ off = false }: { off?: boolean }) {
 
 function IconArrow() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="5" y1="12" x2="19" y2="12" />
       <polyline points="12 5 19 12 12 19" />
     </svg>
@@ -60,6 +59,22 @@ function IconCheck() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
     </svg>
+  );
+}
+
+/* Floating orb decoration */
+function FloatingOrbs() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      <div
+        className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20"
+        style={{ background: 'radial-gradient(circle, #D4A800 0%, transparent 70%)', filter: 'blur(60px)' }}
+      />
+      <div
+        className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full opacity-10"
+        style={{ background: 'radial-gradient(circle, #B88E00 0%, transparent 70%)', filter: 'blur(50px)' }}
+      />
+    </div>
   );
 }
 
@@ -120,56 +135,63 @@ function AuthScreenInner() {
     setTab('login');
   };
 
-  /* ── shared input style ── */
-  const inputCls = 'w-full px-3 py-2.5 rounded-lg text-sm border transition-colors focus:outline-none focus:ring-1 focus:ring-amber-400/40';
-  const inputStyle = {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
-    color: '#111827',
-  };
-  const inputErrStyle = {
-    backgroundColor: '#FFF5F5',
-    borderColor: '#FCA5A5',
-    color: '#111827',
-  };
+  const inputBase = 'w-full px-4 py-3 rounded-xl text-sm border-2 transition-all duration-150 focus:outline-none';
+  const inputNormal = { backgroundColor: '#F8F9FC', borderColor: '#E8EBF2', color: '#0D0F14' };
+  const inputFocus = 'focus:border-amber-400 focus:shadow-[0_0_0_3px_rgba(212,168,0,0.12)]';
+  const inputError = { backgroundColor: '#FFF5F5', borderColor: '#FCA5A5', color: '#0D0F14' };
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-5 py-10"
-      style={{ background: '#F3F4F6' }}
+      className="min-h-screen flex items-center justify-center px-5 py-10 relative"
+      style={{ background: 'linear-gradient(135deg, #F5F6FA 0%, #ECEEF4 50%, #F0EDD8 100%)' }}
     >
-      <div className="w-full" style={{ maxWidth: '460px' }}>
+      <FloatingOrbs />
+
+      <div className="w-full relative z-10" style={{ maxWidth: '460px' }}>
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(135deg, #F5C400 0%, #E6A800 100%)', boxShadow: '0 4px 14px rgba(245,196,0,0.35)' }}>
-            {/* Custom brand mark — stylised FX monogram */}
-            <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+            style={{
+              background: 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)',
+              boxShadow: '0 8px 24px rgba(212,168,0,0.35), 0 2px 8px rgba(0,0,0,0.10)',
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 26 26" fill="none">
               <path d="M5 6h10M5 13h7" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
               <path d="M14 13l7 7M21 13l-7 7" stroke="#000" strokeWidth="2.2" strokeLinecap="round"/>
             </svg>
           </div>
-          <span className="text-lg font-bold tracking-tight" style={{ color: '#111827', letterSpacing: '-0.02em' }}>Trade Console</span>
+          <span className="text-xl font-bold tracking-tight" style={{ color: '#0D0F14', letterSpacing: '-0.03em' }}>Trade Console</span>
+          <span className="text-xs mt-1 font-medium" style={{ color: '#9CA3AF' }}>Professional Trading Platform</span>
         </div>
 
         {/* Heading */}
-        <div className="text-center mb-7">
-          <h1 className="text-xl font-bold mb-1" style={{ color: '#111827' }}>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold mb-1.5" style={{ color: '#0D0F14', letterSpacing: '-0.03em' }}>
             {tab === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
           <p className="text-sm" style={{ color: '#6B7280' }}>
-            {tab === 'login' ? 'Sign in to your account' : 'Join Trade Console today'}
+            {tab === 'login' ? 'Sign in to access your trading dashboard' : 'Join thousands of traders on Trade Console'}
           </p>
         </div>
 
-        {/* Tab switcher */}
-        <div className="flex rounded-lg p-1 mb-6" style={{ backgroundColor: '#E5E7EB' }}>
+        {/* Tab switcher — puffed pill style */}
+        <div
+          className="flex p-1 mb-6 rounded-2xl"
+          style={{ backgroundColor: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}
+        >
           {(['login', 'register'] as const).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setAuthError(''); setAuthSuccess(''); }}
-              className="flex-1 py-2 rounded-md text-xs font-semibold transition-all duration-150"
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
               style={tab === t
-                ? { backgroundColor: '#fff', color: '#111827', boxShadow: '0 1px 4px rgba(0,0,0,0.10)' }
+                ? {
+                    backgroundColor: '#fff',
+                    color: '#0D0F14',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)',
+                  }
                 : { color: '#6B7280' }}
             >
               {t === 'login' ? 'Sign In' : 'Register'}
@@ -177,23 +199,29 @@ function AuthScreenInner() {
           ))}
         </div>
 
-        {/* Card */}
+        {/* Card — modern glass */}
         <div
-          className="rounded-2xl border p-7"
-          style={{ backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
+          className="rounded-3xl border p-8"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.90)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderColor: 'rgba(255,255,255,0.80)',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+          }}
         >
           {/* Success message */}
           {authSuccess && (
-            <div className="flex items-center gap-2 p-3 rounded-lg mb-5 border" style={{ backgroundColor: '#F0FDF4', borderColor: '#86EFAC', color: '#166534' }}>
+            <div className="flex items-center gap-2.5 p-3.5 rounded-xl mb-5 border" style={{ backgroundColor: '#F0FDF4', borderColor: '#86EFAC', color: '#166534' }}>
               <IconCheck />
-              <p className="text-sm">{authSuccess}</p>
+              <p className="text-sm font-medium">{authSuccess}</p>
             </div>
           )}
 
           {/* Error message */}
           {authError && (
-            <div className="p-3 rounded-lg mb-5 border" style={{ backgroundColor: '#FFF5F5', borderColor: '#FCA5A5' }}>
-              <p className="text-sm" style={{ color: '#DC2626' }}>{authError}</p>
+            <div className="p-3.5 rounded-xl mb-5 border" style={{ backgroundColor: '#FFF5F5', borderColor: '#FCA5A5' }}>
+              <p className="text-sm font-medium" style={{ color: '#DC2626' }}>{authError}</p>
             </div>
           )}
 
@@ -201,24 +229,24 @@ function AuthScreenInner() {
           {tab === 'login' && (
             <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Email Address</label>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>EMAIL ADDRESS</label>
                 <input
                   type="email"
                   {...loginForm.register('email', { required: 'Email is required' })}
                   placeholder="you@example.com"
                   autoComplete="email"
-                  className={inputCls}
-                  style={loginForm.formState.errors.email ? inputErrStyle : inputStyle}
+                  className={`${inputBase} ${inputFocus}`}
+                  style={loginForm.formState.errors.email ? inputError : inputNormal}
                 />
                 {loginForm.formState.errors.email && (
-                  <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{loginForm.formState.errors.email.message}</p>
+                  <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>{loginForm.formState.errors.email.message}</p>
                 )}
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold" style={{ color: '#374151' }}>Password</label>
-                  <button type="button" className="text-xs hover:underline" style={{ color: '#D97706' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold" style={{ color: '#374151', letterSpacing: '0.02em' }}>PASSWORD</label>
+                  <button type="button" className="text-xs font-semibold hover:underline transition-colors" style={{ color: '#C9A000' }}>
                     Forgot password?
                   </button>
                 </div>
@@ -228,41 +256,49 @@ function AuthScreenInner() {
                     {...loginForm.register('password', { required: 'Password is required' })}
                     placeholder="••••••••"
                     autoComplete="current-password"
-                    className={inputCls + ' pr-10'}
-                    style={loginForm.formState.errors.password ? inputErrStyle : inputStyle}
+                    className={`${inputBase} ${inputFocus} pr-12`}
+                    style={loginForm.formState.errors.password ? inputError : inputNormal}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors hover:bg-black/5"
                     style={{ color: '#9CA3AF' }}
                   >
                     <IconEye off={showPassword} />
                   </button>
                 </div>
                 {loginForm.formState.errors.password && (
-                  <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{loginForm.formState.errors.password.message}</p>
+                  <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>{loginForm.formState.errors.password.message}</p>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <input
                   type="checkbox"
                   id="remember"
                   {...loginForm.register('remember')}
-                  className="w-3.5 h-3.5 rounded"
-                  style={{ accentColor: '#F5C400' }}
+                  className="w-4 h-4 rounded-md"
+                  style={{ accentColor: '#D4A800' }}
                 />
-                <label htmlFor="remember" className="text-xs" style={{ color: '#6B7280' }}>
+                <label htmlFor="remember" className="text-sm" style={{ color: '#6B7280' }}>
                   Remember me for 30 days
                 </label>
               </div>
 
+              {/* Puffed CTA button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 rounded-lg text-sm font-bold transition-all duration-150 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
-                style={{ background: 'linear-gradient(135deg, #F5C400 0%, #E6A800 100%)', color: '#000', boxShadow: '0 2px 8px rgba(245,196,0,0.30)' }}
+                className="w-full py-3.5 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+                style={{
+                  background: isLoading ? '#D4A800' : 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)',
+                  color: '#000',
+                  boxShadow: '0 4px 16px rgba(212,168,0,0.40), 0 1px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
+                  letterSpacing: '-0.01em',
+                }}
+                onMouseEnter={e => { if (!isLoading) (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(212,168,0,0.50), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(212,168,0,0.40), 0 1px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)'; }}
               >
                 {isLoading ? (
                   <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'transparent', borderTopColor: '#000' }} />
@@ -275,124 +311,131 @@ function AuthScreenInner() {
 
           {/* Register Form */}
           {tab === 'register' && (
-            <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-3">
+            <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-3.5">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>First Name</label>
+                  <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>FIRST NAME</label>
                   <input
                     {...registerForm.register('firstName', { required: 'Required' })}
                     placeholder="Alex"
                     autoComplete="given-name"
-                    className={inputCls}
-                    style={registerForm.formState.errors.firstName ? inputErrStyle : inputStyle}
+                    className={`${inputBase} ${inputFocus}`}
+                    style={registerForm.formState.errors.firstName ? inputError : inputNormal}
                   />
-                  {registerForm.formState.errors.firstName && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>Required</p>}
+                  {registerForm.formState.errors.firstName && <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>Required</p>}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Last Name</label>
+                  <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>LAST NAME</label>
                   <input
                     {...registerForm.register('lastName', { required: 'Required' })}
                     placeholder="Mercer"
                     autoComplete="family-name"
-                    className={inputCls}
-                    style={registerForm.formState.errors.lastName ? inputErrStyle : inputStyle}
+                    className={`${inputBase} ${inputFocus}`}
+                    style={registerForm.formState.errors.lastName ? inputError : inputNormal}
                   />
-                  {registerForm.formState.errors.lastName && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>Required</p>}
+                  {registerForm.formState.errors.lastName && <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>Required</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Email Address</label>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>EMAIL ADDRESS</label>
                 <input
                   type="email"
                   {...registerForm.register('email', { required: 'Email is required', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' } })}
                   placeholder="you@example.com"
                   autoComplete="email"
-                  className={inputCls}
-                  style={registerForm.formState.errors.email ? inputErrStyle : inputStyle}
+                  className={`${inputBase} ${inputFocus}`}
+                  style={registerForm.formState.errors.email ? inputError : inputNormal}
                 />
-                {registerForm.formState.errors.email && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{registerForm.formState.errors.email.message}</p>}
+                {registerForm.formState.errors.email && <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>{registerForm.formState.errors.email.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Phone</label>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>PHONE</label>
                 <input
                   {...registerForm.register('phone')}
                   placeholder="+1 555 000 0000"
                   autoComplete="tel"
-                  className={inputCls}
-                  style={inputStyle}
+                  className={`${inputBase} ${inputFocus}`}
+                  style={inputNormal}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Country</label>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>COUNTRY</label>
                 <select
                   {...registerForm.register('country', { required: 'Country is required' })}
-                  className={inputCls}
-                  style={registerForm.formState.errors.country ? inputErrStyle : inputStyle}
+                  className={`${inputBase} ${inputFocus}`}
+                  style={registerForm.formState.errors.country ? inputError : inputNormal}
                 >
                   <option value="">Select country…</option>
                   {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                {registerForm.formState.errors.country && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>Required</p>}
+                {registerForm.formState.errors.country && <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>Required</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Password</label>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>PASSWORD</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     {...registerForm.register('password', { required: 'Password is required', minLength: { value: 8, message: 'Min 8 characters' } })}
                     placeholder="Min 8 characters"
                     autoComplete="new-password"
-                    className={inputCls + ' pr-10'}
-                    style={registerForm.formState.errors.password ? inputErrStyle : inputStyle}
+                    className={`${inputBase} ${inputFocus} pr-12`}
+                    style={registerForm.formState.errors.password ? inputError : inputNormal}
                   />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }}>
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-black/5" style={{ color: '#9CA3AF' }}>
                     <IconEye off={showPassword} />
                   </button>
                 </div>
-                {registerForm.formState.errors.password && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{registerForm.formState.errors.password.message}</p>}
+                {registerForm.formState.errors.password && <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>{registerForm.formState.errors.password.message}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#374151' }}>Confirm Password</label>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#374151', letterSpacing: '0.02em' }}>CONFIRM PASSWORD</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     {...registerForm.register('confirmPassword', { required: 'Please confirm your password' })}
                     placeholder="Repeat password"
                     autoComplete="new-password"
-                    className={inputCls + ' pr-10'}
-                    style={registerForm.formState.errors.confirmPassword ? inputErrStyle : inputStyle}
+                    className={`${inputBase} ${inputFocus} pr-12`}
+                    style={registerForm.formState.errors.confirmPassword ? inputError : inputNormal}
                   />
-                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }}>
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-black/5" style={{ color: '#9CA3AF' }}>
                     <IconEye off={showConfirmPassword} />
                   </button>
                 </div>
-                {registerForm.formState.errors.confirmPassword && <p className="text-xs mt-1" style={{ color: '#DC2626' }}>{registerForm.formState.errors.confirmPassword.message}</p>}
+                {registerForm.formState.errors.confirmPassword && <p className="text-xs mt-1.5 font-medium" style={{ color: '#DC2626' }}>{registerForm.formState.errors.confirmPassword.message}</p>}
               </div>
 
-              <div className="flex items-start gap-2 pt-1">
+              <div className="flex items-start gap-2.5 pt-1">
                 <input
                   type="checkbox"
                   id="terms"
                   {...registerForm.register('terms', { required: true })}
-                  className="w-3.5 h-3.5 rounded mt-0.5 shrink-0"
-                  style={{ accentColor: '#F5C400' }}
+                  className="w-4 h-4 rounded-md mt-0.5 shrink-0"
+                  style={{ accentColor: '#D4A800' }}
                 />
-                <label htmlFor="terms" className="text-xs leading-relaxed" style={{ color: '#6B7280' }}>
-                  I agree to the <span style={{ color: '#D97706' }}>Terms of Service</span> and <span style={{ color: '#D97706' }}>Privacy Policy</span>
+                <label htmlFor="terms" className="text-sm leading-relaxed" style={{ color: '#6B7280' }}>
+                  I agree to the <span className="font-semibold" style={{ color: '#C9A000' }}>Terms of Service</span> and <span className="font-semibold" style={{ color: '#C9A000' }}>Privacy Policy</span>
                 </label>
               </div>
-              {registerForm.formState.errors.terms && <p className="text-xs" style={{ color: '#DC2626' }}>You must accept the terms</p>}
+              {registerForm.formState.errors.terms && <p className="text-xs font-medium" style={{ color: '#DC2626' }}>You must accept the terms</p>}
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 rounded-lg text-sm font-bold transition-all duration-150 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
-                style={{ background: 'linear-gradient(135deg, #F5C400 0%, #E6A800 100%)', color: '#000', boxShadow: '0 2px 8px rgba(245,196,0,0.30)' }}
+                className="w-full py-3.5 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+                style={{
+                  background: 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)',
+                  color: '#000',
+                  boxShadow: '0 4px 16px rgba(212,168,0,0.40), 0 1px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)',
+                  letterSpacing: '-0.01em',
+                }}
+                onMouseEnter={e => { if (!isLoading) { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 20px rgba(212,168,0,0.50), 0 2px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.25)'; } }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(212,168,0,0.40), 0 1px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.25)'; }}
               >
                 {isLoading ? (
                   <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: 'transparent', borderTopColor: '#000' }} />
@@ -415,7 +458,7 @@ function AuthScreenInner() {
 
 export default function AuthScreen() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: '#F3F4F6' }} />}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #F5F6FA 0%, #ECEEF4 100%)' }} />}>
       <AuthScreenInner />
     </Suspense>
   );

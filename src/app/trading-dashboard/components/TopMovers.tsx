@@ -32,7 +32,6 @@ export default function TopMovers({ instruments }: Props) {
 
   const hasAnyLive = Object.values(realQuotes).some(q => q.available) || Object.keys(wsQuotes).length > 0;
 
-  // Build enriched instrument list with live data, then sort by |changePercent| descending
   const rankedMovers = useMemo(() => {
     const enriched = instruments.map(inst => {
       const realSym = REAL_MAP[inst.symbol];
@@ -54,22 +53,21 @@ export default function TopMovers({ instruments }: Props) {
       return { ...inst, price, changePercent, isRealData, liveCandles };
     });
 
-    // Sort by absolute change percent descending (biggest movers first)
     return enriched.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
   }, [instruments, realQuotes, wsQuotes, candles]);
 
   return (
-    <div className="rounded-lg border h-full" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+    <div className="rounded-2xl border h-full overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)' }}>
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
         <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Top Movers</h3>
         <div className="flex items-center gap-3">
           {hasAnyLive && (
-            <div className="flex items-center gap-1 text-xs" style={{ color: '#22c55e' }}>
+            <div className="flex items-center gap-1.5 text-xs" style={{ color: '#22c55e' }}>
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <span>Live</span>
             </div>
           )}
-          <Link href="/markets" className="text-xs font-medium hover:underline" style={{ color: 'var(--primary)' }}>All markets</Link>
+          <Link href="/markets" className="text-xs font-semibold hover:underline" style={{ color: 'var(--primary)' }}>All markets</Link>
         </div>
       </div>
       <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -83,7 +81,6 @@ export default function TopMovers({ instruments }: Props) {
               href="/trade-trading-workspace"
               className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted transition-colors cursor-pointer"
             >
-              {/* Rank */}
               <span className="text-xs font-mono w-4 shrink-0 text-right" style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>
                 {idx + 1}
               </span>
