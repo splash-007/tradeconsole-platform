@@ -84,7 +84,6 @@ export default function TopNav() {
     const dark = theme === 'dark';
     setIsDark(dark);
     preferencesService.applyTheme(dark ? 'dark' : 'light');
-    // Load saved preferences
     if (typeof localStorage !== 'undefined') {
       const savedLang = localStorage.getItem('tc-lang');
       const savedCurrency = localStorage.getItem('tc-currency');
@@ -166,16 +165,31 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="max-w-screen-2xl mx-auto flex items-center h-12 px-4 xl:px-6 gap-3">
+      {/* Modern glassmorphism header */}
+      <header
+        className="sticky top-0 z-50 w-full"
+        style={{
+          backgroundColor: 'rgba(var(--card-rgb, 255,255,255), 0.85)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: '1px solid var(--border)',
+          boxShadow: '0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.04)',
+        }}
+      >
+        <div className="max-w-screen-2xl mx-auto flex items-center h-14 px-4 xl:px-6 gap-3">
           {/* Logo */}
-          <Link href="/portfolio" className="flex items-center gap-2 shrink-0">
-            <AppLogo size={28} />
-            <span className="font-semibold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--primary)' }}>Trade Console</span>
+          <Link href="/portfolio" className="flex items-center gap-2.5 shrink-0 group">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)', boxShadow: '0 2px 8px rgba(212,168,0,0.30)' }}
+            >
+              <AppLogo size={18} />
+            </div>
+            <span className="font-bold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--foreground)' }}>Trade Console</span>
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-0.5 ml-2">
+          <nav className="hidden lg:flex items-center gap-0.5 ml-3">
             {NAV_ITEMS.map((item) => {
               const isSupport = item.label === 'Support';
               const isActive = pathname === item.href || (item.href === '/finance' && pathname.startsWith('/finance'));
@@ -183,7 +197,14 @@ export default function TopNav() {
                 <Link
                   key={`nav-${item.label}`}
                   href={item.href}
-                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all duration-150 ${isActive ? 'bg-primary-subtle text-gold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150"
+                  style={{
+                    color: isActive ? 'var(--primary)' : 'var(--muted-foreground)',
+                    backgroundColor: isActive ? 'rgba(212,168,0,0.10)' : 'transparent',
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                  onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--muted)'; (e.currentTarget as HTMLElement).style.color = 'var(--foreground)'; } }}
+                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)'; } }}
                 >
                   {item.label}
                   {isSupport && supportUnread > 0 && (
@@ -205,7 +226,7 @@ export default function TopNav() {
             <div className="relative hidden sm:block" ref={langRef}>
               <button
                 onClick={() => { setLangOpen(!langOpen); setCurrencyOpen(false); setNotifOpen(false); setProfileOpen(false); }}
-                className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-muted transition-colors text-xs font-medium"
+                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg hover:bg-muted transition-all text-xs font-medium"
                 style={{ color: 'var(--muted-foreground)' }}
                 title="Language"
               >
@@ -213,15 +234,15 @@ export default function TopNav() {
                 <span className="hidden md:block">{currentLang.flag} {currentLang.code.toUpperCase()}</span>
               </button>
               {langOpen && (
-                <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                  <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-2 w-44 z-50 overflow-hidden animate-fade-in dropdown-modern">
+                  <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>Interface Language</p>
                   </div>
                   {LANGUAGES.map(lang => (
                     <button
                       key={lang.code}
                       onClick={() => handleSelectLang(lang.code)}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-muted transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-xs hover:bg-muted transition-colors"
                       style={{ color: selectedLang === lang.code ? 'var(--primary)' : 'var(--foreground)' }}
                     >
                       <span>{lang.flag} {lang.label}</span>
@@ -239,7 +260,7 @@ export default function TopNav() {
             <div className="relative hidden sm:block" ref={currencyRef}>
               <button
                 onClick={() => { setCurrencyOpen(!currencyOpen); setLangOpen(false); setNotifOpen(false); setProfileOpen(false); }}
-                className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-muted transition-colors text-xs font-medium"
+                className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-muted transition-all text-xs font-medium"
                 style={{ color: 'var(--muted-foreground)' }}
                 title="Display currency"
               >
@@ -247,15 +268,15 @@ export default function TopNav() {
                 <ChevronDown size={10} />
               </button>
               {currencyOpen && (
-                <div className="absolute right-0 top-full mt-1 w-40 rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                  <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-2 w-40 z-50 overflow-hidden animate-fade-in dropdown-modern">
+                  <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>Display Currency</p>
                   </div>
                   {CURRENCIES.map(c => (
                     <button
                       key={c.code}
                       onClick={() => handleSelectCurrency(c.code)}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-muted transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-xs hover:bg-muted transition-colors"
                       style={{ color: selectedCurrency === c.code ? 'var(--primary)' : 'var(--foreground)' }}
                     >
                       <span><span className="font-mono font-semibold">{c.symbol}</span> {c.code}</span>
@@ -273,7 +294,7 @@ export default function TopNav() {
             <div className="relative" ref={notifRef}>
               <button
                 onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); setLangOpen(false); setCurrencyOpen(false); }}
-                className="p-2 rounded hover:bg-muted transition-colors relative"
+                className="p-2 rounded-lg hover:bg-muted transition-all relative"
                 style={{ color: 'var(--muted-foreground)' }}
               >
                 <Bell size={15} />
@@ -285,14 +306,14 @@ export default function TopNav() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-1 w-96 max-w-[calc(100vw-1rem)] rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-1rem)] z-50 overflow-hidden animate-fade-in dropdown-modern">
                   <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Notifications</p>
                       {unreadCount > 0 && <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{unreadCount} unread</p>}
                     </div>
                     {unreadCount > 0 && (
-                      <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs px-2 py-1 rounded hover:bg-muted transition-colors" style={{ color: 'var(--primary)' }}>
+                      <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors" style={{ color: 'var(--primary)' }}>
                         <CheckCheck size={11} /> Mark all read
                       </button>
                     )}
@@ -302,7 +323,7 @@ export default function TopNav() {
                       <button
                         key={tab}
                         onClick={() => setNotifTab(tab)}
-                        className="flex-1 py-2 text-xs font-medium capitalize transition-colors"
+                        className="flex-1 py-2.5 text-xs font-medium capitalize transition-colors"
                         style={{ color: notifTab === tab ? 'var(--primary)' : 'var(--muted-foreground)', borderBottom: notifTab === tab ? '2px solid var(--primary)' : '2px solid transparent' }}
                       >
                         {tab}
@@ -331,7 +352,7 @@ export default function TopNav() {
                             className="group flex items-start gap-3 px-4 py-3 border-b cursor-pointer hover:bg-muted transition-colors"
                             style={{ borderColor: 'var(--border)', backgroundColor: !n.readAt ? 'rgba(212,168,0,0.03)' : 'transparent' }}
                           >
-                            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${color}18` }}>
+                            <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${color}18` }}>
                               <NIcon size={12} style={{ color }} />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -341,7 +362,7 @@ export default function TopNav() {
                                   {!n.readAt && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />}
                                   <button
                                     onClick={e => handleDismiss(n.id, e)}
-                                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted transition-all"
+                                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded-md hover:bg-muted transition-all"
                                     style={{ color: 'var(--muted-foreground)' }}
                                   >
                                     <X size={11} />
@@ -351,7 +372,7 @@ export default function TopNav() {
                               <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{n.message}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs opacity-60" style={{ color: 'var(--muted-foreground)' }}>{timeAgo(n.createdAt)}</span>
-                                <span className="text-xs px-1.5 py-0.5 rounded capitalize" style={{ backgroundColor: `${color}15`, color }}>
+                                <span className="text-xs px-1.5 py-0.5 rounded-md capitalize" style={{ backgroundColor: `${color}15`, color }}>
                                   {n.category}
                                 </span>
                               </div>
@@ -374,7 +395,7 @@ export default function TopNav() {
             {/* Day/Night Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded hover:bg-muted transition-colors"
+              className="p-2 rounded-lg hover:bg-muted transition-all"
               style={{ color: 'var(--muted-foreground)' }}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
@@ -385,31 +406,36 @@ export default function TopNav() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); setLangOpen(false); setCurrencyOpen(false); }}
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-muted transition-colors"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-muted transition-all"
                 style={{ color: 'var(--foreground)' }}
               >
-                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>A</div>
+                <div
+                  className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold"
+                  style={{ background: 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)', color: '#000', boxShadow: '0 2px 6px rgba(212,168,0,0.30)' }}
+                >
+                  A
+                </div>
                 <span className="text-xs font-medium hidden sm:block">Alex M.</span>
                 <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border shadow-2xl z-50 overflow-hidden animate-fade-in" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                  <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-2 w-56 z-50 overflow-hidden animate-fade-in dropdown-modern">
+                  <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Alex Morgan</p>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>alex.morgan@email.com</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>alex.morgan@email.com</p>
                     <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--muted-foreground)' }}>TC-2026-001847</p>
                   </div>
-                  <div className="py-1">
-                    <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
+                  <div className="py-1.5">
+                    <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors rounded-lg mx-1.5" style={{ color: 'var(--foreground)' }}>
                       <Settings size={13} style={{ color: 'var(--muted-foreground)' }} /> Profile &amp; Settings
                     </Link>
-                    <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
+                    <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors rounded-lg mx-1.5" style={{ color: 'var(--foreground)' }}>
                       <Gift size={13} style={{ color: 'var(--muted-foreground)' }} /> Programs &amp; Benefits
                     </Link>
                   </div>
-                  <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
-                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--negative)' }}>
+                  <div className="border-t py-1.5" style={{ borderColor: 'var(--border)' }}>
+                    <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors rounded-lg mx-1.5" style={{ color: 'var(--negative)', width: 'calc(100% - 12px)' }}>
                       <LogOut size={13} /> Sign Out
                     </button>
                   </div>
@@ -420,7 +446,7 @@ export default function TopNav() {
             {/* Mobile menu */}
             <button
               onClick={() => setDrawerOpen(!drawerOpen)}
-              className="lg:hidden p-2 rounded hover:bg-muted transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-muted transition-all"
               style={{ color: 'var(--muted-foreground)' }}
             >
               {drawerOpen ? <X size={16} /> : <Menu size={16} />}
@@ -432,33 +458,44 @@ export default function TopNav() {
       {/* Mobile drawer */}
       {drawerOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex" onClick={() => setDrawerOpen(false)}>
-          <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} />
-          <div className="relative ml-auto w-72 h-full border-l overflow-y-auto animate-slide-up" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }} onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-0" style={{ backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} />
+          <div
+            className="relative ml-auto w-72 h-full overflow-y-auto animate-slide-up"
+            style={{ backgroundColor: 'var(--card)', borderLeft: '1px solid var(--border)', boxShadow: '-8px 0 32px rgba(0,0,0,0.12)' }}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-              <span className="font-semibold text-sm" style={{ color: 'var(--primary)' }}>Trade Console</span>
-              <button onClick={() => setDrawerOpen(false)} style={{ color: 'var(--muted-foreground)' }}><X size={16} /></button>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)' }}>
+                  <AppLogo size={16} />
+                </div>
+                <span className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>Trade Console</span>
+              </div>
+              <button onClick={() => setDrawerOpen(false)} className="p-1.5 rounded-lg hover:bg-muted" style={{ color: 'var(--muted-foreground)' }}><X size={16} /></button>
             </div>
             <nav className="p-3 space-y-0.5">
               {NAV_ITEMS.map(item => (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-colors ${pathname === item.href ? 'bg-primary-subtle text-gold' : 'hover:bg-muted'}`}
-                  style={{ color: pathname === item.href ? 'var(--primary)' : 'var(--foreground)' }}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={{
+                    color: pathname === item.href ? 'var(--primary)' : 'var(--foreground)',
+                    backgroundColor: pathname === item.href ? 'rgba(212,168,0,0.10)' : 'transparent',
+                  }}
                 >
                   <item.icon size={15} style={{ color: pathname === item.href ? 'var(--primary)' : 'var(--muted-foreground)' }} />
                   {item.label}
                 </Link>
               ))}
             </nav>
-            {/* Mobile lang/currency */}
             <div className="p-3 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
               <div className="flex items-center gap-2">
                 <Globe size={13} style={{ color: 'var(--muted-foreground)' }} />
                 <select
                   value={selectedLang}
                   onChange={e => handleSelectLang(e.target.value)}
-                  className="flex-1 text-xs rounded border px-2 py-1.5 focus:outline-none"
+                  className="flex-1 text-xs rounded-lg border px-2 py-1.5 focus:outline-none"
                   style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                 >
                   {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
@@ -469,7 +506,7 @@ export default function TopNav() {
                 <select
                   value={selectedCurrency}
                   onChange={e => handleSelectCurrency(e.target.value)}
-                  className="flex-1 text-xs rounded border px-2 py-1.5 focus:outline-none"
+                  className="flex-1 text-xs rounded-lg border px-2 py-1.5 focus:outline-none"
                   style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                 >
                   {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
@@ -477,7 +514,7 @@ export default function TopNav() {
               </div>
             </div>
             <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
-              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium hover:bg-muted transition-colors" style={{ color: 'var(--negative)' }}>
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-muted transition-all" style={{ color: 'var(--negative)' }}>
                 <LogOut size={15} />
                 Sign Out
               </button>
