@@ -395,6 +395,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             >
               <Gift size={13} />
               <span className="flex-1">Programs &amp; Benefits</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(212,168,0,0.1)', color: 'var(--primary)' }}>4</span>
             </Link>
           </div>
         </div>

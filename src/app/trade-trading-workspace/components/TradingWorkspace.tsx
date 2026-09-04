@@ -339,13 +339,13 @@ export default function TradingWorkspace() {
           <div className="flex-1 min-w-0">
             <WatchlistPanel instruments={instruments} selectedSymbol={selectedSymbol} onSelectSymbol={setSelectedSymbol} />
           </div>
-          <div className="shrink-0" style={{ width: '260px' }}>
+          <div className="flex-1 min-w-0">
             <RecentTradesPanel trades={recentTrades} />
           </div>
-          <div className="shrink-0" style={{ width: '280px' }}>
+          <div className="flex-1 min-w-0">
             <MarketOverviewPanel symbol={selectedSymbol} instrument={currentInstrument} />
           </div>
-          <div className="shrink-0" style={{ width: '240px' }}>
+          <div className="flex-1 min-w-0">
             <TopMoversPanel instruments={instruments} onSelectSymbol={setSelectedSymbol} />
           </div>
         </div>

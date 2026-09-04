@@ -754,7 +754,7 @@ function FinancePageInner() {
 
   return (
     <AppLayout>
-      <div className="py-4 max-w-4xl">
+      <div className="py-4 max-w-4xl mx-auto w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
