@@ -9,7 +9,11 @@ import PositionsTable from './PositionsTable';
 import TradeHistoryTable from './TradeHistoryTable';
 import AssetIcon from '@/components/ui/AssetIcon';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Activity, BarChart2, Clock, Wallet, AlertTriangle, CheckCircle2, ArrowUpRight, ArrowDownLeft, Star, Zap, DollarSign } from 'lucide-react';
+import {
+  TrendingUp, Activity, BarChart2, Clock, Wallet, AlertTriangle,
+  CheckCircle2, ArrowUpRight, ArrowDownLeft, Star, Zap, DollarSign,
+  Database, RefreshCw,
+} from 'lucide-react';
 import Link from 'next/link';
 
 const PERFORMANCE_DATA = [
@@ -55,6 +59,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 type PortfolioTab = 'overview' | 'performance' | 'history';
 
+// Dev state badge — shown wherever backend data is not yet connected
+function DevBadge({ label = 'Dev data' }: { label?: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+      style={{ backgroundColor: 'rgba(107,114,128,0.1)', color: 'var(--muted-foreground)', fontSize: '10px' }}
+    >
+      <Database size={9} />
+      {label}
+    </span>
+  );
+}
+
 export default function PortfolioContent() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [allocation, setAllocation] = useState<PortfolioAllocation[]>([]);
@@ -99,18 +116,19 @@ export default function PortfolioContent() {
     );
   }
 
+  // Portfolio value — dev data, clearly labeled
   const totalValue = positions.reduce((a, b) => a + b.value, 0) + 12480;
   const totalPnl = positions.reduce((a, b) => a + b.pnl, 0);
-  const totalPnlPct = (totalPnl / (totalValue - totalPnl)) * 100;
   const availableBalance = overview?.availableBalance ?? 12480;
 
+  // BTC price — real when available
   const btcReal = realQuotes['BTC/USD'];
   const btcPrice = btcReal?.available && btcReal.quote?.price != null
     ? btcReal.quote.price
-    : (overview?.btcPrice ?? 0);
+    : null;
   const btcChangePct = btcReal?.available && btcReal.quote?.changePercent != null
     ? btcReal.quote.changePercent
-    : (overview?.btcChangePct ?? 0);
+    : null;
 
   const TABS: { id: PortfolioTab; label: string; icon: React.ElementType }[] = [
     { id: 'overview', label: 'Overview', icon: BarChart2 },
@@ -123,13 +141,14 @@ export default function PortfolioContent() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Portfolio</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Account overview · Sep 3, 2026</p>
+          <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--foreground)' }}>Portfolio</h1>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Account overview</p>
+            <span style={{ color: 'var(--border)' }}>·</span>
             <div className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isLive ? '#22c55e' : '#6b7280' }} />
               <span className="text-xs" style={{ color: isLive ? '#22c55e' : 'var(--muted-foreground)' }}>
-                {isLive ? 'Live' : realLoading ? 'Connecting…' : 'Market data unavailable'}
+                {isLive ? 'Market data live' : realLoading ? 'Connecting…' : 'Market data unavailable'}
               </span>
             </div>
           </div>
@@ -173,58 +192,86 @@ export default function PortfolioContent() {
         </div>
       )}
 
+      {/* Backend data notice */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded border text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.05)', borderColor: 'var(--border)' }}>
+        <Database size={11} style={{ color: 'var(--muted-foreground)' }} />
+        <span style={{ color: 'var(--muted-foreground)' }}>
+          Portfolio balances, positions, and P&amp;L are <strong>development data</strong> — not connected to a live account. Market prices marked <span className="inline-flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /></span> are live.
+        </span>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
-        {/* Portfolio Value — hero */}
-        <div className="col-span-2 rounded-lg p-4 border relative overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'rgba(212,168,0,0.25)' }}>
+        {/* Portfolio Value — hero, dev data */}
+        <div className="col-span-2 rounded-lg p-4 border relative overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'rgba(212,168,0,0.2)' }}>
           <div className="flex items-center justify-between mb-2">
-            <div>
+            <div className="flex items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>Portfolio Value</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data — not live account balance</p>
+              <DevBadge />
             </div>
-            <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.1)' }}>
-              <Wallet size={15} style={{ color: 'var(--primary)' }} />
+            <div className="w-7 h-7 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.1)' }}>
+              <Wallet size={13} style={{ color: 'var(--primary)' }} />
             </div>
           </div>
-          <p className="text-2xl font-bold tabular-nums mb-1" style={{ color: 'var(--foreground)' }}>
+          <p className="text-2xl font-bold tabular-nums font-mono mb-1" style={{ color: 'var(--foreground)' }}>
             ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
-          <div className="flex items-center gap-2">
-            <TrendingUp size={12} style={{ color: 'var(--positive)' }} />
-            <span className="text-xs font-semibold tabular-nums text-positive">+20.7% this month</span>
+          <div className="flex items-center gap-1.5">
+            <TrendingUp size={11} style={{ color: 'var(--positive)' }} />
+            <span className="text-xs font-medium tabular-nums text-positive">+20.7% this month</span>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>(dev)</span>
           </div>
         </div>
 
-        {/* Available Balance */}
+        {/* Available Balance — dev data */}
         <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-foreground)' }}>Available</p>
-          <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--foreground)' }}>
-            ${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-          </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data</p>
-        </div>
-
-        {/* 24h P&L */}
-        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--muted-foreground)' }}>24h P&L</p>
-          <p className={`text-xl font-bold tabular-nums ${totalPnl >= 0 ? 'text-positive' : 'text-negative'}`}>
-            {totalPnl >= 0 ? '+' : ''}${Math.abs(totalPnl).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
-          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>Development data</p>
-        </div>
-
-        {/* BTC Price — live */}
-        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-1 mb-2">
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>BTC/USD</p>
-            {isLive && <div className="w-1.5 h-1.5 rounded-full bg-green-500" />}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>Available</p>
+            <DevBadge />
           </div>
           <p className="text-xl font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
-            ${btcPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+            ${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}
           </p>
-          <p className={`text-xs mt-1 font-medium tabular-nums ${btcChangePct >= 0 ? 'text-positive' : 'text-negative'}`}>
-            {btcChangePct >= 0 ? '+' : ''}{btcChangePct.toFixed(2)}%
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Cash balance</p>
+        </div>
+
+        {/* 24h P&L — dev data */}
+        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>24h P&amp;L</p>
+            <DevBadge />
+          </div>
+          <p className={`text-xl font-bold tabular-nums font-mono ${totalPnl >= 0 ? 'text-positive' : 'text-negative'}`}>
+            {totalPnl >= 0 ? '+' : ''}${Math.abs(totalPnl).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Unrealized</p>
+        </div>
+
+        {/* BTC Price — live when available */}
+        <div className="col-span-1 rounded-lg p-4 border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted-foreground)' }}>BTC/USD</p>
+            {btcPrice != null && <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Live" />}
+          </div>
+          {btcPrice != null ? (
+            <>
+              <p className="text-xl font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
+                ${btcPrice.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+              </p>
+              {btcChangePct != null && (
+                <p className={`text-xs mt-1 font-medium tabular-nums ${btcChangePct >= 0 ? 'text-positive' : 'text-negative'}`}>
+                  {btcChangePct >= 0 ? '+' : ''}{btcChangePct.toFixed(2)}%
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="text-xl font-bold tabular-nums font-mono" style={{ color: 'var(--muted-foreground)' }}>—</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
+                {realLoading ? 'Loading…' : 'Unavailable'}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Account Status */}
@@ -240,12 +287,12 @@ export default function PortfolioContent() {
               {kycStatus === 'verified' ? 'Verified' : 'Pending KYC'}
             </span>
           </div>
-          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>{positions.length} open positions</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>{positions.length} positions (dev)</p>
         </div>
       </div>
 
       {/* Tab switcher */}
-      <div className="flex items-center gap-1 p-1 rounded-lg border w-fit" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-1 p-1 rounded border w-fit" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         {TABS.map(tab => (
           <button
             key={tab.id}
@@ -265,13 +312,21 @@ export default function PortfolioContent() {
       {/* Overview tab */}
       {activeTab === 'overview' && (
         <>
-          {/* Market Snapshot */}
+          {/* Market Snapshot — live prices */}
           <div className="rounded-lg border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Market Snapshot</h3>
-              <Link href="/markets" className="text-xs hover:underline" style={{ color: 'var(--primary)' }}>View all markets</Link>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Market Snapshot</h3>
+                {isLive && (
+                  <div className="flex items-center gap-1 text-xs" style={{ color: '#22c55e' }}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span>Live</span>
+                  </div>
+                )}
+              </div>
+              <Link href="/markets" className="text-xs font-medium hover:underline" style={{ color: 'var(--primary)' }}>All markets</Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0" style={{ borderColor: 'var(--border)' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x" style={{ borderColor: 'var(--border)' }}>
               {MARKET_SNAPSHOT.map(item => {
                 const q = realQuotes[item.realKey];
                 const isReal = q?.available && q.quote?.price != null;
@@ -284,7 +339,7 @@ export default function PortfolioContent() {
                       <AssetIcon symbol={item.symbol} assetType={item.assetType} size={20} />
                       <div>
                         <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{item.symbol}</p>
-                        <p className="text-xs" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{item.name}</p>
+                        <p style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{item.name}</p>
                       </div>
                     </div>
                     {price != null ? (
@@ -299,7 +354,12 @@ export default function PortfolioContent() {
                         )}
                       </>
                     ) : (
-                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>—</p>
+                      <div>
+                        <p className="text-sm font-mono" style={{ color: 'var(--muted-foreground)' }}>—</p>
+                        <p className="text-xs" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>
+                          {realLoading ? 'Loading…' : 'Unavailable'}
+                        </p>
+                      </div>
                     )}
                   </div>
                 );
@@ -315,15 +375,18 @@ export default function PortfolioContent() {
             </div>
           </div>
 
-          {/* Portfolio chart */}
+          {/* Portfolio chart — dev data */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Portfolio Value</h3>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Aug 2026 — Development data</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Portfolio Value</h3>
+                  <DevBadge label="Dev chart" />
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Aug 2026 — not connected to live account</p>
               </div>
               <div className="flex items-center gap-1.5">
-                <TrendingUp size={14} style={{ color: 'var(--positive)' }} />
+                <TrendingUp size={13} style={{ color: 'var(--positive)' }} />
                 <span className="text-sm font-bold text-positive">+20.7%</span>
               </div>
             </div>
@@ -347,8 +410,8 @@ export default function PortfolioContent() {
           {/* Programs preview */}
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Available Programs</h3>
-              <Link href="/programs" className="text-xs hover:underline" style={{ color: 'var(--primary)' }}>View all</Link>
+              <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Available Programs</h3>
+              <Link href="/programs" className="text-xs font-medium hover:underline" style={{ color: 'var(--primary)' }}>View all</Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
@@ -357,8 +420,8 @@ export default function PortfolioContent() {
                 { icon: DollarSign, label: 'Referral Bonus', desc: 'Earn for every referral', color: '#22c55e' },
               ].map(p => (
                 <div key={p.label} className="flex items-start gap-3 p-3 rounded border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                  <div className="w-8 h-8 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: `${p.color}15` }}>
-                    <p.icon size={15} style={{ color: p.color }} />
+                  <div className="w-7 h-7 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: `${p.color}15` }}>
+                    <p.icon size={13} style={{ color: p.color }} />
                   </div>
                   <div>
                     <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{p.label}</p>
@@ -374,14 +437,25 @@ export default function PortfolioContent() {
       {/* Performance tab */}
       {activeTab === 'performance' && (
         <div className="space-y-4">
+          {/* Dev state notice */}
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded border text-xs" style={{ backgroundColor: 'rgba(107,114,128,0.05)', borderColor: 'var(--border)' }}>
+            <RefreshCw size={11} style={{ color: 'var(--muted-foreground)' }} />
+            <span style={{ color: 'var(--muted-foreground)' }}>
+              Performance metrics below are <strong>development data</strong>. Connect backend account API to show real equity curve and statistics.
+            </span>
+          </div>
+
           <div className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Portfolio Performance</h3>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Equity curve — Aug 2026 · Development data</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Portfolio Performance</h3>
+                  <DevBadge label="Dev chart" />
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Equity curve · Aug 2026</p>
               </div>
               <span className="text-xs px-2 py-1 rounded font-medium" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: 'var(--positive)' }}>
-                +$8,284 this month
+                +$8,284 (dev)
               </span>
             </div>
             <ResponsiveContainer width="100%" height={200}>
@@ -409,8 +483,11 @@ export default function PortfolioContent() {
               { label: 'Avg Hold Time', value: '4.2d', sub: 'Per position', positive: null },
             ].map(m => (
               <div key={m.label} className="rounded-lg border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-                <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--muted-foreground)' }}>{m.label}</p>
-                <p className="text-xl font-bold tabular-nums" style={{ color: m.positive === true ? 'var(--positive)' : m.positive === false ? 'var(--negative)' : 'var(--foreground)' }}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>{m.label}</p>
+                  <DevBadge />
+                </div>
+                <p className="text-xl font-bold tabular-nums font-mono" style={{ color: m.positive === true ? 'var(--positive)' : m.positive === false ? 'var(--negative)' : 'var(--foreground)' }}>
                   {m.value}
                 </p>
                 <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>{m.sub}</p>
@@ -419,8 +496,9 @@ export default function PortfolioContent() {
           </div>
 
           <div className="rounded-lg border" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-            <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
-              <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Position Performance</h3>
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
+              <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--foreground)' }}>Position Performance</h3>
+              <DevBadge label="Dev positions" />
             </div>
             <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
               {positions.map(pos => {
@@ -438,12 +516,12 @@ export default function PortfolioContent() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Entry ${pos.entryPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                        <span className={`text-xs font-semibold ${isPos ? 'text-positive' : 'text-negative'}`}>
+                        <span className="text-xs font-mono" style={{ color: 'var(--muted-foreground)' }}>Entry ${pos.entryPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className={`text-xs font-semibold tabular-nums ${isPos ? 'text-positive' : 'text-negative'}`}>
                           {isPos ? '+' : ''}${pos.pnl.toLocaleString('en-US', { minimumFractionDigits: 2 })} ({isPos ? '+' : ''}{pos.pnlPct.toFixed(2)}%)
                         </span>
                       </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--muted)' }}>
+                      <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--muted)' }}>
                         <div className="h-full rounded-full transition-all" style={{ width: `${barWidth}%`, backgroundColor: isPos ? 'var(--positive)' : 'var(--negative)' }} />
                       </div>
                     </div>

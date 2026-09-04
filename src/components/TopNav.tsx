@@ -9,9 +9,9 @@ import { notificationService, AppNotification } from '@/services/notification.se
 import { preferencesService } from '@/services/preferences.service';
 
 const NAV_ITEMS = [
-  { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Trade', href: '/trade-trading-workspace', icon: TrendingUp },
   { label: 'Markets', href: '/markets', icon: BarChart2 },
+  { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Trading Bot', href: '/trading-bot', icon: Bot },
   { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
   { label: 'Watchlist', href: '/watchlist', icon: Star },
@@ -406,9 +406,6 @@ export default function TopNav() {
                     </Link>
                     <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
                       <Gift size={13} style={{ color: 'var(--muted-foreground)' }} /> Programs &amp; Benefits
-                    </Link>
-                    <Link href="/notifications" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-sm hover:bg-muted transition-colors" style={{ color: 'var(--foreground)' }}>
-                      <Bell size={13} style={{ color: 'var(--muted-foreground)' }} /> Notifications
                     </Link>
                   </div>
                   <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
