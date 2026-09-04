@@ -23,8 +23,8 @@ export default function ChartToolbar({ selectedTool, onSelectTool }: Props) {
     <div
       className="flex flex-col items-center py-2 gap-1 border-r"
       style={{
-        backgroundColor: '#080808',
-        borderColor: '#1a1a1a',
+        backgroundColor: 'var(--tc-surface)',
+        borderColor: 'var(--tc-border)',
         width: '40px',
         minWidth: '40px',
       }}
@@ -35,35 +35,35 @@ export default function ChartToolbar({ selectedTool, onSelectTool }: Props) {
             onClick={() => onSelectTool(tool.id)}
             className="w-8 h-8 flex items-center justify-center rounded transition-all duration-150"
             style={{
-              backgroundColor: selectedTool === tool.id ? 'rgba(245,196,0,0.15)' : 'transparent',
-              color: selectedTool === tool.id ? 'var(--primary)' : '#ffffff',
+              backgroundColor: selectedTool === tool.id ? 'rgba(201,160,0,0.15)' : 'transparent',
+              color: selectedTool === tool.id ? 'var(--primary)' : 'var(--tc-text-secondary)',
             }}
           >
             <tool.icon size={16} />
           </button>
-          {/* Tooltip — appears to the RIGHT since toolbar is on left */}
+          {/* Tooltip */}
           <div
             className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
-            style={{ backgroundColor: '#111111', border: '1px solid #2a2a2a', color: '#ffffff' }}
+            style={{ backgroundColor: 'var(--tc-panel)', border: '1px solid var(--tc-border)', color: 'var(--tc-text-primary)' }}
           >
             {tool.label}
           </div>
         </div>
       ))}
 
-      <div className="w-5 h-px my-1" style={{ backgroundColor: '#1a1a1a' }} />
+      <div className="w-5 h-px my-1" style={{ backgroundColor: 'var(--tc-border)' }} />
 
       {/* Lock */}
       <div className="relative group">
         <button
           className="w-8 h-8 flex items-center justify-center rounded transition-all"
-          style={{ color: '#ffffff' }}
+          style={{ color: 'var(--tc-text-secondary)' }}
         >
           <Lock size={16} />
         </button>
         <div
           className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
-          style={{ backgroundColor: '#111111', border: '1px solid #2a2a2a', color: '#ffffff' }}
+          style={{ backgroundColor: 'var(--tc-panel)', border: '1px solid var(--tc-border)', color: 'var(--tc-text-primary)' }}
         >
           Lock drawings
         </div>
@@ -73,13 +73,13 @@ export default function ChartToolbar({ selectedTool, onSelectTool }: Props) {
       <div className="relative group">
         <button
           className="w-8 h-8 flex items-center justify-center rounded transition-all"
-          style={{ color: '#ffffff' }}
+          style={{ color: 'var(--tc-text-secondary)' }}
         >
           <Trash2 size={16} />
         </button>
         <div
           className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
-          style={{ backgroundColor: '#111111', border: '1px solid #2a2a2a', color: '#ffffff' }}
+          style={{ backgroundColor: 'var(--tc-panel)', border: '1px solid var(--tc-border)', color: 'var(--tc-text-primary)' }}
         >
           Delete selected drawing
         </div>

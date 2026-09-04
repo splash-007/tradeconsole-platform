@@ -200,9 +200,9 @@ export default function TradingWorkspace() {
                 onClick={() => handleSelectSymbol(sym)}
                 className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs whitespace-nowrap transition-all shrink-0"
                 style={{
-                  backgroundColor: selectedSymbol === sym ? 'rgba(245,196,0,0.12)' : 'transparent',
-                  color: selectedSymbol === sym ? 'var(--primary)' : '#9ca3af',
-                  border: `1px solid ${selectedSymbol === sym ? 'var(--primary)' : 'var(--tc-border, #1a1a1a)'}`,
+                  backgroundColor: selectedSymbol === sym ? 'rgba(201,160,0,0.12)' : 'transparent',
+                  color: selectedSymbol === sym ? 'var(--primary)' : 'var(--tc-text-secondary)',
+                  border: `1px solid ${selectedSymbol === sym ? 'var(--primary)' : 'var(--tc-border)'}`,
                 }}
               >
                 <span className="font-semibold">{sym.split('/')[0]}</span>
@@ -274,20 +274,20 @@ export default function TradingWorkspace() {
                     <div className="flex items-center justify-between w-full mb-0.5">
                       <div className="flex items-center gap-1.5">
                         <AssetIcon symbol={sym} assetType="crypto" size={16} />
-                        <span className="text-xs font-bold" style={{ color: isSelected ? 'var(--primary)' : '#ffffff' }}>
+                        <span className="text-sm font-bold" style={{ color: isSelected ? 'var(--primary)' : 'var(--tc-text-primary)' }}>
                           {sym.split('/')[0]}
                         </span>
                       </div>
                       {price > 0 && (
-                        <span className={`text-xs ${changePct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <span className={`text-xs font-semibold ${changePct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
                         </span>
                       )}
                     </div>
                     {price > 0 && (
-                      <span className="text-xs font-mono text-gray-400">
+                      <span className="text-xs font-mono" style={{ color: 'var(--tc-text-muted)' }}>
                         ${price >= 1 ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(7)}
-                        {isLive && <span className="ml-1 text-green-500">●</span>}
+                        {isLive && <span className="ml-1 text-green-600">●</span>}
                       </span>
                     )}
                   </button>
@@ -308,13 +308,13 @@ export default function TradingWorkspace() {
       />
 
       {/* ===== DESKTOP LAYOUT ===== */}
-      <div className="hidden md:flex flex-col flex-1 min-h-0 p-2 gap-2" style={{ backgroundColor: '#000000' }}>
+      <div className="hidden md:flex flex-col flex-1 min-h-0 p-2 gap-2" style={{ backgroundColor: 'var(--tc-bg)' }}>
         {/* Main workspace — full height trading row */}
         <div className="flex min-h-0 gap-2" style={{ flex: '1 1 0' }}>
           {/* LEFT: Drawing toolbar + Chart */}
           <div
             className="flex min-w-0 min-h-0 rounded-xl overflow-hidden"
-            style={{ flex: '1 1 0', border: '1px solid #1a1a1a' }}
+            style={{ flex: '1 1 0', border: '1px solid var(--tc-border)' }}
           >
             {/* Drawing toolbar on LEFT */}
             <ChartToolbar selectedTool={selectedTool} onSelectTool={setSelectedTool} />
@@ -333,7 +333,7 @@ export default function TradingWorkspace() {
           {/* Order Book */}
           <div
             className="shrink-0 flex flex-col rounded-xl overflow-hidden"
-            style={{ width: '210px', border: '1px solid #1a1a1a' }}
+            style={{ width: '210px', border: '1px solid var(--tc-border)' }}
           >
             {orderBook && (
               <OrderBook
@@ -347,13 +347,13 @@ export default function TradingWorkspace() {
           {/* Order Form */}
           <div
             className="shrink-0 flex flex-col overflow-y-auto no-scrollbar rounded-xl"
-            style={{ width: '230px', border: '1px solid #1a1a1a' }}
+            style={{ width: '230px', border: '1px solid var(--tc-border)' }}
           >
             <OrderForm symbol={selectedSymbol} currentPrice={selectedLive.price || currentInstrument?.lastPrice || 0} />
           </div>
         </div>
 
-        {/* Bottom row — sits directly below trading workspace */}
+        {/* Bottom row */}
         <div
           className="flex shrink-0 gap-2"
           style={{ height: '200px' }}

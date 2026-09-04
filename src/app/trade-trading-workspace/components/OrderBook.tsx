@@ -13,10 +13,6 @@ interface Props {
 
 const PRECISION_OPTIONS = ['0.01', '0.1', '1'];
 
-const termBg = '#000000';
-const termSurface = '#080808';
-const termBorder = '#1a1a1a';
-
 export default function OrderBook({ orderBook, currentPrice, symbol }: Props) {
   const [precisionIdx, setPrecisionIdx] = useState(0);
 
@@ -37,17 +33,17 @@ export default function OrderBook({ orderBook, currentPrice, symbol }: Props) {
   const quoteAsset = symbol ? (symbol.split(/[-/]/)[1] || 'USD') : 'USD';
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: termBg }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--tc-bg)' }}>
       {/* Header */}
       <div
         className="flex items-center justify-between px-3 py-1.5 border-b shrink-0"
-        style={{ borderColor: termBorder, backgroundColor: termSurface }}
+        style={{ borderColor: 'var(--tc-border)', backgroundColor: 'var(--tc-surface)' }}
       >
-        <span className="text-xs font-semibold text-white">Order Book</span>
+        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--tc-text-primary)' }}>Order Book</span>
         <button
           onClick={() => setPrecisionIdx((precisionIdx + 1) % PRECISION_OPTIONS.length)}
           className="flex items-center gap-1 px-1.5 py-0.5 text-xs rounded border transition-all"
-          style={{ borderColor: termBorder, color: '#6b7280', backgroundColor: 'transparent' }}
+          style={{ borderColor: 'var(--tc-border)', color: 'var(--tc-text-muted)', backgroundColor: 'transparent' }}
         >
           {PRECISION_OPTIONS[precisionIdx]}
           <ChevronDown size={9} />
@@ -56,12 +52,12 @@ export default function OrderBook({ orderBook, currentPrice, symbol }: Props) {
 
       {/* Column headers */}
       <div
-        className="grid grid-cols-3 px-2 py-1 shrink-0"
-        style={{ borderBottom: `1px solid ${termBorder}`, backgroundColor: termSurface }}
+        className="grid grid-cols-3 px-2 py-1.5 shrink-0"
+        style={{ borderBottom: '1px solid var(--tc-border)', backgroundColor: 'var(--tc-surface)' }}
       >
-        <span className="text-xs text-gray-600">Price ({quoteAsset})</span>
-        <span className="text-xs text-right text-gray-600">Amt ({baseAsset})</span>
-        <span className="text-xs text-right text-gray-600">Total</span>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--tc-text-muted)' }}>Price ({quoteAsset})</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-right" style={{ color: 'var(--tc-text-muted)' }}>Amt ({baseAsset})</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-right" style={{ color: 'var(--tc-text-muted)' }}>Total</span>
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
@@ -77,11 +73,11 @@ export default function OrderBook({ orderBook, currentPrice, symbol }: Props) {
               >
                 <div
                   className="absolute right-0 top-0 h-full"
-                  style={{ width: `${depthPct}%`, backgroundColor: 'rgba(239,68,68,0.12)' }}
+                  style={{ width: `${depthPct}%`, backgroundColor: 'rgba(220,38,38,0.1)' }}
                 />
-                <span className="text-xs font-mono tabular-nums text-red-400 z-10">{ask.price.toFixed(precision)}</span>
-                <span className="text-xs font-mono tabular-nums text-right text-white z-10">{ask.amount.toFixed(4)}</span>
-                <span className="text-xs font-mono tabular-nums text-right text-gray-500 z-10">{ask.total.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                <span className="text-xs font-mono tabular-nums text-red-600 z-10">{ask.price.toFixed(precision)}</span>
+                <span className="text-xs font-mono tabular-nums text-right z-10" style={{ color: 'var(--tc-text-primary)' }}>{ask.amount.toFixed(4)}</span>
+                <span className="text-xs font-mono tabular-nums text-right z-10" style={{ color: 'var(--tc-text-muted)' }}>{ask.total.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
               </div>
             );
           })}
@@ -90,19 +86,19 @@ export default function OrderBook({ orderBook, currentPrice, symbol }: Props) {
         {/* Current price */}
         <div
           className="flex items-center justify-between px-3 py-1.5 border-y shrink-0"
-          style={{ borderColor: termBorder, backgroundColor: '#0d0d0d' }}
+          style={{ borderColor: 'var(--tc-border)', backgroundColor: 'var(--tc-panel)' }}
         >
           <div>
-            <p className="text-sm font-bold tabular-nums font-mono text-green-400">
+            <p className="text-sm font-bold tabular-nums font-mono text-green-600">
               {currentPrice >= 1 ? currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 }) : currentPrice.toFixed(6)}
             </p>
-            <p className="text-xs tabular-nums font-mono text-gray-600">
+            <p className="text-xs tabular-nums font-mono" style={{ color: 'var(--tc-text-muted)' }}>
               ≈ {currentPrice >= 1 ? currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2 }) : currentPrice.toFixed(6)} USD
             </p>
           </div>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-            <path d="M8 3L13 8L8 13" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M3 8H13" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M8 3L13 8L8 13" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M3 8H13" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </div>
 
@@ -117,11 +113,11 @@ export default function OrderBook({ orderBook, currentPrice, symbol }: Props) {
               >
                 <div
                   className="absolute right-0 top-0 h-full"
-                  style={{ width: `${depthPct}%`, backgroundColor: 'rgba(34,197,94,0.1)' }}
+                  style={{ width: `${depthPct}%`, backgroundColor: 'rgba(22,163,74,0.08)' }}
                 />
-                <span className="text-xs font-mono tabular-nums text-green-400 z-10">{bid.price.toFixed(precision)}</span>
-                <span className="text-xs font-mono tabular-nums text-right text-white z-10">{bid.amount.toFixed(4)}</span>
-                <span className="text-xs font-mono tabular-nums text-right text-gray-500 z-10">{bid.total.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                <span className="text-xs font-mono tabular-nums text-green-600 z-10">{bid.price.toFixed(precision)}</span>
+                <span className="text-xs font-mono tabular-nums text-right z-10" style={{ color: 'var(--tc-text-primary)' }}>{bid.amount.toFixed(4)}</span>
+                <span className="text-xs font-mono tabular-nums text-right z-10" style={{ color: 'var(--tc-text-muted)' }}>{bid.total.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
               </div>
             );
           })}
@@ -129,14 +125,14 @@ export default function OrderBook({ orderBook, currentPrice, symbol }: Props) {
       </div>
 
       {/* Bid/Ask ratio bar */}
-      <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: termBorder }}>
+      <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: 'var(--tc-border)' }}>
         <div className="flex rounded-full overflow-hidden h-1.5">
-          <div style={{ width: `${bidPct}%`, backgroundColor: '#22c55e' }} />
-          <div style={{ width: `${askPct}%`, backgroundColor: '#ef4444' }} />
+          <div style={{ width: `${bidPct}%`, backgroundColor: '#16a34a' }} />
+          <div style={{ width: `${askPct}%`, backgroundColor: '#dc2626' }} />
         </div>
         <div className="flex justify-between mt-1">
-          <span className="text-xs font-semibold text-green-400">B {bidPct}%</span>
-          <span className="text-xs font-semibold text-red-400">{askPct}% S</span>
+          <span className="text-xs font-semibold text-green-600">B {bidPct}%</span>
+          <span className="text-xs font-semibold text-red-600">{askPct}% S</span>
         </div>
       </div>
     </div>

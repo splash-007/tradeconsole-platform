@@ -21,11 +21,6 @@ interface OrderFormData {
 const ORDER_TYPES = ['Market', 'Limit', 'Stop Limit'] as const;
 const PCT_BUTTONS = [25, 50, 75, 100];
 
-const termBg = '#000000';
-const termSurface = '#080808';
-const termBorder = '#1a1a1a';
-const termInput = '#0d0d0d';
-
 export default function OrderForm({ symbol, currentPrice }: Props) {
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [orderType, setOrderType] = useState<'Market' | 'Limit' | 'Stop Limit'>('Limit');
@@ -84,32 +79,39 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
 
   const isBuy = side === 'buy';
 
+  const inputCls = "w-full px-2 py-2 rounded text-sm font-mono tabular-nums border focus:outline-none focus:ring-1 focus:ring-yellow-500/40";
+  const inputStyle = {
+    backgroundColor: 'var(--tc-input-bg)',
+    borderColor: 'var(--tc-border)',
+    color: 'var(--tc-text-primary)',
+  };
+
   return (
-    <div className="p-3" style={{ backgroundColor: termBg }}>
+    <div className="p-3" style={{ backgroundColor: 'var(--tc-bg)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-white">Order Form</span>
-        <span className="text-xs text-gray-600">···</span>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-bold" style={{ color: 'var(--tc-text-primary)' }}>Order Form</span>
+        <span className="text-xs" style={{ color: 'var(--tc-text-muted)' }}>···</span>
       </div>
 
       {/* Buy / Sell + Order Type row */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex rounded overflow-hidden border flex-1" style={{ borderColor: termBorder }}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex rounded overflow-hidden border flex-1" style={{ borderColor: 'var(--tc-border)' }}>
           <button
             onClick={() => setSide('buy')}
-            className="flex-1 py-1.5 text-xs font-bold transition-all duration-150"
+            className="flex-1 py-2 text-sm font-bold transition-all duration-150"
             style={isBuy
               ? { backgroundColor: 'var(--primary)', color: '#000' }
-              : { color: '#6b7280', backgroundColor: 'transparent' }}
+              : { color: 'var(--tc-text-muted)', backgroundColor: 'transparent' }}
           >
             Buy
           </button>
           <button
             onClick={() => setSide('sell')}
-            className="flex-1 py-1.5 text-xs font-bold transition-all duration-150"
+            className="flex-1 py-2 text-sm font-bold transition-all duration-150"
             style={!isBuy
               ? { backgroundColor: '#ef4444', color: '#fff' }
-              : { color: '#6b7280', backgroundColor: 'transparent' }}
+              : { color: 'var(--tc-text-muted)', backgroundColor: 'transparent' }}
           >
             Sell
           </button>
@@ -119,8 +121,8 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
         <div className="relative">
           <button
             onClick={() => setShowOrderTypeDropdown(!showOrderTypeDropdown)}
-            className="flex items-center gap-1 px-2 py-1.5 text-xs rounded border transition-all"
-            style={{ borderColor: termBorder, color: '#ffffff', backgroundColor: 'transparent' }}
+            className="flex items-center gap-1 px-2.5 py-2 text-sm rounded border transition-all"
+            style={{ borderColor: 'var(--tc-border)', color: 'var(--tc-text-primary)', backgroundColor: 'var(--tc-input-bg)' }}
           >
             {orderType}
             <ChevronDown size={10} />
@@ -128,14 +130,14 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
           {showOrderTypeDropdown && (
             <div
               className="absolute top-full right-0 mt-1 w-28 rounded border shadow-xl z-50"
-              style={{ backgroundColor: '#111111', borderColor: termBorder }}
+              style={{ backgroundColor: 'var(--tc-surface)', borderColor: 'var(--tc-border)' }}
             >
               {ORDER_TYPES.map(ot => (
                 <button
                   key={`ot-${ot}`}
                   onClick={() => { setOrderType(ot); setShowOrderTypeDropdown(false); }}
-                  className="w-full text-left px-3 py-2 text-xs transition-colors hover:bg-white/5"
-                  style={{ color: orderType === ot ? 'var(--primary)' : '#ffffff' }}
+                  className="w-full text-left px-3 py-2 text-sm transition-colors"
+                  style={{ color: orderType === ot ? 'var(--primary)' : 'var(--tc-text-primary)' }}
                 >
                   {ot}
                 </button>
@@ -145,38 +147,38 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-2">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-2.5">
         {/* Price field */}
         {orderType !== 'Market' && (
           <div>
-            <label className="block text-xs mb-1 text-gray-500">Price</label>
+            <label className="block text-xs font-semibold mb-1 uppercase tracking-wide" style={{ color: 'var(--tc-text-secondary)' }}>Price</label>
             <div className="relative">
               <input
                 type="number"
                 step="0.01"
                 {...register('price', { required: orderType !== 'Market' })}
-                className="w-full px-2 py-1.5 rounded text-xs font-mono tabular-nums border focus:outline-none pr-14 text-white"
-                style={{ backgroundColor: termInput, borderColor: termBorder }}
+                className={inputCls}
+                style={inputStyle}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-600">USDC</span>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium" style={{ color: 'var(--tc-text-muted)' }}>USDC</span>
             </div>
           </div>
         )}
 
         {/* Amount */}
         <div>
-          <label className="block text-xs mb-1 text-gray-500">Amount</label>
+          <label className="block text-xs font-semibold mb-1 uppercase tracking-wide" style={{ color: 'var(--tc-text-secondary)' }}>Amount</label>
           <div className="relative">
             <input
               type="number"
               step="0.000001"
               {...register('amount', { required: 'Amount is required', min: { value: 0.0001, message: 'Min 0.0001' } })}
-              className="w-full px-2 py-1.5 rounded text-xs font-mono tabular-nums border focus:outline-none pr-12 text-white"
-              style={{ backgroundColor: termInput, borderColor: errors.amount ? '#ef4444' : termBorder }}
+              className={inputCls}
+              style={{ ...inputStyle, borderColor: errors.amount ? '#ef4444' : 'var(--tc-border)' }}
             />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-600">{symbol.split('/')[0]}</span>
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium" style={{ color: 'var(--tc-text-muted)' }}>{symbol.split('/')[0]}</span>
           </div>
-          {errors.amount && <p className="text-xs mt-0.5 text-red-400">{errors.amount.message}</p>}
+          {errors.amount && <p className="text-xs mt-0.5 text-red-500">{errors.amount.message}</p>}
         </div>
 
         {/* Percentage buttons */}
@@ -186,8 +188,8 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
               key={`pct-${pct}`}
               type="button"
               onClick={() => handlePctClick(pct)}
-              className="py-0.5 text-xs rounded border transition-all hover:bg-white/5"
-              style={{ borderColor: termBorder, color: '#6b7280' }}
+              className="py-1 text-xs font-semibold rounded border transition-all"
+              style={{ borderColor: 'var(--tc-border)', color: 'var(--tc-text-secondary)', backgroundColor: 'var(--tc-input-bg)' }}
             >
               {pct}%
             </button>
@@ -196,16 +198,16 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
 
         {/* Total */}
         <div>
-          <label className="block text-xs mb-1 text-gray-500">Total</label>
+          <label className="block text-xs font-semibold mb-1 uppercase tracking-wide" style={{ color: 'var(--tc-text-secondary)' }}>Total</label>
           <div className="relative">
             <input
               type="number"
               step="0.01"
               {...register('total')}
-              className="w-full px-2 py-1.5 rounded text-xs font-mono tabular-nums border focus:outline-none pr-14 text-white"
-              style={{ backgroundColor: termInput, borderColor: termBorder }}
+              className={inputCls}
+              style={inputStyle}
             />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-600">USDC</span>
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium" style={{ color: 'var(--tc-text-muted)' }}>USDC</span>
           </div>
         </div>
 
@@ -217,38 +219,38 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
               id="tpsl"
               checked={showTpSl}
               onChange={e => setShowTpSl(e.target.checked)}
-              className="w-3 h-3 accent-yellow-500"
+              className="w-3.5 h-3.5 accent-yellow-500"
             />
-            <label htmlFor="tpsl" className="text-xs text-gray-500">TP / SL</label>
+            <label htmlFor="tpsl" className="text-xs font-medium cursor-pointer" style={{ color: 'var(--tc-text-secondary)' }}>TP / SL</label>
           </div>
           <div className="flex items-center gap-1.5">
-            <input type="checkbox" id="postOnly" {...register('postOnly')} className="w-3 h-3 accent-yellow-500" />
-            <label htmlFor="postOnly" className="text-xs text-gray-500">Post Only</label>
+            <input type="checkbox" id="postOnly" {...register('postOnly')} className="w-3.5 h-3.5 accent-yellow-500" />
+            <label htmlFor="postOnly" className="text-xs font-medium cursor-pointer" style={{ color: 'var(--tc-text-secondary)' }}>Post Only</label>
           </div>
         </div>
 
         {showTpSl && (
           <div className="space-y-2">
             <div>
-              <label className="block text-xs mb-1 text-green-500">Take Profit (USDC)</label>
+              <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-green-600">Take Profit (USDC)</label>
               <input
                 type="number"
                 step="0.01"
                 {...register('takeProfitPrice')}
                 placeholder={`e.g. ${(currentPrice * 1.05).toFixed(2)}`}
-                className="w-full px-2 py-1.5 rounded text-xs font-mono tabular-nums border focus:outline-none text-white placeholder-gray-700"
-                style={{ backgroundColor: termInput, borderColor: termBorder }}
+                className={inputCls}
+                style={{ ...inputStyle, borderColor: 'var(--tc-border)' }}
               />
             </div>
             <div>
-              <label className="block text-xs mb-1 text-red-400">Stop Loss (USDC)</label>
+              <label className="block text-xs font-semibold mb-1 uppercase tracking-wide text-red-500">Stop Loss (USDC)</label>
               <input
                 type="number"
                 step="0.01"
                 {...register('stopLossPrice')}
                 placeholder={`e.g. ${(currentPrice * 0.95).toFixed(2)}`}
-                className="w-full px-2 py-1.5 rounded text-xs font-mono tabular-nums border focus:outline-none text-white placeholder-gray-700"
-                style={{ backgroundColor: termInput, borderColor: termBorder }}
+                className={inputCls}
+                style={{ ...inputStyle, borderColor: 'var(--tc-border)' }}
               />
             </div>
           </div>
@@ -256,7 +258,7 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
 
         {/* Submit result */}
         {submitResult && (
-          <div className={`p-2 rounded text-xs ${submitResult.success ? 'text-green-400 bg-green-900/20' : 'text-red-400 bg-red-900/20'}`}>
+          <div className={`p-2 rounded text-sm ${submitResult.success ? 'text-green-600 bg-green-500/10' : 'text-red-500 bg-red-500/10'}`}>
             {submitResult.message}
           </div>
         )}
@@ -276,14 +278,14 @@ export default function OrderForm({ symbol, currentPrice }: Props) {
         </button>
 
         {/* Fee estimate */}
-        <div className="space-y-0.5 pt-1">
+        <div className="space-y-1 pt-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Est. Fee</span>
-            <span className="text-xs tabular-nums font-mono text-gray-600">0.1%</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--tc-text-secondary)' }}>Est. Fee</span>
+            <span className="text-xs tabular-nums font-mono font-medium" style={{ color: 'var(--tc-text-secondary)' }}>0.1%</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Est. Total</span>
-            <span className="text-xs tabular-nums font-mono text-gray-600">
+            <span className="text-xs font-medium" style={{ color: 'var(--tc-text-secondary)' }}>Est. Total</span>
+            <span className="text-xs tabular-nums font-mono font-medium" style={{ color: 'var(--tc-text-secondary)' }}>
               {amount && !isNaN(parseFloat(amount)) ? `${(parseFloat(amount) * currentPrice * 1.001).toFixed(2)} USDC` : '0.00 USDC'}
             </span>
           </div>
