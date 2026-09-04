@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+
+
 import {
   programsService,
   DepositBonusProgram,
@@ -13,6 +14,8 @@ import {
 
 import { Gift, Users, TrendingUp, Award, Copy, Check, ChevronRight, AlertTriangle, Info, ArrowRight, Shield, BarChart2, Lock, ArrowLeft } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
+
+
 
 
 type ProgramTab = 'overview' | 'deposit-bonus' | 'referral' | 'lending' | 'dividend';
@@ -79,11 +82,11 @@ function OverviewCard({
   return (
     <button
       onClick={() => onNavigate(tab)}
-      className="text-left w-full rounded border p-5 transition-all hover:shadow-md group"
+      className="text-left w-full rounded-xl border p-5 transition-all hover:shadow-md group"
       style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 rounded flex items-center justify-center" style={{ backgroundColor: `${accentColor}14`, border: `1px solid ${accentColor}30` }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${accentColor}14`, border: `1px solid ${accentColor}30` }}>
           <Icon size={18} style={{ color: accentColor }} />
         </div>
         <StatusBadge status={status} />
@@ -117,11 +120,11 @@ function DepositBonusPanel({ program }: { program: DepositBonusProgram }) {
         subtitle="Account credit on qualifying promotional deposits. Program terms are configured by the platform."
       />
 
-      <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--border)', background: 'linear-gradient(135deg, rgba(212,168,0,0.06) 0%, transparent 60%)' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.25)' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.25)' }}>
                 <Gift size={18} style={{ color: 'var(--primary)' }} />
               </div>
               <div>
@@ -135,14 +138,14 @@ function DepositBonusPanel({ program }: { program: DepositBonusProgram }) {
 
         <div className="px-5 py-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div className="p-3 rounded border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
+            <div className="p-3 rounded-xl border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
               <p className="text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>Bonus Rate</p>
               <p className="text-lg font-bold" style={{ color: 'var(--primary)' }}>
                 {program.bonusPercentage !== null ? `${program.bonusPercentage}%` : 'Platform Configured'}
               </p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Subject to program terms</p>
             </div>
-            <div className="p-3 rounded border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
+            <div className="p-3 rounded-xl border" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
               <p className="text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>Minimum Deposit</p>
               <p className="text-lg font-bold tabular-nums" style={{ color: 'var(--foreground)' }}>
                 ${program.minimumDeposit.toLocaleString()}
@@ -159,7 +162,7 @@ function DepositBonusPanel({ program }: { program: DepositBonusProgram }) {
             <InfoRow label="Status" value={<StatusBadge status={program.status} />} />
           </div>
 
-          <div className="flex items-start gap-2 p-3 rounded text-xs mb-4" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
+          <div className="flex items-start gap-2 p-3 rounded-xl text-xs mb-4" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
             <Info size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
             <p style={{ color: 'var(--muted-foreground)' }}>{program.terms}</p>
           </div>
@@ -168,14 +171,14 @@ function DepositBonusPanel({ program }: { program: DepositBonusProgram }) {
             <button
               onClick={handleActivate}
               disabled={activating}
-              className="w-full py-2.5 rounded text-sm font-semibold transition-all active:scale-95 disabled:opacity-60"
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-60"
               style={{ backgroundColor: 'var(--primary)', color: '#000' }}
             >
               {activating ? 'Submitting…' : 'Activate Deposit Bonus'}
             </button>
           )}
           {activated && (
-            <div className="flex items-center gap-2 justify-center py-2.5 rounded text-sm font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <div className="flex items-center gap-2 justify-center py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}>
               <Check size={14} /> Activation request submitted
             </div>
           )}
@@ -224,25 +227,25 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
           { label: 'Pending Reward', value: program.pendingReward > 0 ? `$${program.pendingReward.toFixed(2)}` : '—', color: '#f59e0b' },
           { label: 'Paid Reward', value: program.paidReward > 0 ? `$${program.paidReward.toFixed(2)}` : '—', color: 'var(--primary)' },
         ].map((stat, i) => (
-          <div key={i} className="rounded border p-3" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div key={i} className="rounded-xl border p-3" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             <p className="text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>{stat.label}</p>
             <p className="text-lg font-bold tabular-nums" style={{ color: stat.color }}>{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <h3 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Your Referral Details</h3>
         <div className="space-y-3">
           <div>
             <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Referral Code</label>
             <div className="flex items-center gap-2">
-              <div className="flex-1 px-3 py-2 rounded border font-mono text-sm font-bold" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--primary)' }}>
+              <div className="flex-1 px-3 py-2 rounded-xl border font-mono text-sm font-bold" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--primary)' }}>
                 {program.referralCode}
               </div>
               <button
                 onClick={() => handleCopy(program.referralCode)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded border text-xs font-medium transition-all hover:bg-muted"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all hover:bg-muted"
                 style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
               >
                 {copied ? <Check size={12} style={{ color: '#22c55e' }} /> : <Copy size={12} />}
@@ -253,12 +256,12 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
           <div>
             <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Referral Link</label>
             <div className="flex items-center gap-2">
-              <div className="flex-1 px-3 py-2 rounded border text-xs truncate" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
+              <div className="flex-1 px-3 py-2 rounded-xl border text-xs truncate" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
                 {program.referralLink}
               </div>
               <button
                 onClick={() => handleCopy(program.referralLink)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded border text-xs font-medium transition-all hover:bg-muted shrink-0"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all hover:bg-muted shrink-0"
                 style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
               >
                 <Copy size={12} /> Copy Link
@@ -268,7 +271,7 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
         </div>
       </div>
 
-      <div className="rounded border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <h3 className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Invite a Client</h3>
         <div className="flex gap-2">
           <input
@@ -276,13 +279,13 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
             value={inviteEmail}
             onChange={e => setInviteEmail(e.target.value)}
             placeholder="client@email.com"
-            className="flex-1 px-3 py-2 rounded border text-sm focus:outline-none focus:ring-1"
+            className="flex-1 px-3 py-2 rounded-xl border text-sm focus:outline-none focus:ring-1"
             style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
           />
           <button
             onClick={handleInvite}
             disabled={inviting || !inviteEmail.trim()}
-            className="px-4 py-2 rounded text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 shrink-0"
+            className="px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 shrink-0"
             style={{ backgroundColor: 'var(--primary)', color: '#000' }}
           >
             {inviting ? 'Sending…' : invited ? '✓ Sent' : 'Invite'}
@@ -292,7 +295,7 @@ function ReferralPanel({ program, history }: { program: ReferralProgram; history
       </div>
 
       {history.length > 0 && (
-        <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
             <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Referral History</h3>
           </div>
@@ -357,7 +360,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
         subtitle="Allocate eligible cryptocurrency to approved lending programs. Rates and terms are subject to market conditions and program availability."
       />
 
-      <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
+      <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
         <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
         <p style={{ color: 'var(--muted-foreground)' }}>
           Crypto lending involves risk including potential loss of principal. Rates displayed are indicative and subject to change.
@@ -366,7 +369,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
       </div>
 
       {submitted && (
-        <div className="flex items-center gap-2 p-3 rounded text-xs font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e' }}>
+        <div className="flex items-center gap-2 p-3 rounded-xl text-xs font-semibold" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e' }}>
           <Check size={13} /> Lending position request submitted. Pending confirmation.
         </div>
       )}
@@ -375,7 +378,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
         {programs.map(prog => (
           <div
             key={prog.id}
-            className="rounded border p-4 transition-all"
+            className="rounded-xl border p-4 transition-all"
             style={{
               backgroundColor: 'var(--card)',
               borderColor: selectedProgram?.id === prog.id ? 'var(--primary)' : 'var(--border)',
@@ -410,7 +413,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
             <p className="text-xs mb-3" style={{ color: 'var(--muted-foreground)' }}>{prog.description}</p>
             <button
               onClick={() => { setSelectedProgram(prog); setStep('review'); }}
-              className="w-full py-2 rounded text-xs font-semibold transition-all hover:opacity-90"
+              className="w-full py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
               style={{ backgroundColor: 'var(--primary)', color: '#000' }}
             >
               Lend {prog.assetSymbol}
@@ -420,7 +423,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
       </div>
 
       {selectedProgram && step === 'review' && (
-        <div className="rounded border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--primary)' }}>
+        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--primary)' }}>
           <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--foreground)' }}>Lending Details — {selectedProgram.assetSymbol}</h3>
           <div className="space-y-3 mb-4">
             <div>
@@ -430,17 +433,17 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder={`Min. ${selectedProgram.minimumAmount}`}
-                className="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-1"
+                className="w-full px-3 py-2 rounded-xl border text-sm focus:outline-none focus:ring-1"
                 style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
               />
             </div>
-            <div className="p-3 rounded text-xs space-y-1.5" style={{ backgroundColor: 'var(--muted)' }}>
+            <div className="p-3 rounded-xl text-xs space-y-1.5" style={{ backgroundColor: 'var(--muted)' }}>
               <InfoRow label="Program" value={selectedProgram.name} />
               <InfoRow label="Term" value={selectedProgram.term} />
               <InfoRow label="Rate" value={selectedProgram.apyDisplay ?? 'Provided at confirmation'} />
               <InfoRow label="Risk" value={<span className="capitalize font-semibold" style={{ color: riskColor(selectedProgram.riskLevel) }}>{selectedProgram.riskLevel}</span>} />
             </div>
-            <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
+            <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
               <Shield size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
               <p style={{ color: 'var(--muted-foreground)' }}>
                 By proceeding you confirm you have read and accepted the lending program risk disclosure and terms.
@@ -451,7 +454,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
           <div className="flex gap-2">
             <button
               onClick={() => { setSelectedProgram(null); setStep('select'); setAmount(''); }}
-              className="flex-1 py-2 rounded text-sm font-medium border transition-all hover:bg-muted"
+              className="flex-1 py-2 rounded-xl text-sm font-medium border transition-all hover:bg-muted"
               style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
             >
               Cancel
@@ -459,7 +462,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
             <button
               onClick={handleSubmit}
               disabled={submitting || !amount || parseFloat(amount) < selectedProgram.minimumAmount}
-              className="flex-1 py-2 rounded text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
+              className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
               style={{ backgroundColor: 'var(--primary)', color: '#000' }}
             >
               {submitting ? 'Submitting…' : 'Confirm Lending'}
@@ -468,7 +471,7 @@ function LendingPanel({ programs, positions }: { programs: LendingProgram[]; pos
         </div>
       )}
 
-      <div className="rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
           <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted-foreground)' }}>Active Lending Positions</h3>
         </div>
@@ -519,9 +522,9 @@ function DividendPanel() {
         title="Dividend Program"
         subtitle="Eligible customers may participate in configured dividend or benefit programs subject to account status and program rules."
       />
-      <div className="rounded border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+      <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.25)' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.25)' }}>
             <Award size={18} style={{ color: 'var(--primary)' }} />
           </div>
           <div>
@@ -531,12 +534,11 @@ function DividendPanel() {
         </div>
         <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>
           Dividend eligibility, program participation, claim amounts, and payment schedules are determined by the platform
-          based on account status, program rules, and applicable regulations. Employment status is one of several eligibility signals.
+          based on account status, program rules, and applicable regulations.
         </p>
-        {/* Direct link to /settings?tab=dividend — reliable URL param routing */}
         <Link
           href="/settings?tab=dividend"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all hover:opacity-90"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
           style={{ backgroundColor: 'var(--primary)', color: '#000' }}
         >
           View Dividend Settings <ChevronRight size={14} />
@@ -546,10 +548,19 @@ function DividendPanel() {
   );
 }
 
+// ─── Sidebar nav items ────────────────────────────────────────────────────────
+
+const SIDEBAR_ITEMS: { id: ProgramTab; label: string; icon: React.ElementType; desc: string }[] = [
+  { id: 'overview', label: 'Overview', icon: BarChart2, desc: 'All programs' },
+  { id: 'deposit-bonus', label: 'Deposit Bonus', icon: Gift, desc: 'Promotional credit' },
+  { id: 'referral', label: 'Referral Program', icon: Users, desc: 'Invite & earn' },
+  { id: 'lending', label: 'Crypto Lending', icon: TrendingUp, desc: 'Earn on assets' },
+  { id: 'dividend', label: 'Dividend', icon: Award, desc: 'Eligible payouts' },
+];
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProgramsContent() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProgramTab>('overview');
   const [depositBonus, setDepositBonus] = useState<DepositBonusProgram | null>(null);
   const [referralProgram, setReferralProgram] = useState<ReferralProgram | null>(null);
@@ -575,21 +586,13 @@ export default function ProgramsContent() {
     });
   }, []);
 
-  const TABS: { id: ProgramTab; label: string; icon: React.ElementType }[] = [
-    { id: 'overview', label: 'Overview', icon: BarChart2 },
-    { id: 'deposit-bonus', label: 'Deposit Bonus', icon: Gift },
-    { id: 'referral', label: 'Referral', icon: Users },
-    { id: 'lending', label: 'Crypto Lending', icon: TrendingUp },
-    { id: 'dividend', label: 'Dividend', icon: Award },
-  ];
-
   if (loading) {
     return (
       <div className="py-4 space-y-4">
         <div className="h-8 w-64 rounded animate-pulse" style={{ backgroundColor: 'var(--muted)' }} />
         <div className="grid grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="h-40 rounded border animate-pulse" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }} />
+            <div key={i} className="h-40 rounded-xl border animate-pulse" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }} />
           ))}
         </div>
       </div>
@@ -597,8 +600,8 @@ export default function ProgramsContent() {
   }
 
   return (
-    <div className="py-4 max-w-5xl">
-      {/* Back navigation — always returns to /settings explicitly */}
+    <div className="py-4 max-w-6xl">
+      {/* Back to Settings */}
       <div className="mb-4">
         <Link
           href="/settings"
@@ -610,7 +613,6 @@ export default function ProgramsContent() {
         </Link>
       </div>
 
-      {/* Page header */}
       <div className="mb-5">
         <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Programs &amp; Benefits</h1>
         <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
@@ -618,91 +620,129 @@ export default function ProgramsContent() {
         </p>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar border-b mb-5" style={{ borderColor: 'var(--border)' }}>
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors shrink-0"
-            style={{
-              color: activeTab === tab.id ? 'var(--primary)' : 'var(--muted-foreground)',
-              borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
-              marginBottom: '-1px',
-            }}
-          >
-            <tab.icon size={13} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      {activeTab === 'overview' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <OverviewCard
-              icon={Gift}
-              title="Deposit Bonus"
-              description="Receive additional account credit on qualifying promotional deposits. Program terms configured by the platform."
-              status={depositBonus?.status ?? 'available'}
-              accentColor="var(--primary)"
-              tab="deposit-bonus"
-              onNavigate={setActiveTab}
-            />
-            <OverviewCard
-              icon={Users}
-              title="Referral Program"
-              description="Invite clients to Trade Console. Earn rewards when referred clients qualify under program terms."
-              status={referralProgram?.status ?? 'available'}
-              accentColor="#22c55e"
-              tab="referral"
-              onNavigate={setActiveTab}
-            />
-            <OverviewCard
-              icon={TrendingUp}
-              title="Crypto Lending"
-              description="Allocate eligible cryptocurrency to approved lending programs. Rates and terms subject to market conditions."
-              status="available"
-              accentColor="#3b82f6"
-              tab="lending"
-              onNavigate={setActiveTab}
-            />
-            <OverviewCard
-              icon={Award}
-              title="Dividend Program"
-              description="Eligible customers may participate in configured dividend programs subject to account status and program rules."
-              status="available"
-              accentColor="var(--primary)"
-              tab="dividend"
-              onNavigate={setActiveTab}
-            />
-          </div>
-          <div className="flex items-start gap-2 p-3 rounded text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
-            <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-            <p style={{ color: 'var(--muted-foreground)' }}>
-              Program availability, eligibility, and terms are subject to jurisdiction, account status, and platform configuration.
-              All financial values are backend-authoritative. The frontend does not modify account balances.
-            </p>
+      {/* Settings-style two-column layout */}
+      <div className="flex gap-5">
+        {/* Left sidebar */}
+        <div className="hidden lg:block w-52 shrink-0">
+          <div className="rounded-xl border overflow-hidden sticky top-16" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            {SIDEBAR_ITEMS.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+                style={{
+                  borderColor: 'var(--border)',
+                  color: activeTab === item.id ? 'var(--primary)' : 'var(--muted-foreground)',
+                  backgroundColor: activeTab === item.id ? 'rgba(212,168,0,0.06)' : 'transparent',
+                }}
+              >
+                <item.icon size={13} />
+                <span className="flex-1">{item.label}</span>
+              </button>
+            ))}
+            <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
+              <Link
+                href="/settings"
+                className="flex items-center gap-2 text-xs transition-colors hover:opacity-80"
+                style={{ color: 'var(--muted-foreground)' }}
+              >
+                <ArrowLeft size={11} />
+                Profile &amp; Settings
+              </Link>
+            </div>
           </div>
         </div>
-      )}
 
-      {activeTab === 'deposit-bonus' && depositBonus && (
-        <DepositBonusPanel program={depositBonus} />
-      )}
+        {/* Mobile tab bar */}
+        <div className="lg:hidden w-full mb-4">
+          <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar border-b" style={{ borderColor: 'var(--border)' }}>
+            {SIDEBAR_ITEMS.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className="flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap transition-colors shrink-0"
+                style={{
+                  color: activeTab === item.id ? 'var(--primary)' : 'var(--muted-foreground)',
+                  borderBottom: activeTab === item.id ? '2px solid var(--primary)' : '2px solid transparent',
+                  marginBottom: '-1px',
+                }}
+              >
+                <item.icon size={12} />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {activeTab === 'referral' && referralProgram && (
-        <ReferralPanel program={referralProgram} history={referralHistory} />
-      )}
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {activeTab === 'overview' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <OverviewCard
+                  icon={Gift}
+                  title="Deposit Bonus"
+                  description="Receive additional account credit on qualifying promotional deposits. Program terms configured by the platform."
+                  status={depositBonus?.status ?? 'available'}
+                  accentColor="var(--primary)"
+                  tab="deposit-bonus"
+                  onNavigate={setActiveTab}
+                />
+                <OverviewCard
+                  icon={Users}
+                  title="Referral Program"
+                  description="Invite clients to Trade Console. Earn rewards when referred clients qualify under program terms."
+                  status={referralProgram?.status ?? 'available'}
+                  accentColor="#22c55e"
+                  tab="referral"
+                  onNavigate={setActiveTab}
+                />
+                <OverviewCard
+                  icon={TrendingUp}
+                  title="Crypto Lending"
+                  description="Allocate eligible cryptocurrency to approved lending programs. Rates and terms subject to market conditions."
+                  status="available"
+                  accentColor="#3b82f6"
+                  tab="lending"
+                  onNavigate={setActiveTab}
+                />
+                <OverviewCard
+                  icon={Award}
+                  title="Dividend Program"
+                  description="Eligible customers may participate in configured dividend programs subject to account status and program rules."
+                  status="available"
+                  accentColor="var(--primary)"
+                  tab="dividend"
+                  onNavigate={setActiveTab}
+                />
+              </div>
+              <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
+                <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+                <p style={{ color: 'var(--muted-foreground)' }}>
+                  Program availability, eligibility, and terms are subject to jurisdiction, account status, and platform configuration.
+                  All financial values are backend-authoritative. The frontend does not modify account balances.
+                </p>
+              </div>
+            </div>
+          )}
 
-      {activeTab === 'lending' && (
-        <LendingPanel programs={lendingPrograms} positions={lendingPositions} />
-      )}
+          {activeTab === 'deposit-bonus' && depositBonus && (
+            <DepositBonusPanel program={depositBonus} />
+          )}
 
-      {activeTab === 'dividend' && (
-        <DividendPanel />
-      )}
+          {activeTab === 'referral' && referralProgram && (
+            <ReferralPanel program={referralProgram} history={referralHistory} />
+          )}
+
+          {activeTab === 'lending' && (
+            <LendingPanel programs={lendingPrograms} positions={lendingPositions} />
+          )}
+
+          {activeTab === 'dividend' && (
+            <DividendPanel />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

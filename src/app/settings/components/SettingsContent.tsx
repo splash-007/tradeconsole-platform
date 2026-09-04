@@ -286,7 +286,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
     setPendingSection(null);
   };
 
-  const inputCls = "w-full px-3 py-2 rounded text-sm border focus:outline-none focus:ring-1 focus:ring-yellow-500/30 transition-colors";
+  const inputCls = "w-full px-3 py-2.5 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-yellow-500/20 transition-colors";
   const inputStyle = { backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' };
 
   const kycCfg = KYC_STATUS_CONFIG[kycStatus];
@@ -395,6 +395,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
             >
               <Gift size={13} />
               <span className="flex-1">Programs &amp; Benefits</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(212,168,0,0.1)', color: 'var(--primary)' }}>4</span>
             </Link>
           </div>
         </div>

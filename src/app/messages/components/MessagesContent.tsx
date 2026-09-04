@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Search, Send, Paperclip, MoreVertical, Phone, Plus, X, MessageSquare, Clock, CheckCircle2 } from 'lucide-react';
+import { Search, Send, Paperclip, MoreVertical, Phone, Plus, X, MessageSquare, Clock, CheckCircle2, MessageCircle } from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -37,37 +37,17 @@ const SUPPORT_CATEGORIES = [
   'Other',
 ];
 
-const CONVERSATIONS: Conversation[] = [
-  { id: 'c1', agentName: 'Sarah Chen', agentInitial: 'S', lastMessage: 'I have reviewed your account and everything looks good.', time: '14:32', unread: 0, online: true, status: 'open' },
-  { id: 'c2', agentName: 'Support Team', agentInitial: 'ST', lastMessage: 'Your deposit has been confirmed.', time: '11:15', unread: 2, online: true, status: 'waiting' },
-  { id: 'c3', agentName: 'Michael Torres', agentInitial: 'M', lastMessage: 'Please provide your verification documents.', time: 'Yesterday', unread: 0, online: false, away: true, status: 'resolved' },
-];
-
-const MESSAGES: Record<string, Message[]> = {
-  c1: [
-    { id: 'm1', sender: 'agent', text: 'Hello! How can I assist you today?', time: '14:20', read: true },
-    { id: 'm2', sender: 'customer', text: 'Hi Sarah, I have a question about my account balance.', time: '14:22', read: true },
-    { id: 'm3', sender: 'agent', text: 'Of course! I can see your account. What specifically would you like to know?', time: '14:24', read: true },
-    { id: 'm4', sender: 'customer', text: 'Can you check my recent deposit status?', time: '14:28', read: true },
-    { id: 'm5', sender: 'agent', text: 'I have reviewed your account and everything looks good. Your deposit of $5,000 was processed successfully on Aug 26.', time: '14:32', read: true },
-  ],
-  c2: [
-    { id: 'm1', sender: 'agent', text: 'Your deposit has been confirmed.', time: '11:15', read: false },
-    { id: 'm2', sender: 'agent', text: 'Funds should be available in your account within 1 business day.', time: '11:15', read: false },
-  ],
-  c3: [
-    { id: 'm1', sender: 'agent', text: 'Please provide your verification documents to complete KYC.', time: 'Yesterday', read: true },
-  ],
-};
+// Real conversations come from backend — empty until connected
+const REAL_CONVERSATIONS: Conversation[] = [];
 
 type ComposerStep = 'category' | 'message' | 'submitted';
 
 export default function MessagesContent() {
-  const [selectedConv, setSelectedConv] = useState<string>('c1');
+  const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [search, setSearch] = useState('');
-  const [messages, setMessages] = useState(MESSAGES);
-  const [conversations, setConversations] = useState(CONVERSATIONS);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [conversations, setConversations] = useState<Conversation[]>(REAL_CONVERSATIONS);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerStep, setComposerStep] = useState<ComposerStep>('category');
   const [newCategory, setNewCategory] = useState('');
@@ -76,10 +56,10 @@ export default function MessagesContent() {
   const [submitting, setSubmitting] = useState(false);
 
   const conv = conversations.find(c => c.id === selectedConv);
-  const currentMessages = messages[selectedConv] || [];
+  const currentMessages = selectedConv ? (messages[selectedConv] || []) : [];
 
   const handleSend = () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !selectedConv) return;
     const newMsg: Message = {
       id: `m${Date.now()}`,
       sender: 'customer',
@@ -106,7 +86,6 @@ export default function MessagesContent() {
   const handleSubmitConversation = () => {
     if (!newMessage.trim()) return;
     setSubmitting(true);
-    // Simulate submission — backend not yet connected
     setTimeout(() => {
       setSubmitting(false);
       setComposerStep('submitted');
@@ -137,7 +116,7 @@ export default function MessagesContent() {
         </div>
         <button
           onClick={handleStartConversation}
-          className="flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-95"
           style={{ backgroundColor: 'var(--primary)', color: '#000' }}
         >
           <Plus size={14} />
@@ -147,7 +126,7 @@ export default function MessagesContent() {
 
       {/* New Conversation Composer */}
       {composerOpen && (
-        <div className="rounded-lg border mb-4 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'rgba(212,168,0,0.3)' }}>
+        <div className="rounded-xl border mb-4 overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'rgba(212,168,0,0.3)' }}>
           <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
             <div className="flex items-center gap-2">
               <MessageSquare size={14} style={{ color: 'var(--primary)' }} />
@@ -171,7 +150,7 @@ export default function MessagesContent() {
                 Backend persistence not yet connected — conversation will appear once support integration is complete.
               </p>
               <div className="mt-4">
-                <button onClick={handleCloseComposer} className="px-4 py-2 rounded text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
+                <button onClick={handleCloseComposer} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
                   Done
                 </button>
               </div>
@@ -208,7 +187,7 @@ export default function MessagesContent() {
                         <button
                           key={cat}
                           onClick={() => setNewCategory(cat)}
-                          className="px-3 py-2 rounded border text-xs font-medium text-left transition-all"
+                          className="px-3 py-2 rounded-lg border text-xs font-medium text-left transition-all"
                           style={{
                             borderColor: newCategory === cat ? 'var(--primary)' : 'var(--border)',
                             backgroundColor: newCategory === cat ? 'rgba(212,168,0,0.08)' : 'var(--muted)',
@@ -227,7 +206,7 @@ export default function MessagesContent() {
                       value={newSubject}
                       onChange={e => setNewSubject(e.target.value)}
                       placeholder="Brief description of your issue…"
-                      className="w-full px-3 py-2 rounded border text-xs focus:outline-none"
+                      className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none"
                       style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                     />
                   </div>
@@ -235,7 +214,7 @@ export default function MessagesContent() {
                     <button
                       onClick={() => setComposerStep('message')}
                       disabled={!newCategory}
-                      className="px-4 py-2 rounded text-sm font-semibold disabled:opacity-40 transition-all"
+                      className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-40 transition-all"
                       style={{ backgroundColor: 'var(--primary)', color: '#000' }}
                     >
                       Continue
@@ -246,7 +225,7 @@ export default function MessagesContent() {
 
               {composerStep === 'message' && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ backgroundColor: 'var(--muted)' }}>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--muted)' }}>
                     <span className="text-xs font-semibold" style={{ color: 'var(--primary)' }}>{newCategory}</span>
                     {newSubject && <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>· {newSubject}</span>}
                   </div>
@@ -257,14 +236,14 @@ export default function MessagesContent() {
                       onChange={e => setNewMessage(e.target.value)}
                       placeholder="Describe your issue in detail…"
                       rows={4}
-                      className="w-full px-3 py-2 rounded border text-xs focus:outline-none resize-none"
+                      className="w-full px-3 py-2 rounded-lg border text-xs focus:outline-none resize-none"
                       style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                     />
                   </div>
                   <div className="flex items-center justify-between">
                     <button
                       onClick={() => setComposerStep('category')}
-                      className="px-3 py-2 rounded text-xs font-medium border transition-colors hover:bg-muted"
+                      className="px-3 py-2 rounded-lg text-xs font-medium border transition-colors hover:bg-muted"
                       style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}
                     >
                       Back
@@ -272,7 +251,7 @@ export default function MessagesContent() {
                     <button
                       onClick={handleSubmitConversation}
                       disabled={!newMessage.trim() || submitting}
-                      className="flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold disabled:opacity-40 transition-all"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-40 transition-all"
                       style={{ backgroundColor: 'var(--primary)', color: '#000' }}
                     >
                       {submitting ? (
@@ -301,45 +280,63 @@ export default function MessagesContent() {
                 placeholder="Search conversations..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded text-xs border focus:outline-none"
+                className="w-full pl-8 pr-3 py-2 rounded-lg text-xs border focus:outline-none"
                 style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
               />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto no-scrollbar">
-            {filteredConvs.map(c => {
-              const statusCfg = STATUS_CONFIG[c.status];
-              return (
+            {filteredConvs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full px-4 text-center">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mb-3" style={{ backgroundColor: 'var(--muted)' }}>
+                  <MessageCircle size={18} style={{ color: 'var(--muted-foreground)' }} />
+                </div>
+                <p className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>No conversations yet</p>
+                <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>Start a conversation to get help from our support team.</p>
                 <button
-                  key={c.id}
-                  onClick={() => setSelectedConv(c.id)}
-                  className={`w-full flex items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-white/5 border-b ${selectedConv === c.id ? 'bg-primary-subtle' : ''}`}
-                  style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                  onClick={handleStartConversation}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                  style={{ backgroundColor: 'var(--primary)', color: '#000' }}
                 >
-                  <div className="relative shrink-0">
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-                      {c.agentInitial}
-                    </div>
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style={{ backgroundColor: getStatusColor(c), borderColor: 'var(--card)' }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold truncate" style={{ color: selectedConv === c.id ? 'var(--primary)' : 'var(--foreground)' }}>{c.agentName}</span>
-                      <span className="text-xs shrink-0 ml-1" style={{ color: 'var(--muted-foreground)' }}>{c.time}</span>
-                    </div>
-                    <p className="text-xs truncate mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{c.lastMessage}</p>
-                    <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}>
-                      {c.status}
-                    </span>
-                  </div>
-                  {c.unread > 0 && (
-                    <span className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-                      {c.unread}
-                    </span>
-                  )}
+                  <Plus size={12} />
+                  Start Conversation
                 </button>
-              );
-            })}
+              </div>
+            ) : (
+              filteredConvs.map(c => {
+                const statusCfg = STATUS_CONFIG[c.status];
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedConv(c.id)}
+                    className={`w-full flex items-start gap-3 px-3 py-3 text-left transition-colors hover:bg-white/5 border-b ${selectedConv === c.id ? 'bg-primary-subtle' : ''}`}
+                    style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+                  >
+                    <div className="relative shrink-0">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
+                        {c.agentInitial}
+                      </div>
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2" style={{ backgroundColor: getStatusColor(c), borderColor: 'var(--card)' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold truncate" style={{ color: selectedConv === c.id ? 'var(--primary)' : 'var(--foreground)' }}>{c.agentName}</span>
+                        <span className="text-xs shrink-0 ml-1" style={{ color: 'var(--muted-foreground)' }}>{c.time}</span>
+                      </div>
+                      <p className="text-xs truncate mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{c.lastMessage}</p>
+                      <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}>
+                        {c.status}
+                      </span>
+                    </div>
+                    {c.unread > 0 && (
+                      <span className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
+                        {c.unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -423,8 +420,27 @@ export default function MessagesContent() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>Select a conversation</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
+              <MessageCircle size={28} style={{ color: 'var(--muted-foreground)' }} />
+            </div>
+            <div>
+              <p className="text-base font-semibold mb-1" style={{ color: 'var(--foreground)' }}>No conversation selected</p>
+              <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
+                {conversations.length === 0
+                  ? 'Click "Start Conversation" to get help from our support team.' :'Select a conversation from the list to view messages.'}
+              </p>
+            </div>
+            {conversations.length === 0 && (
+              <button
+                onClick={handleStartConversation}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90"
+                style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+              >
+                <Plus size={14} />
+                Start Conversation
+              </button>
+            )}
           </div>
         )}
       </div>
