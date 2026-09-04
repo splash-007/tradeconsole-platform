@@ -12,6 +12,10 @@ interface Props {
 
 const CATEGORIES = ['Crypto', 'Forex', 'Indices', 'Commodities'] as const;
 
+const termBg = '#000000';
+const termSurface = '#080808';
+const termBorder = '#1a1a1a';
+
 export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSymbol }: Props) {
   const [activeCategory, setActiveCategory] = useState<string>('Crypto');
   const [favorites, setFavorites] = useState<string[]>(['inst-btc', 'inst-eth', 'inst-sol']);
@@ -29,7 +33,6 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
-  // Map category to AssetType for AssetIcon
   const getAssetType = (category: string) => {
     if (category === 'Crypto') return 'crypto' as const;
     if (category === 'Forex') return 'forex' as const;
@@ -39,15 +42,23 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--card)' }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: termBg }}>
       {/* Header + tabs */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
-        <span className="text-xs font-semibold mr-2" style={{ color: 'var(--foreground)' }}>Watchlist</span>
+      <div
+        className="flex items-center gap-1 px-3 py-1.5 border-b shrink-0"
+        style={{ borderColor: termBorder, backgroundColor: termSurface }}
+      >
+        <span className="text-xs font-semibold text-white mr-1">Watchlist</span>
         {CATEGORIES.map(cat => (
           <button
             key={`wl-cat-${cat}`}
             onClick={() => setActiveCategory(cat)}
-            className={`px-2 py-1 text-xs rounded transition-all ${activeCategory === cat ? 'bg-primary-subtle text-gold font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+            className="px-2 py-0.5 text-xs rounded transition-all"
+            style={{
+              backgroundColor: activeCategory === cat ? 'rgba(245,196,0,0.1)' : 'transparent',
+              color: activeCategory === cat ? 'var(--primary)' : '#6b7280',
+              fontWeight: activeCategory === cat ? 600 : 400,
+            }}
           >
             {cat}
           </button>
@@ -55,19 +66,22 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
       </div>
 
       {/* Column headers */}
-      <div className="grid px-3 py-1 shrink-0" style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem', borderBottom: '1px solid var(--border)' }}>
+      <div
+        className="grid px-3 py-1 shrink-0"
+        style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem', borderBottom: `1px solid ${termBorder}` }}
+      >
         <span />
         <span />
-        <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Symbol</span>
-        <span className="text-xs text-right" style={{ color: 'var(--muted-foreground)' }}>Price</span>
-        <span className="text-xs text-right" style={{ color: 'var(--muted-foreground)' }}>24h %</span>
+        <span className="text-xs text-gray-600">Symbol</span>
+        <span className="text-xs text-right text-gray-600">Price</span>
+        <span className="text-xs text-right text-gray-600">24h %</span>
       </div>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {filtered.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>No instruments in this category</p>
+            <p className="text-xs text-gray-600">No instruments in this category</p>
           </div>
         ) : (
           filtered.map(inst => {
@@ -78,20 +92,23 @@ export default function WatchlistPanel({ instruments, selectedSymbol, onSelectSy
               <div
                 key={`wl-${inst.id}`}
                 onClick={() => onSelectSymbol(inst.symbol)}
-                className={`grid items-center px-3 py-1.5 cursor-pointer transition-colors hover:bg-muted ${isSelected ? 'bg-primary-subtle' : ''}`}
-                style={{ gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem' }}
+                className="grid items-center px-3 py-1.5 cursor-pointer transition-colors"
+                style={{
+                  gridTemplateColumns: '1.5rem 1.5rem 1fr 5rem 5rem',
+                  backgroundColor: isSelected ? 'rgba(245,196,0,0.06)' : 'transparent',
+                }}
               >
-                <button onClick={(e) => toggleFav(inst.id, e)} className="p-0.5 rounded" style={{ color: isFav ? 'var(--primary)' : 'var(--muted-foreground)' }}>
+                <button onClick={(e) => toggleFav(inst.id, e)} className="p-0.5 rounded" style={{ color: isFav ? 'var(--primary)' : '#444444' }}>
                   <Star size={11} fill={isFav ? 'var(--primary)' : 'none'} />
                 </button>
-                <AssetIcon symbol={inst.symbol} assetType={getAssetType(activeCategory)} size={18} />
+                <AssetIcon symbol={inst.symbol} assetType={getAssetType(activeCategory)} size={16} />
                 <div className="min-w-0 pl-1">
-                  <p className="text-xs font-semibold truncate" style={{ color: isSelected ? 'var(--primary)' : 'var(--foreground)' }}>{inst.symbol}</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: isSelected ? 'var(--primary)' : '#ffffff' }}>{inst.symbol}</p>
                 </div>
-                <p className="text-xs tabular-nums font-mono text-right" style={{ color: 'var(--foreground)' }}>
+                <p className="text-xs tabular-nums font-mono text-right text-white">
                   {inst.lastPrice < 10 ? inst.lastPrice.toFixed(4) : inst.lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className={`text-xs tabular-nums font-mono text-right font-semibold ${isPos ? 'text-positive' : 'text-negative'}`}>
+                <p className={`text-xs tabular-nums font-mono text-right font-semibold ${isPos ? 'text-green-400' : 'text-red-400'}`}>
                   {isPos ? '+' : ''}{inst.changePct24h.toFixed(2)}%
                 </p>
               </div>

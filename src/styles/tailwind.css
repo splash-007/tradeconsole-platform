@@ -74,6 +74,21 @@
   --panel-border: #2A2D36;
 }
 
+/* Trade Terminal — true black surfaces (applied globally so both light/dark modes get the terminal look) */
+:root {
+  --tc-bg: #000000;
+  --tc-surface: #080808;
+  --tc-panel: #0d0d0d;
+  --tc-border: #1a1a1a;
+}
+
+.trade-terminal {
+  --tc-bg: #000000;
+  --tc-surface: #080808;
+  --tc-panel: #0d0d0d;
+  --tc-border: #1a1a1a;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
