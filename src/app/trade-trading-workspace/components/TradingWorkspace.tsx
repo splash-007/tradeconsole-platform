@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import InstrumentBar from './InstrumentBar';
 import ChartPanel from './ChartPanel';
 import ChartToolbar from './ChartToolbar';
@@ -66,9 +67,9 @@ function toServiceSymbol(displaySymbol: string): string {
   return `${base}-USD`;
 }
 
-// Terminal surface CSS variables are defined in tailwind.css and applied via .trade-terminal class
 
 export default function TradingWorkspace() {
+  const searchParams = useSearchParams();
   const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDC');
   const [instruments, setInstruments] = useState<MarketInstrument[]>([]);
   const [orderBook, setOrderBook] = useState<NormalizedOrderBook | null>(null);
@@ -83,6 +84,22 @@ export default function TradingWorkspace() {
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   const { quotes: realQuotes } = useMarketQuotes(ALL_REAL_SYMBOLS);
+
+  // Pre-select asset from URL param (e.g. ?asset=ETH)
+  useEffect(() => {
+    const assetParam = searchParams?.get('asset');
+    if (assetParam) {
+      const workspaceSym = `${assetParam.toUpperCase()}/USDC`;
+      // Check if it exists in our known symbols
+      const allSymbols = ASSET_CATEGORIES.flatMap(c => c.symbols);
+      if (allSymbols.includes(workspaceSym)) {
+        setSelectedSymbol(workspaceSym);
+        // Auto-select the right category
+        const cat = ASSET_CATEGORIES.find(c => c.symbols.includes(workspaceSym));
+        if (cat) setActiveCategory(cat.label);
+      }
+    }
+  }, [searchParams]);
 
   const getLivePrice = (workspaceSym: string): { price: number; changePct: number; isLive: boolean } => {
     const realSym = WORKSPACE_TO_REAL[workspaceSym];
@@ -156,8 +173,8 @@ export default function TradingWorkspace() {
     >
       {/* Asset Selector Bar */}
       <div
-        className="flex items-center gap-2 px-3 py-1 border-b shrink-0"
-        style={{ backgroundColor: 'var(--tc-surface, #0a0a0a)', borderColor: 'var(--tc-border, #1a1a1a)' }}
+        className="flex items-center gap-2 px-3 py-1 border-b shrink-0 relative"
+        style={{ backgroundColor: 'var(--tc-surface, #0a0a0a)', borderColor: 'var(--tc-border, #1a1a1a)', zIndex: 100 }}
       >
         <button
           onClick={() => setShowAssetSelector(!showAssetSelector)}
@@ -201,11 +218,16 @@ export default function TradingWorkspace() {
         </div>
       </div>
 
-      {/* Asset Selector Dropdown */}
+      {/* Asset Selector Dropdown — rendered above everything */}
       {showAssetSelector && (
         <div
-          className="shrink-0 border-b animate-fade-in"
-          style={{ backgroundColor: 'var(--tc-surface, #0a0a0a)', borderColor: 'var(--tc-border, #1a1a1a)' }}
+          className="absolute left-0 right-0 border-b animate-fade-in"
+          style={{
+            backgroundColor: 'var(--tc-surface, #0a0a0a)',
+            borderColor: 'var(--tc-border, #1a1a1a)',
+            zIndex: 150,
+            top: '48px', // below TopNav (56px) + asset bar (~32px) — adjust if needed
+          }}
         >
           <div className="p-3">
             <div className="relative mb-2">

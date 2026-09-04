@@ -95,8 +95,8 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
         </button>
         {symbolDropdownOpen && (
           <div
-            className="absolute top-full left-0 mt-1 w-56 rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in"
-            style={{ backgroundColor: '#0d0d0d', borderColor: '#2a2a2a' }}
+            className="absolute top-full left-0 mt-1 w-56 rounded-xl border shadow-2xl overflow-hidden animate-fade-in"
+            style={{ backgroundColor: '#0d0d0d', borderColor: '#2a2a2a', zIndex: 200 }}
           >
             <div className="px-3 py-2 border-b" style={{ borderColor: '#1a1a1a' }}>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Select Instrument</p>
@@ -142,8 +142,8 @@ export default function InstrumentBar({ instrument, instruments, selectedSymbol,
         </button>
         {marketTypeOpen && (
           <div
-            className="absolute top-full left-0 mt-1 w-32 rounded-xl border shadow-2xl z-50 overflow-hidden animate-fade-in"
-            style={{ backgroundColor: '#0d0d0d', borderColor: '#2a2a2a' }}
+            className="absolute top-full left-0 mt-1 w-32 rounded-xl border shadow-2xl overflow-hidden animate-fade-in"
+            style={{ backgroundColor: '#0d0d0d', borderColor: '#2a2a2a', zIndex: 200 }}
           >
             {MARKET_TYPES.map(mt => (
               <button

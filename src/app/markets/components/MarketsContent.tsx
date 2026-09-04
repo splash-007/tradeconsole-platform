@@ -5,7 +5,8 @@ import { watchlistService } from '@/services/watchlist.service';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import AssetIcon, { AssetType } from '@/components/ui/AssetIcon';
 import { Search, TrendingUp, TrendingDown, Star, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+
+import { useRouter } from 'next/navigation';
 
 type CategoryKey = 'forex' | 'indices' | 'commodities' | 'metals' | 'energy' | 'shares' | 'crypto';
 
@@ -106,6 +107,7 @@ export default function MarketsContent() {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('forex');
   const [search, setSearch] = useState('');
   const [watchedSymbols, setWatchedSymbols] = useState<string[]>([]);
+  const router = useRouter();
 
   const { quotes: realQuotes, loading: realLoading } = useMarketQuotes(ALL_REAL_SYMBOLS);
   const hasRealData = Object.values(realQuotes).some(q => q.available);
@@ -336,14 +338,17 @@ export default function MarketsContent() {
                         </span>
                       </td>
                       <td className="px-3 py-3 text-center">
-                        <Link
-                          href="/trade-trading-workspace"
+                        <button
+                          onClick={() => {
+                            const base = inst.symbol.split('/')[0];
+                            router.push(`/trade-trading-workspace?asset=${base}`);
+                          }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition-all hover:opacity-90"
                           style={{ backgroundColor: 'rgba(245,196,0,0.12)', color: 'var(--primary)', border: '1px solid rgba(245,196,0,0.25)' }}
                         >
                           Trade
                           <ExternalLink size={9} />
-                        </Link>
+                        </button>
                       </td>
                     </tr>
                   );

@@ -197,14 +197,14 @@ export default function TopNav() {
                 <Link
                   key={`nav-${item.label}`}
                   href={item.href}
-                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150"
+                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150"
                   style={{
-                    color: isActive ? 'var(--primary)' : isDark ? '#9CA3AF' : 'var(--muted-foreground)',
+                    color: isActive ? 'var(--primary)' : isDark ? '#ffffff' : '#111111',
                     backgroundColor: isActive ? 'rgba(212,168,0,0.10)' : 'transparent',
                     fontWeight: isActive ? 600 : 500,
                   }}
-                  onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = isDark ? '#111111' : 'var(--muted)'; (e.currentTarget as HTMLElement).style.color = isDark ? '#ffffff' : 'var(--foreground)'; } }}
-                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = isDark ? '#9CA3AF' : 'var(--muted-foreground)'; } }}
+                  onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = isDark ? '#111111' : 'var(--muted)'; (e.currentTarget as HTMLElement).style.color = isDark ? '#ffffff' : '#000000'; } }}
+                  onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = isDark ? '#ffffff' : '#111111'; } }}
                 >
                   {item.label}
                   {isSupport && supportUnread > 0 && (
