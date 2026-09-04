@@ -286,7 +286,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
     setPendingSection(null);
   };
 
-  const inputCls = "w-full px-3 py-2 rounded text-sm border focus:outline-none focus:ring-1 focus:ring-yellow-500/30 transition-colors";
+  const inputCls = "w-full px-3 py-2.5 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-yellow-500/20 transition-colors";
   const inputStyle = { backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' };
 
   const kycCfg = KYC_STATUS_CONFIG[kycStatus];

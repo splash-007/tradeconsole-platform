@@ -51,19 +51,21 @@ export default function NewsLearnContent() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-            <BookOpen size={18} style={{ color: 'var(--primary)' }} />
+          <h1 className="text-xl font-bold flex items-center gap-2.5" style={{ color: 'var(--foreground)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.15)', border: '1px solid rgba(212,168,0,0.3)' }}>
+              <BookOpen size={16} style={{ color: 'var(--primary)' }} />
+            </div>
             News &amp; Learn
           </h1>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Market news, trading insights, and financial education</p>
+          <p className="text-sm mt-0.5 font-medium" style={{ color: 'var(--muted-foreground)' }}>Market news, trading insights, and financial education</p>
         </div>
         <div className="relative">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search articles…"
-            className="pl-8 pr-3 py-2 rounded-md text-xs border focus:outline-none w-48"
+            className="pl-9 pr-4 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-yellow-500/20 w-52"
             style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
           />
         </div>
@@ -71,29 +73,33 @@ export default function NewsLearnContent() {
 
       {/* Latest Market News */}
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Newspaper size={14} style={{ color: 'var(--primary)' }} />
-            <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Latest Market News</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <Newspaper size={16} style={{ color: 'var(--primary)' }} />
+            <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>Latest Market News</h2>
           </div>
-          <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Updated Sep 1, 2026</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>Updated Sep 1, 2026</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {MARKET_NEWS.filter(a => !search || a.title.toLowerCase().includes(search.toLowerCase())).map(article => (
-            <div key={article.id} className="rounded-lg border p-4 space-y-2 cursor-pointer transition-all hover:border-primary/30" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div
+              key={article.id}
+              className="rounded-xl border p-4 space-y-3 cursor-pointer transition-all hover:border-primary/30 hover:shadow-md"
+              style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
+            >
               <div className="flex items-center justify-between gap-2">
-                <span className="px-1.5 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: `${article.tagColor}15`, color: article.tagColor }}>
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: `${article.tagColor}15`, color: article.tagColor }}>
                   {article.tag}
                 </span>
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{article.category}</span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>{article.category}</span>
               </div>
-              <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--foreground)' }}>{article.title}</p>
-              <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>{article.summary}</p>
-              <div className="flex items-center gap-3 pt-1">
-                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                  <Clock size={10} /> {article.readTime} read
+              <p className="text-sm font-bold leading-snug" style={{ color: 'var(--foreground)' }}>{article.title}</p>
+              <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>{article.summary}</p>
+              <div className="flex items-center gap-4 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
+                <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
+                  <Clock size={11} /> {article.readTime} read
                 </span>
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{article.date}</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>{article.date}</span>
               </div>
             </div>
           ))}
@@ -102,11 +108,11 @@ export default function NewsLearnContent() {
 
       {/* Market Insights */}
       <section>
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp size={14} style={{ color: 'var(--primary)' }} />
-          <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Market Insights</h2>
+        <div className="flex items-center gap-2.5 mb-4">
+          <TrendingUp size={16} style={{ color: 'var(--primary)' }} />
+          <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>Market Insights</h2>
         </div>
-        <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           {INSIGHTS.filter(a => !search || a.title.toLowerCase().includes(search.toLowerCase())).map((article, i, arr) => (
             <div
               key={article.id}
@@ -115,26 +121,26 @@ export default function NewsLearnContent() {
               onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--muted)')}
               onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${article.tagColor}15` }}>
-                <BarChart2 size={14} style={{ color: article.tagColor }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: `${article.tagColor}15` }}>
+                <BarChart2 size={16} style={{ color: article.tagColor }} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-1.5 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: `${article.tagColor}15`, color: article.tagColor }}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: `${article.tagColor}15`, color: article.tagColor }}>
                     {article.tag}
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{article.category}</span>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>{article.category}</span>
                 </div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{article.title}</p>
-                <p className="text-xs mt-1 leading-relaxed line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>{article.summary}</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted-foreground)' }}>
-                    <Clock size={10} /> {article.readTime} read
+                <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{article.title}</p>
+                <p className="text-sm mt-1 leading-relaxed line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>{article.summary}</p>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>
+                    <Clock size={11} /> {article.readTime} read
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{article.date}</span>
+                  <span className="text-xs font-medium" style={{ color: 'var(--muted-foreground)' }}>{article.date}</span>
                 </div>
               </div>
-              <ChevronRight size={14} className="shrink-0 mt-1" style={{ color: 'var(--muted-foreground)' }} />
+              <ChevronRight size={16} className="shrink-0 mt-1" style={{ color: 'var(--muted-foreground)' }} />
             </div>
           ))}
         </div>
@@ -142,33 +148,33 @@ export default function NewsLearnContent() {
 
       {/* Trading Education */}
       <section>
-        <div className="flex items-center gap-2 mb-3">
-          <GraduationCap size={14} style={{ color: 'var(--primary)' }} />
-          <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Trading Education</h2>
+        <div className="flex items-center gap-2.5 mb-4">
+          <GraduationCap size={16} style={{ color: 'var(--primary)' }} />
+          <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>Trading Education</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {EDUCATION.filter(e => !search || e.title.toLowerCase().includes(search.toLowerCase())).map((course, i) => (
             <div
               key={i}
-              className="rounded-lg border p-4 space-y-3 cursor-pointer transition-all hover:border-primary/30"
+              className="rounded-xl border p-4 space-y-3 cursor-pointer transition-all hover:border-primary/30 hover:shadow-md"
               style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${course.color}15` }}>
-                  <course.icon size={16} style={{ color: course.color }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${course.color}15` }}>
+                  <course.icon size={18} style={{ color: course.color }} />
                 </div>
-                <span className="text-xs px-1.5 py-0.5 rounded font-semibold" style={{ backgroundColor: `${LEVEL_COLORS[course.level]}15`, color: LEVEL_COLORS[course.level] }}>
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ backgroundColor: `${LEVEL_COLORS[course.level]}15`, color: LEVEL_COLORS[course.level] }}>
                   {course.level}
                 </span>
               </div>
               <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{course.title}</p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{course.desc}</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{course.title}</p>
+                <p className="text-sm mt-1 leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>{course.desc}</p>
               </div>
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{course.lessons} lessons</span>
-                <button className="flex items-center gap-1 text-xs font-semibold" style={{ color: 'var(--primary)' }}>
-                  Start <ChevronRight size={11} />
+              <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                <span className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>{course.lessons} lessons</span>
+                <button className="flex items-center gap-1.5 text-sm font-bold" style={{ color: 'var(--primary)' }}>
+                  Start <ChevronRight size={13} />
                 </button>
               </div>
             </div>
@@ -178,13 +184,13 @@ export default function NewsLearnContent() {
 
       {/* Risk Education Banner */}
       <section>
-        <div className="rounded-lg border p-4 flex items-start gap-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}>
-            <Shield size={18} style={{ color: '#ef4444' }} />
+        <div className="rounded-xl border p-5 flex items-start gap-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}>
+            <Shield size={20} style={{ color: '#ef4444' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Risk Education</p>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
+            <p className="text-sm font-bold mb-1.5" style={{ color: 'var(--foreground)' }}>Risk Disclosure</p>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
               Trading financial instruments involves significant risk of loss. Past performance is not indicative of future results. Never invest more than you can afford to lose. Trade Console provides educational content for informational purposes only — nothing here constitutes financial advice.
             </p>
           </div>

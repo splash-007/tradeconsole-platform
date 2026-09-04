@@ -102,19 +102,19 @@ export default function WatchlistContent() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Watchlist</h1>
-          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>Watchlist</h1>
+          <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
             {watchedSymbols.length} instrument{watchedSymbols.length !== 1 ? 's' : ''} saved
           </p>
         </div>
         {watchedSymbols.length > 0 && (
           <div className="relative">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search watchlist…"
-              className="pl-8 pr-3 py-2 rounded-md text-xs border focus:outline-none w-48"
+              className="pl-9 pr-4 py-2 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-yellow-500/20 w-52"
               style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
             />
           </div>
@@ -123,64 +123,64 @@ export default function WatchlistContent() {
 
       {/* Empty state */}
       {watchedSymbols.length === 0 ? (
-        <div className="rounded-lg border flex flex-col items-center justify-center py-20 gap-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(245,196,0,0.08)', border: '1px solid rgba(245,196,0,0.2)' }}>
-            <Star size={24} style={{ color: 'var(--primary)' }} />
+        <div className="rounded-xl border flex flex-col items-center justify-center py-24 gap-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.08)', border: '1px solid rgba(212,168,0,0.2)' }}>
+            <Star size={28} style={{ color: 'var(--primary)' }} />
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Your watchlist is empty</p>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Star instruments from Markets to monitor them here.</p>
+            <p className="text-base font-bold mb-1.5" style={{ color: 'var(--foreground)' }}>Your watchlist is empty</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Star instruments from Markets to monitor them here.</p>
           </div>
           <Link
             href="/markets"
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
-            style={{ backgroundColor: 'rgba(245,196,0,0.15)', color: 'var(--primary)', border: '1px solid rgba(245,196,0,0.3)' }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+            style={{ backgroundColor: 'rgba(212,168,0,0.15)', color: 'var(--primary)', border: '1px solid rgba(212,168,0,0.3)' }}
           >
-            <BarChart2 size={13} />
+            <BarChart2 size={15} />
             Explore Markets
           </Link>
         </div>
       ) : (
-        <div className="rounded-lg border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--muted)' }}>
-                  <th className="px-3 py-2.5 w-8" />
+                  <th className="px-3 py-3 w-10" />
                   <th
-                    className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
+                    className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
                     style={{ color: 'var(--muted-foreground)' }}
                     onClick={() => handleSort('name')}
                   >
                     Instrument <SortIndicator field="name" />
                   </th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Symbol</th>
+                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider hidden sm:table-cell" style={{ color: 'var(--muted-foreground)' }}>Symbol</th>
                   <th
-                    className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
+                    className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
                     style={{ color: 'var(--muted-foreground)' }}
                     onClick={() => handleSort('lastPrice')}
                   >
                     Price <SortIndicator field="lastPrice" />
                   </th>
                   <th
-                    className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
+                    className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
                     style={{ color: 'var(--muted-foreground)' }}
                     onClick={() => handleSort('changePct24h')}
                   >
                     24h % <SortIndicator field="changePct24h" />
                   </th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--muted-foreground)' }}>Bid</th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--muted-foreground)' }}>Ask</th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>High</th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>Low</th>
-                  <th className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Action</th>
+                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--muted-foreground)' }}>Bid</th>
+                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider hidden md:table-cell" style={{ color: 'var(--muted-foreground)' }}>Ask</th>
+                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>High</th>
+                  <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider hidden lg:table-cell" style={{ color: 'var(--muted-foreground)' }}>Low</th>
+                  <th className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--muted-foreground)' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-10 text-center">
-                      <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>No results for "{search}"</p>
+                    <td colSpan={10} className="px-4 py-12 text-center">
+                      <p className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>No results for "{search}"</p>
                     </td>
                   </tr>
                 ) : filtered.map(inst => {
@@ -199,78 +199,80 @@ export default function WatchlistContent() {
                   return (
                     <tr
                       key={inst.id}
-                      className="hover:bg-white/[0.02] transition-colors"
+                      className="transition-colors"
                       style={{ borderBottom: '1px solid var(--border)' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--muted)')}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       {/* Remove star */}
                       <td className="px-3 py-3">
                         <button
                           onClick={() => removeFromWatchlist(inst.symbol)}
-                          className="p-1 rounded transition-colors hover:bg-white/10"
+                          className="p-1.5 rounded-lg transition-colors hover:bg-yellow-500/10"
                           title="Remove from watchlist"
                         >
-                          <Star size={13} fill="var(--primary)" style={{ color: 'var(--primary)' }} />
+                          <Star size={14} fill="var(--primary)" style={{ color: 'var(--primary)' }} />
                         </button>
                       </td>
                       {/* Instrument */}
                       <td className="px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          <AssetIcon symbol={inst.symbol} assetType={inst.category === 'crypto' ? 'crypto' : inst.category === 'forex' ? 'forex' : 'stock'} size={26} />
+                        <div className="flex items-center gap-2.5">
+                          <AssetIcon symbol={inst.symbol} assetType={inst.category === 'crypto' ? 'crypto' : inst.category === 'forex' ? 'forex' : 'stock'} size={28} />
                           <div>
-                            <div className="flex items-center gap-1">
-                              <p className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{inst.name}</p>
                               {isReal && <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" title="Live data" />}
                             </div>
-                            <p className="text-xs capitalize" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{inst.category}</p>
+                            <p className="text-xs font-medium capitalize mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{inst.category}</p>
                           </div>
                         </div>
                       </td>
                       {/* Symbol */}
                       <td className="px-3 py-3 text-right hidden sm:table-cell">
-                        <span className="text-xs font-mono font-semibold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</span>
+                        <span className="text-xs font-mono font-bold" style={{ color: 'var(--foreground)' }}>{inst.symbol}</span>
                       </td>
                       {/* Price */}
                       <td className="px-3 py-3 text-right">
-                        <span className="text-xs font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
+                        <span className="text-sm font-bold tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>
                           {formatPrice(price)}
                         </span>
                       </td>
                       {/* 24h % */}
                       <td className="px-3 py-3 text-right">
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold tabular-nums"
+                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums"
                           style={{
                             backgroundColor: isPos ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
                             color: isPos ? '#22c55e' : '#ef4444',
                           }}>
-                          {isPos ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                          {isPos ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
                           {isPos ? '+' : ''}{changePct.toFixed(2)}%
                         </div>
                       </td>
                       {/* Bid */}
                       <td className="px-3 py-3 text-right hidden md:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: '#22c55e' }}>{formatPrice(bid)}</span>
+                        <span className="text-xs tabular-nums font-mono font-semibold" style={{ color: '#22c55e' }}>{formatPrice(bid)}</span>
                       </td>
                       {/* Ask */}
                       <td className="px-3 py-3 text-right hidden md:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: '#ef4444' }}>{formatPrice(ask)}</span>
+                        <span className="text-xs tabular-nums font-mono font-semibold" style={{ color: '#ef4444' }}>{formatPrice(ask)}</span>
                       </td>
                       {/* High */}
                       <td className="px-3 py-3 text-right hidden lg:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>{formatPrice(high)}</span>
+                        <span className="text-xs tabular-nums font-mono font-semibold" style={{ color: 'var(--foreground)' }}>{formatPrice(high)}</span>
                       </td>
                       {/* Low */}
                       <td className="px-3 py-3 text-right hidden lg:table-cell">
-                        <span className="text-xs tabular-nums font-mono" style={{ color: 'var(--foreground)' }}>{formatPrice(low)}</span>
+                        <span className="text-xs tabular-nums font-mono font-semibold" style={{ color: 'var(--foreground)' }}>{formatPrice(low)}</span>
                       </td>
                       {/* Action */}
                       <td className="px-3 py-3 text-center">
                         <Link
                           href="/trade-trading-workspace"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold transition-all hover:opacity-90"
-                          style={{ backgroundColor: 'rgba(245,196,0,0.12)', color: 'var(--primary)', border: '1px solid rgba(245,196,0,0.25)' }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                          style={{ backgroundColor: 'rgba(212,168,0,0.12)', color: 'var(--primary)', border: '1px solid rgba(212,168,0,0.25)' }}
                         >
                           Trade
-                          <ExternalLink size={9} />
+                          <ExternalLink size={10} />
                         </Link>
                       </td>
                     </tr>

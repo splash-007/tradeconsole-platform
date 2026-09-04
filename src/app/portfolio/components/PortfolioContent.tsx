@@ -141,13 +141,13 @@ export default function PortfolioContent() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--foreground)' }}>Portfolio</h1>
+          <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--foreground)' }}>Portfolio</h1>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Account overview</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--muted-foreground)' }}>Account overview</p>
             <span style={{ color: 'var(--border)' }}>·</span>
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isLive ? '#22c55e' : '#6b7280' }} />
-              <span className="text-xs" style={{ color: isLive ? '#22c55e' : 'var(--muted-foreground)' }}>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: isLive ? '#22c55e' : '#6b7280' }} />
+              <span className="text-sm font-medium" style={{ color: isLive ? '#22c55e' : 'var(--muted-foreground)' }}>
                 {isLive ? 'Market data live' : realLoading ? 'Connecting…' : 'Market data unavailable'}
               </span>
             </div>
@@ -156,24 +156,24 @@ export default function PortfolioContent() {
         <div className="flex items-center gap-2">
           <Link
             href="/finance?tab=deposit"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all hover:opacity-90"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
             style={{ backgroundColor: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)' }}
           >
-            <ArrowDownLeft size={12} /> Deposit
+            <ArrowDownLeft size={14} /> Deposit
           </Link>
           <Link
             href="/finance?tab=withdraw"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all hover:opacity-90"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
             style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
           >
-            <ArrowUpRight size={12} /> Withdraw
+            <ArrowUpRight size={14} /> Withdraw
           </Link>
           <Link
             href="/trade-trading-workspace"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all hover:opacity-90"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-all hover:opacity-90"
             style={{ backgroundColor: 'var(--primary)', color: '#000' }}
           >
-            <TrendingUp size={12} /> Trade
+            <TrendingUp size={14} /> Trade
           </Link>
         </div>
       </div>
