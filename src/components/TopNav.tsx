@@ -15,7 +15,6 @@ const NAV_ITEMS = [
   { label: 'Trading Bot', href: '/trading-bot', icon: Bot },
   { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
   { label: 'Watchlist', href: '/watchlist', icon: Star },
-  { label: 'Funds', href: '/finance', icon: Wallet },
   { label: 'News & Learn', href: '/news-learn', icon: BookOpen },
   { label: 'Support', href: '/messages', icon: MessageSquare },
 ];
@@ -27,6 +26,16 @@ const LANGUAGES = [
   { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   { code: 'pt', label: 'Português', flag: '🇵🇹' },
+  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
+  { code: 'zh', label: '中文', flag: '🇨🇳' },
+  { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'ko', label: '한국어', flag: '🇰🇷' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
+  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
+  { code: 'sv', label: 'Svenska', flag: '🇸🇪' },
+  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
 ];
 
 const CURRENCIES = [
@@ -176,7 +185,7 @@ export default function TopNav() {
           boxShadow: isDark ? '0 1px 0 #1a1a1a' : '0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.04)',
         }}
       >
-        <div className="max-w-screen-2xl mx-auto flex items-center h-14 px-4 xl:px-6 gap-3">
+        <div className="max-w-screen-2xl mx-auto flex items-center h-14 px-2 xl:px-4 gap-3">
           {/* Logo */}
           <Link href="/portfolio" className="flex items-center gap-2.5 shrink-0 group">
             <div
@@ -197,11 +206,11 @@ export default function TopNav() {
                 <Link
                   key={`nav-${item.label}`}
                   href={item.href}
-                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150"
+                  className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-all duration-150"
                   style={{
                     color: isActive ? 'var(--primary)' : isDark ? '#ffffff' : '#111111',
                     backgroundColor: isActive ? 'rgba(212,168,0,0.10)' : 'transparent',
-                    fontWeight: isActive ? 600 : 500,
+                    fontWeight: isActive ? 600 : 400,
                   }}
                   onMouseEnter={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = isDark ? '#111111' : 'var(--muted)'; (e.currentTarget as HTMLElement).style.color = isDark ? '#ffffff' : '#000000'; } }}
                   onMouseLeave={e => { if (!isActive) { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = isDark ? '#ffffff' : '#111111'; } }}
@@ -222,6 +231,16 @@ export default function TopNav() {
           {/* Right actions */}
           <div className="flex items-center gap-1">
 
+            {/* Wallet icon — links to Funds page */}
+            <Link
+              href="/finance"
+              className="hidden sm:flex p-2 rounded-lg hover:bg-muted transition-all items-center justify-center"
+              style={{ color: pathname.startsWith('/finance') ? 'var(--primary)' : 'var(--muted-foreground)' }}
+              title="Wallet / Funds"
+            >
+              <Wallet size={16} />
+            </Link>
+
             {/* Language selector */}
             <div className="relative hidden sm:block" ref={langRef}>
               <button
@@ -234,8 +253,8 @@ export default function TopNav() {
                 <span className="hidden md:block">{currentLang.flag} {currentLang.code.toUpperCase()}</span>
               </button>
               {langOpen && (
-                <div className="absolute right-0 top-full mt-2 w-44 z-50 overflow-hidden animate-fade-in dropdown-modern">
-                  <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
+                <div className="absolute right-0 top-full mt-2 w-48 z-50 overflow-hidden animate-fade-in dropdown-modern" style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                  <div className="px-3 py-2.5 border-b sticky top-0" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>Interface Language</p>
                   </div>
                   {LANGUAGES.map(lang => (
@@ -249,9 +268,6 @@ export default function TopNav() {
                       {selectedLang === lang.code && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />}
                     </button>
                   ))}
-                  <div className="px-3 py-2 border-t" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Full translation coming soon</p>
-                  </div>
                 </div>
               )}
             </div>
@@ -406,7 +422,7 @@ export default function TopNav() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); setLangOpen(false); setCurrencyOpen(false); }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-muted transition-all"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-muted transition-all"
                 style={{ color: 'var(--foreground)' }}
               >
                 <div
