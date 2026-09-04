@@ -253,7 +253,7 @@ export default function TopNav() {
                 <span className="hidden md:block">{currentLang.flag} {currentLang.code.toUpperCase()}</span>
               </button>
               {langOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 z-50 overflow-hidden animate-fade-in dropdown-modern" style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                <div className="absolute right-0 top-full mt-2 w-48 overflow-hidden animate-fade-in dropdown-modern" style={{ maxHeight: '320px', overflowY: 'auto', zIndex: 400 }}>
                   <div className="px-3 py-2.5 border-b sticky top-0" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--card)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>Interface Language</p>
                   </div>
@@ -284,7 +284,7 @@ export default function TopNav() {
                 <ChevronDown size={10} />
               </button>
               {currencyOpen && (
-                <div className="absolute right-0 top-full mt-2 w-40 z-50 overflow-hidden animate-fade-in dropdown-modern">
+                <div className="absolute right-0 top-full mt-2 w-40 overflow-hidden animate-fade-in dropdown-modern" style={{ zIndex: 400 }}>
                   <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>Display Currency</p>
                   </div>
@@ -322,7 +322,7 @@ export default function TopNav() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-1rem)] z-50 overflow-hidden animate-fade-in dropdown-modern">
+                <div className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-1rem)] overflow-hidden animate-fade-in dropdown-modern" style={{ zIndex: 400 }}>
                   <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border)' }}>
                     <div>
                       <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Notifications</p>
@@ -422,7 +422,7 @@ export default function TopNav() {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); setLangOpen(false); setCurrencyOpen(false); }}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-muted transition-all"
+                className="flex items-center gap-1 p-1.5 rounded-xl hover:bg-muted transition-all"
                 style={{ color: 'var(--foreground)' }}
               >
                 <div
@@ -431,12 +431,10 @@ export default function TopNav() {
                 >
                   A
                 </div>
-                <span className="text-xs font-medium hidden sm:block">Alex M.</span>
-                <ChevronDown size={12} style={{ color: 'var(--muted-foreground)' }} />
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 z-50 overflow-hidden animate-fade-in dropdown-modern">
+                <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden animate-fade-in dropdown-modern" style={{ zIndex: 400 }}>
                   <div className="px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Alex Morgan</p>
                     <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>alex.morgan@email.com</p>

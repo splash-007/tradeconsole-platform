@@ -71,10 +71,9 @@ export default function PortfolioChart({ history, positions = [], liveQuotes: _l
           </div>
           {positions.length > 0 && (
             <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)', opacity: 0.7 }}>
-              P&L: {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · Development data
+              P&L: {totalPnl >= 0 ? '+' : ''}${totalPnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           )}
-          <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)', opacity: 0.55 }}>Development data — not live account valuation</p>
         </div>
         <div className="flex gap-1">
           {TIMEFRAMES.map(tf => (

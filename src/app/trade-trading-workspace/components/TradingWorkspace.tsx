@@ -181,7 +181,7 @@ export default function TradingWorkspace() {
           className="flex items-center gap-2 px-2 py-1 rounded border text-xs font-semibold transition-all hover:bg-white/5 shrink-0"
           style={{
             borderColor: showAssetSelector ? 'var(--primary)' : 'var(--tc-border, #1a1a1a)',
-            color: '#ffffff',
+            color: 'var(--tc-text-primary)',
             backgroundColor: showAssetSelector ? 'rgba(245,196,0,0.08)' : 'transparent',
           }}
         >
@@ -225,8 +225,8 @@ export default function TradingWorkspace() {
           style={{
             backgroundColor: 'var(--tc-surface, #0a0a0a)',
             borderColor: 'var(--tc-border, #1a1a1a)',
-            zIndex: 150,
-            top: '48px', // below TopNav (56px) + asset bar (~32px) — adjust if needed
+            zIndex: 300,
+            top: '32px',
           }}
         >
           <div className="p-3">
