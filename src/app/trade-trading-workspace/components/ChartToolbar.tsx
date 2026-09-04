@@ -21,55 +21,66 @@ const TOOLS = [
 export default function ChartToolbar({ selectedTool, onSelectTool }: Props) {
   return (
     <div
-      className="flex flex-col items-center py-2 gap-0.5 border-l border-r"
+      className="flex flex-col items-center py-2 gap-0.5 border-r"
       style={{
-        backgroundColor: 'var(--card)',
-        borderColor: 'var(--border)',
-        width: '36px',
+        backgroundColor: '#080808',
+        borderColor: '#1a1a1a',
+        width: '34px',
+        minWidth: '34px',
       }}
     >
       {TOOLS.map(tool => (
         <div key={`tool-${tool.id}`} className="relative group">
           <button
             onClick={() => onSelectTool(tool.id)}
-            className={`w-7 h-7 flex items-center justify-center rounded transition-all duration-150 ${
-              selectedTool === tool.id
-                ? 'bg-primary-subtle' :'hover:bg-muted'
-            }`}
-            style={{ color: selectedTool === tool.id ? 'var(--primary)' : 'var(--muted-foreground)' }}
+            className="w-7 h-7 flex items-center justify-center rounded transition-all duration-150"
+            style={{
+              backgroundColor: selectedTool === tool.id ? 'rgba(245,196,0,0.12)' : 'transparent',
+              color: selectedTool === tool.id ? 'var(--primary)' : '#555555',
+            }}
           >
             <tool.icon size={13} />
           </button>
-          {/* Tooltip */}
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
-            style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
+          {/* Tooltip — appears to the RIGHT since toolbar is on left */}
+          <div
+            className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
+            style={{ backgroundColor: '#111111', border: '1px solid #2a2a2a', color: '#ffffff' }}
+          >
             {tool.label}
           </div>
         </div>
       ))}
 
-      <div className="w-5 h-px my-1" style={{ backgroundColor: 'var(--border)' }} />
+      <div className="w-4 h-px my-1" style={{ backgroundColor: '#1a1a1a' }} />
 
       {/* Lock */}
       <div className="relative group">
-        <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-muted transition-all"
-          style={{ color: 'var(--muted-foreground)' }}>
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded transition-all"
+          style={{ color: '#555555' }}
+        >
           <Lock size={13} />
         </button>
-        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
-          style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
+        <div
+          className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
+          style={{ backgroundColor: '#111111', border: '1px solid #2a2a2a', color: '#ffffff' }}
+        >
           Lock drawings
         </div>
       </div>
 
       {/* Delete */}
       <div className="relative group">
-        <button className="w-7 h-7 flex items-center justify-center rounded hover:bg-muted transition-all"
-          style={{ color: 'var(--muted-foreground)' }}>
+        <button
+          className="w-7 h-7 flex items-center justify-center rounded transition-all"
+          style={{ color: '#555555' }}
+        >
           <Trash2 size={13} />
         </button>
-        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
-          style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}>
+        <div
+          className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
+          style={{ backgroundColor: '#111111', border: '1px solid #2a2a2a', color: '#ffffff' }}
+        >
           Delete selected drawing
         </div>
       </div>

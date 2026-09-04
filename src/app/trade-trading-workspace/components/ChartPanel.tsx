@@ -17,7 +17,6 @@ interface Props {
 
 const TIMEFRAMES = ['1m', '5m', '15m', '1H', '4H', '1D', '1W'];
 
-// Map workspace symbols to hook symbols
 const SYMBOL_MAP: Record<string, string> = {
   'BTC/USDC': 'BTC/USDC',
   'ETH/USDC': 'ETH/USDC',
@@ -52,7 +51,7 @@ function generateFallbackCandles(count: number, basePrice: number) {
     const low = Math.min(open, close) - Math.random() * price * 0.004;
     const volume = Math.random() * 800 + 100;
     const ts = new Date(now - i * 3600000);
-    const label = `${(ts.getMonth() + 1).toString().padStart(2,'0')}/${ts.getDate().toString().padStart(2,'0')} ${ts.getHours().toString().padStart(2,'0')}:00`;
+    const label = `${ts.getHours().toString().padStart(2,'0')}:00`;
     const isUp = close >= open;
     candles.push({
       time: label,
@@ -76,7 +75,7 @@ function generateFallbackCandles(count: number, basePrice: number) {
 function candleDataToChartFormat(candles: CandleData[]) {
   return candles.map(c => {
     const d = new Date(c.time * 1000);
-    const label = `${(d.getMonth() + 1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:00`;
+    const label = `${d.getHours().toString().padStart(2,'0')}:00`;
     const isUp = c.close >= c.open;
     return {
       time: label,
@@ -100,25 +99,24 @@ const CustomCandleTooltip = ({ active, payload, label }: any) => {
   const d = payload[0]?.payload;
   if (!d) return null;
   return (
-    <div className="px-3 py-2 rounded-md border shadow-xl text-xs space-y-1" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-      <p className="font-semibold" style={{ color: 'var(--muted-foreground)' }}>{label}</p>
+    <div className="px-3 py-2 rounded border shadow-xl text-xs space-y-1" style={{ backgroundColor: '#111111', borderColor: '#2a2a2a' }}>
+      <p className="font-semibold text-gray-400">{label}</p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-        <span style={{ color: 'var(--muted-foreground)' }}>O</span>
-        <span className="tabular-nums font-mono text-right" style={{ color: 'var(--foreground)' }}>{d.open?.toFixed(2)}</span>
-        <span style={{ color: 'var(--muted-foreground)' }}>H</span>
-        <span className="tabular-nums font-mono text-right text-positive">{d.high?.toFixed(2)}</span>
-        <span style={{ color: 'var(--muted-foreground)' }}>L</span>
-        <span className="tabular-nums font-mono text-right text-negative">{d.low?.toFixed(2)}</span>
-        <span style={{ color: 'var(--muted-foreground)' }}>C</span>
-        <span className={`tabular-nums font-mono text-right ${d.isUp ? 'text-positive' : 'text-negative'}`}>{d.close?.toFixed(2)}</span>
-        <span style={{ color: 'var(--muted-foreground)' }}>Vol</span>
-        <span className="tabular-nums font-mono text-right" style={{ color: 'var(--foreground)' }}>{d.volume?.toFixed(1)}</span>
+        <span className="text-gray-500">O</span>
+        <span className="tabular-nums font-mono text-right text-white">{d.open?.toFixed(2)}</span>
+        <span className="text-gray-500">H</span>
+        <span className="tabular-nums font-mono text-right text-green-400">{d.high?.toFixed(2)}</span>
+        <span className="text-gray-500">L</span>
+        <span className="tabular-nums font-mono text-right text-red-400">{d.low?.toFixed(2)}</span>
+        <span className="text-gray-500">C</span>
+        <span className={`tabular-nums font-mono text-right ${d.isUp ? 'text-green-400' : 'text-red-400'}`}>{d.close?.toFixed(2)}</span>
+        <span className="text-gray-500">Vol</span>
+        <span className="tabular-nums font-mono text-right text-white">{d.volume?.toFixed(1)}</span>
       </div>
     </div>
   );
 };
 
-// All symbols the hook supports
 const ALL_LIVE_SYMBOLS = ['BTC/USDC', 'ETH/USDC', 'SOL/USDC', 'BNB/USDC', 'XRP/USDC', 'ADA/USDC', 'AVAX/USDC', 'DOT/USDC'];
 
 export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFullscreen, isFullscreen }: Props) {
@@ -131,7 +129,6 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
 
   const basePrice = BASE_PRICES[symbol] ?? 100;
 
-  // Container ref + measured height for reliable chart sizing
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
 
@@ -144,7 +141,6 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
       }
     });
     ro.observe(el);
-    // Initial measurement
     setContainerHeight(el.getBoundingClientRect().height);
     return () => ro.disconnect();
   }, []);
@@ -153,92 +149,110 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
     if (liveCandles && liveCandles.length >= 2) {
       return candleDataToChartFormat(liveCandles);
     }
-    return generateFallbackCandles(36, basePrice * 0.96);
+    return generateFallbackCandles(48, basePrice * 0.96);
   }, [liveCandles, basePrice]);
 
   const last = chartData[chartData.length - 1];
-  const liveClose = liveQuote?.price ?? last?.close;
+  const liveClose: number = liveQuote?.price ?? last?.close ?? 0;
   const displayLast = last ? { ...last, close: liveClose } : last;
   const changeVal = displayLast ? (displayLast.close - displayLast.open) : 0;
   const changePct = displayLast && displayLast.open > 0 ? ((changeVal / displayLast.open) * 100) : 0;
 
-  // Compute chart heights from measured container
-  const toolbarHeight = 36; // timeframe bar
-  const ohlcBarHeight = 28; // OHLC info bar
-  const reservedHeight = toolbarHeight + ohlcBarHeight + 8; // padding
-  const availableHeight = containerHeight > reservedHeight + 60 ? containerHeight - reservedHeight : 300;
-  const mainChartHeight = Math.floor(availableHeight * 0.76);
-  const volumeChartHeight = Math.floor(availableHeight * 0.21);
+  // Chart area: toolbar=32px, ohlcBar=24px, xAxis is INSIDE the main chart (bottom margin)
+  const toolbarHeight = 32;
+  const ohlcBarHeight = 24;
+  const reservedHeight = toolbarHeight + ohlcBarHeight + 4;
+  const availableHeight = containerHeight > reservedHeight + 60 ? containerHeight - reservedHeight : 320;
+  // Main chart gets 78%, volume gets 20%, 2% gap
+  const mainChartHeight = Math.floor(availableHeight * 0.78);
+  const volumeChartHeight = Math.floor(availableHeight * 0.20);
+
+  // Terminal colors
+  const termBg = '#000000';
+  const termSurface = '#080808';
+  const termBorder = '#1a1a1a';
+  const termMuted = '#555555';
 
   return (
-    <div className="flex flex-col h-full w-full" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="flex flex-col h-full w-full" style={{ backgroundColor: termBg }}>
       {/* Timeframe + tools bar */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-b shrink-0" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', height: `${toolbarHeight}px` }}>
+      <div
+        className="flex items-center gap-1 px-2 py-1 border-b shrink-0"
+        style={{ backgroundColor: termSurface, borderColor: termBorder, height: `${toolbarHeight}px` }}
+      >
         {/* Timeframes */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0">
           {TIMEFRAMES.map((tf, idx) => (
             <button
               key={`tf-${tf}-${idx}`}
               onClick={() => onTimeframeChange(tf)}
-              className="px-2 py-1 text-xs rounded transition-all duration-150 font-medium"
+              className="px-2 py-0.5 text-xs rounded transition-all duration-150 font-medium"
               style={timeframe === tf
-                ? { color: 'var(--primary)', fontWeight: 700 }
-                : { color: 'var(--muted-foreground)' }}
+                ? { color: 'var(--primary)', fontWeight: 700, backgroundColor: 'rgba(245,196,0,0.1)' }
+                : { color: termMuted }}
             >
               {tf}
             </button>
           ))}
         </div>
 
-        <div className="w-px h-4 mx-1" style={{ backgroundColor: 'var(--border)' }} />
+        <div className="w-px h-3 mx-1" style={{ backgroundColor: termBorder }} />
 
         {/* Indicators button */}
-        <button className="flex items-center gap-1 px-2 py-1 text-xs rounded border transition-all hover:bg-muted" style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}>
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 9L4 5L7 7L11 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button
+          className="flex items-center gap-1 px-2 py-0.5 text-xs rounded border transition-all"
+          style={{ borderColor: termBorder, color: termMuted, backgroundColor: 'transparent' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M1 9L4 5L7 7L11 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           Indicators
         </button>
 
         <div className="flex-1" />
 
-        {/* Live status badge */}
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded text-xs" style={{
-          backgroundColor: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(245,196,0,0.08)',
-          color: isLive ? '#22c55e' : 'var(--muted-foreground)',
-        }}>
-          {isLive ? <Wifi size={11} /> : <WifiOff size={11} />}
-          <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'}`} />
+        {/* Live status */}
+        <div
+          className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
+          style={{
+            backgroundColor: isLive ? 'rgba(34,197,94,0.08)' : 'rgba(245,196,0,0.06)',
+            color: isLive ? '#22c55e' : '#6b7280',
+          }}
+        >
+          {isLive ? <Wifi size={10} /> : <WifiOff size={10} />}
+          <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-yellow-600 animate-pulse'}`} />
           <span className="hidden sm:inline">{isLive ? 'Live' : 'Mock'}</span>
         </div>
 
-        {/* Right icons */}
-        <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
-          <Camera size={13} />
+        <button className="p-1 rounded transition-colors" style={{ color: termMuted }}>
+          <Camera size={12} />
         </button>
         <button
           onClick={onFullscreen}
-          className="p-1.5 rounded hover:bg-muted transition-colors"
-          style={{ color: 'var(--muted-foreground)' }}
+          className="p-1 rounded transition-colors"
+          style={{ color: termMuted }}
           title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
         >
-          {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
         </button>
-        <button className="p-1.5 rounded hover:bg-muted transition-colors" style={{ color: 'var(--muted-foreground)' }}>
-          <RotateCcw size={13} />
+        <button className="p-1 rounded transition-colors" style={{ color: termMuted }}>
+          <RotateCcw size={12} />
         </button>
       </div>
 
       {/* OHLC info bar */}
-      <div className="flex items-center gap-3 px-3 py-1 shrink-0" style={{ backgroundColor: 'var(--background)', height: `${ohlcBarHeight}px` }}>
-        <span className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>
+      <div
+        className="flex items-center gap-2 px-3 shrink-0"
+        style={{ backgroundColor: termBg, height: `${ohlcBarHeight}px` }}
+      >
+        <span className="text-xs font-semibold text-gray-500">
           {symbol} · {timeframe} · Trade Console
         </span>
         {displayLast && (
           <>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>O <span className="font-mono" style={{ color: 'var(--foreground)' }}>{displayLast.open.toFixed(2)}</span></span>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>H <span className="font-mono text-positive">{displayLast.high.toFixed(2)}</span></span>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>L <span className="font-mono text-negative">{displayLast.low.toFixed(2)}</span></span>
-            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>C <span className={`font-mono ${changeVal >= 0 ? 'text-positive' : 'text-negative'}`}>{liveClose.toFixed(2)}</span></span>
-            <span className={`text-xs font-semibold ${changeVal >= 0 ? 'text-positive' : 'text-negative'}`}>
+            <span className="text-xs text-gray-600">O <span className="font-mono text-white">{displayLast.open.toFixed(2)}</span></span>
+            <span className="text-xs text-gray-600">H <span className="font-mono text-green-400">{displayLast.high.toFixed(2)}</span></span>
+            <span className="text-xs text-gray-600">L <span className="font-mono text-red-400">{displayLast.low.toFixed(2)}</span></span>
+            <span className="text-xs text-gray-600">C <span className={`font-mono ${changeVal >= 0 ? 'text-green-400' : 'text-red-400'}`}>{liveClose.toFixed(2)}</span></span>
+            <span className={`text-xs font-semibold ${changeVal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {changeVal >= 0 ? '+' : ''}{changeVal.toFixed(2)} ({changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%)
             </span>
             {isLive && liveQuote && (
@@ -250,28 +264,29 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
         )}
       </div>
 
-      {/* Chart body — measured container */}
-      <div ref={containerRef} className="flex-1 min-h-0 px-2 pb-1 flex flex-col">
-        {/* Main candlestick chart — explicit pixel height */}
+      {/* Chart body — measured container, fills all remaining height */}
+      <div ref={containerRef} className="flex-1 min-h-0 flex flex-col" style={{ backgroundColor: termBg }}>
+        {/* Main candlestick chart — X-axis at bottom of this chart */}
         {mainChartHeight > 0 && (
           <div style={{ height: mainChartHeight, width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.04)" />
+              <ComposedChart data={chartData} margin={{ top: 6, right: 60, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="2 6" stroke="rgba(255,255,255,0.03)" vertical={false} />
                 <XAxis
                   dataKey="time"
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
-                  axisLine={false}
+                  tick={{ fill: '#555555', fontSize: 9, fontFamily: 'monospace' }}
+                  axisLine={{ stroke: '#222222' }}
                   tickLine={false}
-                  interval={5}
+                  interval={Math.floor(chartData.length / 8)}
+                  height={18}
                 />
                 <YAxis
                   domain={['auto', 'auto']}
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }}
+                  tick={{ fill: '#555555', fontSize: 9, fontFamily: 'monospace' }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v >= 1 ? v.toFixed(0) : v.toFixed(4)}
-                  width={56}
+                  width={58}
                   orientation="right"
                 />
                 <Tooltip content={<CustomCandleTooltip />} />
@@ -312,18 +327,18 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
           </div>
         )}
 
-        {/* Volume sub-chart — explicit pixel height */}
+        {/* Volume sub-chart — no X-axis (already shown above), sits directly below */}
         {volumeChartHeight > 0 && (
           <div style={{ height: volumeChartHeight, width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 2, right: 8, left: 0, bottom: 0 }}>
+              <ComposedChart data={chartData} margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
                 <XAxis dataKey="time" hide />
-                <YAxis hide orientation="right" width={56} />
+                <YAxis hide orientation="right" width={58} />
                 <Bar dataKey="volume" radius={[1, 1, 0, 0]}>
                   {chartData.map((entry, idx) => (
                     <Cell
                       key={`cell-vol-${idx}`}
-                      fill={entry.isUp ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)'}
+                      fill={entry.isUp ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}
                     />
                   ))}
                 </Bar>
@@ -332,12 +347,12 @@ export default function ChartPanel({ symbol, timeframe, onTimeframeChange, onFul
           </div>
         )}
 
-        {/* Loading state when container not yet measured */}
+        {/* Loading state */}
         {containerHeight === 0 && (
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
-              <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--border)', borderTopColor: 'var(--primary)' }} />
-              <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Loading chart…</span>
+              <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#222', borderTopColor: 'var(--primary)' }} />
+              <span className="text-xs text-gray-600">Loading chart…</span>
             </div>
           </div>
         )}
