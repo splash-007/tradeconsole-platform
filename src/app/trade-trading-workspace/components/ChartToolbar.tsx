@@ -21,25 +21,25 @@ const TOOLS = [
 export default function ChartToolbar({ selectedTool, onSelectTool }: Props) {
   return (
     <div
-      className="flex flex-col items-center py-2 gap-0.5 border-r"
+      className="flex flex-col items-center py-2 gap-1 border-r"
       style={{
         backgroundColor: '#080808',
         borderColor: '#1a1a1a',
-        width: '34px',
-        minWidth: '34px',
+        width: '40px',
+        minWidth: '40px',
       }}
     >
       {TOOLS.map(tool => (
         <div key={`tool-${tool.id}`} className="relative group">
           <button
             onClick={() => onSelectTool(tool.id)}
-            className="w-7 h-7 flex items-center justify-center rounded transition-all duration-150"
+            className="w-8 h-8 flex items-center justify-center rounded transition-all duration-150"
             style={{
-              backgroundColor: selectedTool === tool.id ? 'rgba(245,196,0,0.12)' : 'transparent',
-              color: selectedTool === tool.id ? 'var(--primary)' : '#555555',
+              backgroundColor: selectedTool === tool.id ? 'rgba(245,196,0,0.15)' : 'transparent',
+              color: selectedTool === tool.id ? 'var(--primary)' : '#ffffff',
             }}
           >
-            <tool.icon size={13} />
+            <tool.icon size={16} />
           </button>
           {/* Tooltip — appears to the RIGHT since toolbar is on left */}
           <div
@@ -51,15 +51,15 @@ export default function ChartToolbar({ selectedTool, onSelectTool }: Props) {
         </div>
       ))}
 
-      <div className="w-4 h-px my-1" style={{ backgroundColor: '#1a1a1a' }} />
+      <div className="w-5 h-px my-1" style={{ backgroundColor: '#1a1a1a' }} />
 
       {/* Lock */}
       <div className="relative group">
         <button
-          className="w-7 h-7 flex items-center justify-center rounded transition-all"
-          style={{ color: '#555555' }}
+          className="w-8 h-8 flex items-center justify-center rounded transition-all"
+          style={{ color: '#ffffff' }}
         >
-          <Lock size={13} />
+          <Lock size={16} />
         </button>
         <div
           className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
@@ -72,10 +72,10 @@ export default function ChartToolbar({ selectedTool, onSelectTool }: Props) {
       {/* Delete */}
       <div className="relative group">
         <button
-          className="w-7 h-7 flex items-center justify-center rounded transition-all"
-          style={{ color: '#555555' }}
+          className="w-8 h-8 flex items-center justify-center rounded transition-all"
+          style={{ color: '#ffffff' }}
         >
-          <Trash2 size={13} />
+          <Trash2 size={16} />
         </button>
         <div
           className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"

@@ -52,26 +52,27 @@
 }
 
 .dark {
-  --background: #080A10;
-  --foreground: #E8EAED;
+  --background: #000000;
+  --foreground: #F0F2F5;
   --primary: #D4A800;
   --primary-foreground: #000000;
-  --secondary: #111318;
-  --secondary-foreground: #9CA3AF;
+  --secondary: #0d0d0d;
+  --secondary-foreground: #D1D5DB;
   --accent: #D4A800;
   --accent-foreground: #000000;
-  --muted: #141720;
-  --muted-foreground: #6B7280;
-  --card: #0E1016;
-  --card-foreground: #E8EAED;
-  --border: #1E2130;
-  --input: #111318;
+  --muted: #111111;
+  --muted-foreground: #9CA3AF;
+  --card: #0a0a0a;
+  --card-foreground: #F0F2F5;
+  --border: #1E1E1E;
+  --input: #0d0d0d;
   --ring: #D4A800;
   --positive: #22C55E;
   --negative: #EF4444;
   --warning: #F59E0B;
-  --panel: #111318;
-  --panel-border: #1E2130;
+  --panel: #0a0a0a;
+  --panel-border: #1E1E1E;
+  --card-rgb: 10,10,10;
 }
 
 /* Trade Terminal — true black surfaces */
