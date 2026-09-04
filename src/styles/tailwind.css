@@ -302,3 +302,179 @@ html, body {
   color: var(--negative);
   font-size: 0.75rem;
 }
+
+/* ===== WEB3 TRADING PLATFORM UTILITIES ===== */
+
+/* Compact data table rows */
+.trading-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+
+.trading-table th {
+  text-align: left;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.trading-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.trading-table tr:last-child td {
+  border-bottom: none;
+}
+
+.trading-table tr:hover td {
+  background-color: var(--muted);
+}
+
+/* Ticker / price flash animations */
+@keyframes flashGreen {
+  0% { background-color: rgba(34, 197, 94, 0.18); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flashRed {
+  0% { background-color: rgba(239, 68, 68, 0.18); }
+  100% { background-color: transparent; }
+}
+
+.flash-green {
+  animation: flashGreen 0.6s ease-out;
+}
+
+.flash-red {
+  animation: flashRed 0.6s ease-out;
+}
+
+/* Compact stat pill */
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+.stat-pill-positive {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: var(--positive);
+}
+
+.stat-pill-negative {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--negative);
+}
+
+/* Instrument chip */
+.instrument-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background-color: var(--card);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.instrument-chip:hover {
+  border-color: var(--primary);
+  background-color: rgba(212, 168, 0, 0.05);
+}
+
+.instrument-chip.active {
+  border-color: var(--primary);
+  background-color: rgba(212, 168, 0, 0.08);
+  color: var(--primary);
+}
+
+/* Section header — compact trading terminal style */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-header-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+}
+
+/* Dev data badge */
+.dev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  background-color: rgba(107, 114, 128, 0.1);
+  color: var(--muted-foreground);
+  border: 1px solid rgba(107, 114, 128, 0.15);
+}
+
+/* Live indicator dot */
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Compact card — trading terminal panel */
+.terminal-panel {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Price display — monospace, tabular */
+.price-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Bid/Ask spread display */
+.bid-ask-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.bid-price { color: var(--positive); }
+.ask-price { color: var(--negative); }
