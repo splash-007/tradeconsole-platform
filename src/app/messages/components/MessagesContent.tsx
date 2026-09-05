@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { Search, Send, Paperclip, MoreVertical, Phone, Plus, X, MessageSquare, Clock, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Send, Paperclip, MoreVertical, Phone, Plus, X, MessageSquare, Clock, CheckCircle2, MessageCircle } from 'lucide-react';
 
 interface Conversation {
   id: string;
@@ -45,7 +45,6 @@ type ComposerStep = 'category' | 'message' | 'submitted';
 export default function MessagesContent() {
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
-  const [search, setSearch] = useState('');
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [conversations, setConversations] = useState<Conversation[]>(REAL_CONVERSATIONS);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -97,9 +96,7 @@ export default function MessagesContent() {
     setComposerStep('category');
   };
 
-  const filteredConvs = conversations.filter(c =>
-    c.agentName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredConvs = conversations;
 
   const getStatusColor = (c: Conversation) => {
     if (c.online) return '#22c55e';
@@ -272,19 +269,6 @@ export default function MessagesContent() {
       <div className="rounded-xl border overflow-hidden flex" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', height: '560px' }}>
         {/* Conversation list */}
         <div className="w-72 shrink-0 border-r flex flex-col" style={{ borderColor: 'var(--border)' }}>
-          <div className="p-3 border-b" style={{ borderColor: 'var(--border)' }}>
-            <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
-              <input
-                type="text"
-                placeholder="Search conversations..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 rounded-lg text-xs border focus:outline-none"
-                style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-              />
-            </div>
-          </div>
           <div className="flex-1 overflow-y-auto no-scrollbar">
             {filteredConvs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full px-4 text-center">
