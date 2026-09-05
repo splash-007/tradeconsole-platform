@@ -601,17 +601,6 @@ export default function ProgramsContent() {
 
   return (
     <div className="py-4 max-w-6xl">
-      {/* Back to Settings */}
-      <div className="mb-4">
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-80"
-          style={{ color: 'var(--muted-foreground)' }}
-        >
-          <ArrowLeft size={13} />
-          Back to Settings
-        </Link>
-      </div>
 
       <div className="mb-5">
         <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Programs &amp; Benefits</h1>
