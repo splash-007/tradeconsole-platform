@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, Gift, Globe, Users } from 'lucide-react';
+import { Bell, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, Gift, Globe, Users, FlaskConical } from 'lucide-react';
 import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
 import { notificationService, AppNotification } from '@/services/notification.service';
 import { preferencesService } from '@/services/preferences.service';
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Trading Bot', href: '/trading-bot', icon: Bot },
   { label: 'Copy Trading', href: '/copy-trading', icon: Users },
+  { label: 'Paper Trading', href: '/paper-trading', icon: FlaskConical },
   { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
   { label: 'Watchlist', href: '/watchlist', icon: Star },
   { label: 'News & Learn', href: '/news-learn', icon: BookOpen },
