@@ -176,7 +176,7 @@ export default function TopNav() {
     <>
       {/* Modern glassmorphism header */}
       <header
-        className="sticky top-0 z-50 w-full"
+        className="fixed top-0 left-0 right-0 z-50 w-full"
         style={{
           backgroundColor: isDark ? '#000000' : 'rgba(255,255,255, 0.92)',
           backdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
