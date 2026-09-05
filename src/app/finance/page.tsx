@@ -1,16 +1,11 @@
 'use client';
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { fundsService, CustomerBalance, FundsHistoryEntry, FundsHistoryStatus } from '@/services/funds.service';
-import { depositService, DepositMethodConfig } from '@/services/deposit.service';
-import { withdrawalService, WithdrawalDestination } from '@/services/withdrawal.service';
-import { transferService } from '@/services/transfer.service';
 
-import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, History, LayoutDashboard, Info, AlertTriangle, Check, ChevronRight, Shield, Clock, TrendingUp, Activity, DollarSign, CreditCard } from 'lucide-react';
-import Link from 'next/link';
 
-type FundsTab = 'overview' | 'deposit' | 'withdraw' | 'transfer' | 'history';
+import { ArrowDownLeft, ArrowUpRight, History, Info, AlertTriangle, Check, X, Shield, Copy, Building2, Wallet, TrendingUp, Activity, DollarSign, Landmark, Hash, CheckCircle2, Clock } from 'lucide-react';
+
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -35,555 +30,679 @@ function StatusBadge({ status }: { status: FundsHistoryStatus | string }) {
   );
 }
 
-// ─── Deposit flow ─────────────────────────────────────────────────────────────
+// ─── Modal wrapper ────────────────────────────────────────────────────────────
 
-type DepositStep = 'method' | 'currency' | 'amount' | 'instructions' | 'review' | 'submitted';
+function Modal({ open, onClose, title, subtitle, icon, iconBg, iconColor, children }: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  children: React.ReactNode;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}>
+      <div
+        className="relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', maxHeight: '90vh' }}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: iconBg, color: iconColor }}>
+            {icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{title}</h2>
+            {subtitle && <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>{subtitle}</p>}
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:opacity-70"
+            style={{ backgroundColor: 'var(--muted)', color: 'var(--muted-foreground)' }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 px-5 py-4">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-function DepositPanel({ methods }: { methods: DepositMethodConfig[] }) {
-  const [step, setStep] = useState<DepositStep>('method');
-  const [selectedMethod, setSelectedMethod] = useState<DepositMethodConfig | null>(null);
-  const [currency, setCurrency] = useState('USD');
+// ─── Crypto Deposit Modal ─────────────────────────────────────────────────────
+
+const CRYPTO_ASSETS = [
+  { symbol: 'BTC', name: 'Bitcoin', color: '#f7931a' },
+  { symbol: 'ETH', name: 'Ethereum', color: '#627eea' },
+  { symbol: 'USDT', name: 'Tether', color: '#26a17b' },
+  { symbol: 'USDC', name: 'USD Coin', color: '#2775ca' },
+  { symbol: 'BNB', name: 'BNB', color: '#f3ba2f' },
+  { symbol: 'SOL', name: 'Solana', color: '#9945ff' },
+  { symbol: 'XRP', name: 'XRP', color: '#346aa9' },
+  { symbol: 'LTC', name: 'Litecoin', color: '#bfbbbb' },
+];
+
+const CHAINS: Record<string, string[]> = {
+  BTC:  ['Bitcoin (BTC)'],
+  ETH:  ['Ethereum (ERC-20)', 'Arbitrum', 'Optimism', 'Base'],
+  USDT: ['Ethereum (ERC-20)', 'Tron (TRC-20)', 'BNB Smart Chain (BEP-20)', 'Solana'],
+  USDC: ['Ethereum (ERC-20)', 'Solana', 'Arbitrum', 'Base', 'Polygon'],
+  BNB:  ['BNB Smart Chain (BEP-20)', 'Ethereum (ERC-20)'],
+  SOL:  ['Solana'],
+  XRP:  ['XRP Ledger'],
+  LTC:  ['Litecoin (LTC)'],
+};
+
+function CryptoDepositModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [asset, setAsset] = useState('');
+  const [chain, setChain] = useState('');
+  const [txHash, setTxHash] = useState('');
   const [amount, setAmount] = useState('');
+  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [depositId, setDepositId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!selectedMethod) return;
-    setSubmitting(true);
-    const result = await depositService.submitDeposit({
-      methodId: selectedMethod.id,
-      currency,
-      amount: parseFloat(amount),
-    });
-    setSubmitting(false);
-    if (result.success) {
-      setDepositId(result.depositId ?? null);
-      setStep('submitted');
+  const chains = asset ? (CHAINS[asset] || []) : [];
+  const depositAddress = asset ? `0x${asset.toLowerCase()}...demo_address_${asset.toLowerCase()}` : '';
+
+  const handleClose = () => {
+    setAsset(''); setChain(''); setTxHash(''); setAmount('');
+    setSubmitted(false); setSubmitting(false);
+    onClose();
+  };
+
+  const handleCopy = () => {
+    if (depositAddress) {
+      navigator.clipboard.writeText(depositAddress).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const reset = () => {
-    setStep('method');
-    setSelectedMethod(null);
-    setCurrency('USD');
-    setAmount('');
-    setDepositId(null);
+  const handleSubmit = async () => {
+    if (!asset || !chain || !txHash) return;
+    setSubmitting(true);
+    await new Promise(r => setTimeout(r, 1200));
+    setSubmitting(false);
+    setSubmitted(true);
   };
 
-  if (step === 'submitted') {
+  if (submitted) {
     return (
-      <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-          <Check size={20} style={{ color: '#22c55e' }} />
+      <Modal open={open} onClose={handleClose} title="Crypto Deposit" subtitle="Submit your transaction" icon={<Wallet size={16} />} iconBg="rgba(212,168,0,0.15)" iconColor="var(--primary)">
+        <div className="text-center py-6">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)' }}>
+            <CheckCircle2 size={26} style={{ color: '#22c55e' }} />
+          </div>
+          <h3 className="text-base font-bold mb-1" style={{ color: 'var(--foreground)' }}>Deposit Submitted!</h3>
+          <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>Your {asset} deposit on {chain} has been submitted for review.</p>
+          <div className="rounded-xl p-3 text-xs text-left mb-5 space-y-1.5" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
+            <div className="flex justify-between"><span style={{ color: 'var(--muted-foreground)' }}>Asset</span><span className="font-semibold" style={{ color: 'var(--foreground)' }}>{asset}</span></div>
+            <div className="flex justify-between"><span style={{ color: 'var(--muted-foreground)' }}>Network</span><span className="font-semibold" style={{ color: 'var(--foreground)' }}>{chain}</span></div>
+            <div className="flex justify-between"><span style={{ color: 'var(--muted-foreground)' }}>Amount</span><span className="font-semibold" style={{ color: 'var(--foreground)' }}>{amount || '—'} {asset}</span></div>
+            <div className="flex justify-between gap-2"><span className="shrink-0" style={{ color: 'var(--muted-foreground)' }}>TX Hash</span><span className="font-mono text-xs truncate" style={{ color: 'var(--foreground)' }}>{txHash}</span></div>
+          </div>
+          <div className="flex items-start gap-2 p-3 rounded-xl text-xs mb-5" style={{ backgroundColor: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <Clock size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
+            <p style={{ color: 'var(--muted-foreground)' }}>Your balance will be credited after our team verifies the transaction on-chain. This usually takes 10–30 minutes.</p>
+          </div>
+          <button onClick={handleClose} className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Done</button>
         </div>
-        <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--foreground)' }}>Deposit Request Submitted</h3>
-        <p className="text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>Your deposit request has been submitted and is being processed.</p>
-        {depositId && <p className="text-xs font-mono mb-4" style={{ color: 'var(--muted-foreground)' }}>Reference: {depositId}</p>}
-        <div className="flex items-start gap-2 p-3 rounded-lg text-xs mb-4 text-left" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
-          <Info size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
-          <p style={{ color: 'var(--muted-foreground)' }}>
-            Balance updates only after backend confirms and processes the deposit. Processing time depends on the selected method.
-          </p>
-        </div>
-        <button onClick={reset} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-          New Deposit
-        </button>
-      </div>
+      </Modal>
     );
   }
 
-  const STEPS: { id: DepositStep; label: string }[] = [
-    { id: 'method', label: 'Method' },
-    { id: 'currency', label: 'Currency' },
-    { id: 'amount', label: 'Amount' },
-    { id: 'instructions', label: 'Instructions' },
-    { id: 'review', label: 'Review' },
-  ];
-  const stepIndex = STEPS.findIndex(s => s.id === step);
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
-        {STEPS.map((s, i) => (
-          <React.Fragment key={s.id}>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <div
-                className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+    <Modal open={open} onClose={handleClose} title="Crypto Deposit" subtitle="Select asset, network and submit TX hash" icon={<Wallet size={16} />} iconBg="rgba(212,168,0,0.15)" iconColor="var(--primary)">
+      <div className="space-y-5">
+        {/* Step 1: Select Asset */}
+        <div>
+          <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>1. Select Crypto Asset</label>
+          <div className="grid grid-cols-4 gap-2">
+            {CRYPTO_ASSETS.map(a => (
+              <button
+                key={a.symbol}
+                onClick={() => { setAsset(a.symbol); setChain(''); }}
+                className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border transition-all"
                 style={{
-                  backgroundColor: i <= stepIndex ? 'var(--primary)' : 'var(--muted)',
-                  color: i <= stepIndex ? '#000' : 'var(--muted-foreground)',
+                  borderColor: asset === a.symbol ? a.color : 'var(--border)',
+                  backgroundColor: asset === a.symbol ? `${a.color}14` : 'var(--muted)',
                 }}
               >
-                {i < stepIndex ? <Check size={10} /> : i + 1}
-              </div>
-              <span className="text-xs font-medium whitespace-nowrap" style={{ color: i === stepIndex ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
-                {s.label}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div className="flex-1 h-px mx-2 shrink-0 min-w-[12px]" style={{ backgroundColor: i < stepIndex ? 'var(--primary)' : 'var(--border)' }} />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {step === 'method' && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Choose Deposit Method</h3>
-          {/* Show crypto and bank options directly */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-            <button
-              onClick={() => { setSelectedMethod({ id: 'crypto', type: 'crypto', label: 'Crypto Deposit', description: 'Deposit via cryptocurrency', minimumAmount: null, maximumAmount: null, feeDescription: null, processingTime: null, currencies: ['BTC', 'ETH', 'USDC', 'USDT'], enabled: true }); setStep('currency'); }}
-              className="flex items-center gap-3 p-4 rounded-xl border text-left transition-all hover:border-yellow-400/40"
-              style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
-            >
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.25)' }}>
-                <DollarSign size={16} style={{ color: 'var(--primary)' }} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Crypto Deposit</p>
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>BTC, ETH, USDC, USDT</p>
-              </div>
-            </button>
-            <button
-              onClick={() => { setSelectedMethod({ id: 'bank', type: 'bank_transfer', label: 'Bank Deposit', description: 'Deposit via bank transfer', minimumAmount: null, maximumAmount: null, feeDescription: null, processingTime: null, currencies: ['USD', 'EUR', 'GBP'], enabled: true }); setStep('currency'); }}
-              className="flex items-center gap-3 p-4 rounded-xl border text-left transition-all hover:border-yellow-400/40"
-              style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
-            >
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
-                <CreditCard size={16} style={{ color: '#3b82f6' }} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Bank Deposit</p>
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>USD, EUR, GBP wire transfer</p>
-              </div>
-            </button>
+                <span className="text-xs font-bold" style={{ color: asset === a.symbol ? a.color : 'var(--foreground)' }}>{a.symbol}</span>
+                <span className="text-xs leading-tight text-center" style={{ color: 'var(--muted-foreground)', fontSize: 9 }}>{a.name}</span>
+              </button>
+            ))}
           </div>
-          {methods.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {methods.map(method => (
+        </div>
+
+        {/* Step 2: Select Chain */}
+        {asset && (
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>2. Select Network / Chain</label>
+            <div className="space-y-1.5">
+              {chains.map(c => (
                 <button
-                  key={method.id}
-                  onClick={() => { setSelectedMethod(method); setStep('currency'); }}
-                  className="text-left p-4 rounded-xl border transition-all hover:border-yellow-400/40"
-                  style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+                  key={c}
+                  onClick={() => setChain(c)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-all"
+                  style={{
+                    borderColor: chain === c ? 'var(--primary)' : 'var(--border)',
+                    backgroundColor: chain === c ? 'rgba(212,168,0,0.08)' : 'var(--muted)',
+                    color: chain === c ? 'var(--primary)' : 'var(--foreground)',
+                  }}
                 >
-                  <p className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>{method.label}</p>
-                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{method.description}</p>
-                  {method.processingTime && (
-                    <p className="text-xs mt-2 flex items-center gap-1" style={{ color: 'var(--muted-foreground)' }}>
-                      <Clock size={10} /> {method.processingTime}
-                    </p>
-                  )}
+                  <span className="font-medium text-xs">{c}</span>
+                  {chain === c && <Check size={13} style={{ color: 'var(--primary)' }} />}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {step === 'currency' && selectedMethod && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Select Currency</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
-            {(selectedMethod.currencies.length > 0 ? selectedMethod.currencies : ['USD', 'EUR', 'GBP']).map(c => (
+        {/* Step 3: Deposit Address */}
+        {asset && chain && (
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>3. Send to this address</label>
+            <div className="rounded-xl border p-3" style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2">
+                <span className="flex-1 font-mono text-xs break-all" style={{ color: 'var(--foreground)' }}>{depositAddress}</span>
+                <button onClick={handleCopy} className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all" style={{ backgroundColor: copied ? 'rgba(34,197,94,0.12)' : 'var(--card)', color: copied ? '#22c55e' : 'var(--muted-foreground)', border: '1px solid var(--border)' }}>
+                  {copied ? <Check size={11} /> : <Copy size={11} />}
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-start gap-2 mt-2 p-2.5 rounded-lg text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
+              <AlertTriangle size={11} className="shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
+              <p style={{ color: 'var(--muted-foreground)' }}>Only send <strong style={{ color: 'var(--foreground)' }}>{asset}</strong> on the <strong style={{ color: 'var(--foreground)' }}>{chain}</strong> network. Sending the wrong asset or using the wrong network will result in permanent loss.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Amount + TX Hash */}
+        {asset && chain && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>4. Amount Sent ({asset})</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder={`e.g. 0.05`}
+                className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none focus:ring-1"
+                style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>5. Transaction Hash (TX ID)</label>
+              <div className="relative">
+                <Hash size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
+                <input
+                  type="text"
+                  value={txHash}
+                  onChange={e => setTxHash(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full pl-8 pr-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none focus:ring-1"
+                  style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+                />
+              </div>
+              <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Paste the transaction hash from your wallet or exchange after sending.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={handleSubmit}
+          disabled={!asset || !chain || !txHash || submitting}
+          className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
+          style={{ backgroundColor: 'var(--primary)', color: '#000' }}
+        >
+          {submitting ? 'Submitting…' : 'Submit Deposit for Review'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── Bank Deposit Modal ───────────────────────────────────────────────────────
+
+const BANK_CURRENCIES = ['USD', 'EUR', 'GBP', 'CHF', 'AUD', 'CAD'];
+
+function BankDepositModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [currency, setCurrency] = useState('USD');
+  const [amount, setAmount] = useState('');
+  const [reference, setReference] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleClose = () => {
+    setCurrency('USD'); setAmount(''); setReference('');
+    setSubmitted(false); setSubmitting(false);
+    onClose();
+  };
+
+  const handleSubmit = async () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    setSubmitting(true);
+    await new Promise(r => setTimeout(r, 1200));
+    setSubmitting(false);
+    setSubmitted(true);
+  };
+
+  const bankDetails = [
+    { label: 'Bank Name', value: 'International Trade Bank' },
+    { label: 'Account Name', value: 'CryptoVault Ltd.' },
+    { label: 'Account Number', value: '****-****-1234' },
+    { label: 'SWIFT / BIC', value: 'ITBKUS33XXX' },
+    { label: 'IBAN', value: 'GB29 NWBK 6016 1331 9268 19' },
+    { label: 'Routing Number', value: '021000021' },
+  ];
+
+  if (submitted) {
+    return (
+      <Modal open={open} onClose={handleClose} title="Bank Deposit" subtitle="Wire transfer instructions" icon={<Landmark size={16} />} iconBg="rgba(59,130,246,0.12)" iconColor="#3b82f6">
+        <div className="text-center py-6">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)' }}>
+            <CheckCircle2 size={26} style={{ color: '#22c55e' }} />
+          </div>
+          <h3 className="text-base font-bold mb-1" style={{ color: 'var(--foreground)' }}>Bank Deposit Request Submitted</h3>
+          <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>Your deposit request for {currency} {parseFloat(amount || '0').toFixed(2)} has been received.</p>
+          <div className="flex items-start gap-2 p-3 rounded-xl text-xs mb-5 text-left" style={{ backgroundColor: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <Clock size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
+            <p style={{ color: 'var(--muted-foreground)' }}>Bank wire transfers typically take 1–3 business days. Your balance will be credited once the funds are received and verified.</p>
+          </div>
+          <button onClick={handleClose} className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Done</button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal open={open} onClose={handleClose} title="Bank Deposit" subtitle="Wire transfer to fund your account" icon={<Landmark size={16} />} iconBg="rgba(59,130,246,0.12)" iconColor="#3b82f6">
+      <div className="space-y-5">
+        {/* Currency */}
+        <div>
+          <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>Select Currency</label>
+          <div className="grid grid-cols-3 gap-2">
+            {BANK_CURRENCIES.map(c => (
               <button
                 key={c}
                 onClick={() => setCurrency(c)}
-                className="py-2 rounded-lg border text-sm font-semibold transition-all"
+                className="py-2 rounded-xl border text-sm font-semibold transition-all"
                 style={{
-                  borderColor: currency === c ? 'var(--primary)' : 'var(--border)',
-                  backgroundColor: currency === c ? 'rgba(212,168,0,0.08)' : 'var(--muted)',
-                  color: currency === c ? 'var(--primary)' : 'var(--foreground)',
+                  borderColor: currency === c ? '#3b82f6' : 'var(--border)',
+                  backgroundColor: currency === c ? 'rgba(59,130,246,0.1)' : 'var(--muted)',
+                  color: currency === c ? '#3b82f6' : 'var(--foreground)',
                 }}
               >
                 {c}
               </button>
             ))}
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('method')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={() => setStep('amount')} className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Continue</button>
-          </div>
         </div>
-      )}
 
-      {step === 'amount' && selectedMethod && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Enter Amount</h3>
-          <div className="mb-4">
-            <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Amount ({currency})</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="0.00"
-              className="w-full px-3 py-2.5 rounded-lg border text-sm font-mono focus:outline-none focus:ring-1"
-              style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-            />
-            <div className="flex gap-4 mt-2 text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              {selectedMethod.minimumAmount !== null && <span>Min: {currency} {selectedMethod.minimumAmount}</span>}
-              {selectedMethod.maximumAmount !== null && <span>Max: {currency} {selectedMethod.maximumAmount}</span>}
-              {selectedMethod.feeDescription && <span>Fee: {selectedMethod.feeDescription}</span>}
-            </div>
-          </div>
-          <div className="flex items-start gap-2 p-3 rounded-lg text-xs mb-4" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
-            <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-            <p style={{ color: 'var(--muted-foreground)' }}>Minimum, maximum, and fee values are backend-configured and may change.</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('currency')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={() => setStep('instructions')} disabled={!amount || parseFloat(amount) <= 0} className="flex-1 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Continue</button>
-          </div>
+        {/* Amount */}
+        <div>
+          <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Amount ({currency})</label>
+          <input
+            type="number"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            placeholder="0.00"
+            className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none"
+            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
         </div>
-      )}
 
-      {step === 'instructions' && selectedMethod && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Deposit Instructions</h3>
-          <div className="p-4 rounded-lg text-xs mb-4" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
-            <p className="font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Instructions will be provided by the backend</p>
-            <p style={{ color: 'var(--muted-foreground)' }}>
-              Deposit instructions (bank details, crypto address, or payment link) are generated by the backend when a deposit request is confirmed.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('amount')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={() => setStep('review')} className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Review</button>
-          </div>
-        </div>
-      )}
-
-      {step === 'review' && selectedMethod && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--foreground)' }}>Review Deposit</h3>
-          <div className="space-y-0 mb-4">
-            {[
-              { label: 'Method', value: selectedMethod.label },
-              { label: 'Currency', value: currency },
-              { label: 'Amount', value: `${currency} ${parseFloat(amount).toFixed(2)}` },
-              { label: 'Fee', value: selectedMethod.feeDescription ?? 'Backend-configured' },
-              { label: 'Processing Time', value: selectedMethod.processingTime ?? 'Backend-configured' },
-            ].map((row, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
+        {/* Bank Details */}
+        <div>
+          <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>Bank Transfer Details</label>
+          <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
+            {bankDetails.map((row, i) => (
+              <div key={i} className="flex items-center justify-between px-3 py-2.5 border-b last:border-b-0" style={{ borderColor: 'var(--border)', backgroundColor: i % 2 === 0 ? 'var(--muted)' : 'var(--card)' }}>
                 <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{row.label}</span>
-                <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--foreground)' }}>{row.value}</span>
+                <span className="text-xs font-semibold font-mono" style={{ color: 'var(--foreground)' }}>{row.value}</span>
               </div>
             ))}
           </div>
-          <div className="flex items-start gap-2 p-3 rounded-lg text-xs mb-4" style={{ backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
-            <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
-            <p style={{ color: 'var(--muted-foreground)' }}>
-              By submitting, you confirm the deposit details are correct. Balance will only be credited after backend processing.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('instructions')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-              {submitting ? 'Submitting…' : 'Submit Deposit'}
-            </button>
-          </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-// ─── Withdrawal flow ──────────────────────────────────────────────────────────
-
-type WithdrawStep = 'asset' | 'destination' | 'amount' | 'fee' | 'security' | 'review' | 'submitted';
-
-function WithdrawPanel({ balance, destinations }: { balance: CustomerBalance; destinations: WithdrawalDestination[] }) {
-  const [step, setStep] = useState<WithdrawStep>('asset');
-  const [currency, setCurrency] = useState('USD');
-  const [selectedDest, setSelectedDest] = useState<WithdrawalDestination | null>(null);
-  const [amount, setAmount] = useState('');
-  const [securityCode, setSecurityCode] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [withdrawalId, setWithdrawalId] = useState<string | null>(null);
-
-  const handleSubmit = async () => {
-    if (!selectedDest) return;
-    setSubmitting(true);
-    const result = await withdrawalService.submitWithdrawal({
-      currency,
-      amount: parseFloat(amount),
-      destinationId: selectedDest.id,
-      securityCode: securityCode || undefined,
-    });
-    setSubmitting(false);
-    if (result.success) {
-      setWithdrawalId(result.withdrawalId ?? null);
-      setStep('submitted');
-    }
-  };
-
-  const reset = () => {
-    setStep('asset');
-    setCurrency('USD');
-    setSelectedDest(null);
-    setAmount('');
-    setSecurityCode('');
-    setWithdrawalId(null);
-  };
-
-  if (step === 'submitted') {
-    return (
-      <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-          <Check size={20} style={{ color: '#22c55e' }} />
+        {/* Reference */}
+        <div>
+          <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Payment Reference (optional)</label>
+          <input
+            type="text"
+            value={reference}
+            onChange={e => setReference(e.target.value)}
+            placeholder="Your name or account ID"
+            className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none"
+            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+          <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Include your name or account ID as the payment reference to speed up processing.</p>
         </div>
-        <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--foreground)' }}>Withdrawal Request Submitted</h3>
-        <p className="text-xs mb-1" style={{ color: 'var(--muted-foreground)' }}>Your withdrawal request is pending review.</p>
-        {withdrawalId && <p className="text-xs font-mono mb-4" style={{ color: 'var(--muted-foreground)' }}>Reference: {withdrawalId}</p>}
-        <div className="flex items-start gap-2 p-3 rounded-lg text-xs mb-4 text-left" style={{ backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)' }}>
-          <Info size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
-          <p style={{ color: 'var(--muted-foreground)' }}>
-            Balance is updated only after backend approval and processing.
-          </p>
+
+        <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.06)', border: '1px solid rgba(212,168,0,0.2)' }}>
+          <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+          <p style={{ color: 'var(--muted-foreground)' }}>After sending the wire transfer, click below to notify us. We will credit your account once funds are received.</p>
         </div>
-        <button onClick={reset} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-          New Withdrawal
+
+        <button
+          onClick={handleSubmit}
+          disabled={!amount || parseFloat(amount) <= 0 || submitting}
+          className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
+          style={{ backgroundColor: '#3b82f6', color: '#fff' }}
+        >
+          {submitting ? 'Submitting…' : 'Notify Us — I\'ve Sent the Transfer'}
         </button>
       </div>
-    );
-  }
-
-  const STEPS: { id: WithdrawStep; label: string }[] = [
-    { id: 'asset', label: 'Asset' },
-    { id: 'destination', label: 'Destination' },
-    { id: 'amount', label: 'Amount' },
-    { id: 'fee', label: 'Fee' },
-    { id: 'security', label: 'Security' },
-    { id: 'review', label: 'Review' },
-  ];
-  const stepIndex = STEPS.findIndex(s => s.id === step);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-0 overflow-x-auto no-scrollbar">
-        {STEPS.map((s, i) => (
-          <React.Fragment key={s.id}>
-            <div className="flex items-center gap-1 shrink-0">
-              <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: i <= stepIndex ? 'var(--primary)' : 'var(--muted)', color: i <= stepIndex ? '#000' : 'var(--muted-foreground)' }}>
-                {i < stepIndex ? <Check size={10} /> : i + 1}
-              </div>
-              <span className="text-xs font-medium whitespace-nowrap" style={{ color: i === stepIndex ? 'var(--foreground)' : 'var(--muted-foreground)' }}>{s.label}</span>
-            </div>
-            {i < STEPS.length - 1 && <div className="flex-1 h-px mx-1.5 shrink-0 min-w-[8px]" style={{ backgroundColor: i < stepIndex ? 'var(--primary)' : 'var(--border)' }} />}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {step === 'asset' && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Choose Asset / Currency</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
-            {['USD', 'EUR', 'GBP', 'BTC', 'ETH', 'USDC'].map(c => (
-              <button key={c} onClick={() => setCurrency(c)} className="py-2 rounded-lg border text-sm font-semibold transition-all" style={{ borderColor: currency === c ? 'var(--primary)' : 'var(--border)', backgroundColor: currency === c ? 'rgba(212,168,0,0.08)' : 'var(--muted)', color: currency === c ? 'var(--primary)' : 'var(--foreground)' }}>{c}</button>
-            ))}
-          </div>
-          <div className="p-3 rounded-lg text-xs mb-4" style={{ backgroundColor: 'var(--muted)' }}>
-            <span style={{ color: 'var(--muted-foreground)' }}>Available Balance: </span>
-            <span className="font-bold tabular-nums font-mono" style={{ color: '#22c55e' }}>{balance.currency} {balance.availableBalance.toFixed(2)}</span>
-          </div>
-          <button onClick={() => setStep('destination')} className="w-full py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Continue</button>
-        </div>
-      )}
-
-      {step === 'destination' && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Choose Destination</h3>
-          {destinations.length === 0 ? (
-            <div className="py-6 text-center mb-4">
-              <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>No saved destinations</p>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Withdrawal destinations are configured and verified by the backend. Contact support to add a destination.</p>
-            </div>
-          ) : (
-            <div className="space-y-2 mb-4">
-              {destinations.map(dest => (
-                <button key={dest.id} onClick={() => setSelectedDest(dest)} className="w-full text-left p-3 rounded-lg border transition-all" style={{ borderColor: selectedDest?.id === dest.id ? 'var(--primary)' : 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{dest.label}</p>
-                  <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{dest.details}</p>
-                  {dest.verified && <span className="text-xs" style={{ color: '#22c55e' }}>✓ Verified</span>}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2">
-            <button onClick={() => setStep('asset')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={() => setStep('amount')} disabled={destinations.length > 0 && !selectedDest} className="flex-1 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Continue</button>
-          </div>
-        </div>
-      )}
-
-      {step === 'amount' && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Enter Amount</h3>
-          <div className="mb-4">
-            <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Amount ({currency})</label>
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full px-3 py-2.5 rounded-lg border text-sm font-mono focus:outline-none" style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }} />
-            <p className="text-xs mt-1.5" style={{ color: 'var(--muted-foreground)' }}>Available: {balance.currency} {balance.availableBalance.toFixed(2)}</p>
-          </div>
-          <div className="flex items-start gap-2 p-3 rounded-lg text-xs mb-4" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
-            <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-            <p style={{ color: 'var(--muted-foreground)' }}>Minimum, maximum, and daily limits are enforced by the backend.</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('destination')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={() => setStep('fee')} disabled={!amount || parseFloat(amount) <= 0} className="flex-1 py-2 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Continue</button>
-          </div>
-        </div>
-      )}
-
-      {step === 'fee' && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--foreground)' }}>Fee &amp; Net Amount</h3>
-          <div className="space-y-0 mb-4">
-            {[
-              { label: 'Requested Amount', value: `${currency} ${parseFloat(amount).toFixed(2)}` },
-              { label: 'Fee', value: 'Backend-configured' },
-              { label: 'Net Withdrawal', value: 'Calculated by backend' },
-              { label: 'Expected Processing', value: 'Backend-configured' },
-            ].map((row, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{row.label}</span>
-                <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{row.value}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('amount')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={() => setStep('security')} className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Continue</button>
-          </div>
-        </div>
-      )}
-
-      {step === 'security' && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--foreground)' }}>Security Verification</h3>
-          <div className="flex items-start gap-3 p-3 rounded-lg mb-4" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
-            <Shield size={14} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Security verification (2FA code or OTP) will be required by the backend for withdrawal requests.</p>
-          </div>
-          <div className="mb-4">
-            <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Security Code (if required)</label>
-            <input type="text" value={securityCode} onChange={e => setSecurityCode(e.target.value)} placeholder="Enter 2FA / OTP code" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }} />
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('fee')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={() => setStep('review')} className="flex-1 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Review</button>
-          </div>
-        </div>
-      )}
-
-      {step === 'review' && (
-        <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <h3 className="text-sm font-bold mb-4" style={{ color: 'var(--foreground)' }}>Review Withdrawal</h3>
-          <div className="space-y-0 mb-4">
-            {[
-              { label: 'Asset', value: currency },
-              { label: 'Amount', value: `${currency} ${parseFloat(amount).toFixed(2)}` },
-              { label: 'Destination', value: selectedDest?.label ?? 'Not selected' },
-              { label: 'Destination Details', value: selectedDest?.details ?? '—' },
-              { label: 'Fee', value: 'Backend-configured' },
-              { label: 'Net Amount', value: 'Calculated by backend' },
-            ].map((row, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b last:border-b-0" style={{ borderColor: 'var(--border)' }}>
-                <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{row.label}</span>
-                <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{row.value}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-start gap-2 p-3 rounded-lg text-xs mb-4" style={{ backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
-            <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
-            <p style={{ color: 'var(--muted-foreground)' }}>
-              Withdrawal requests are subject to backend review and approval. Balance is only debited after backend authorization.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setStep('security')} className="flex-1 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: 'var(--border)', color: 'var(--foreground)' }}>Back</button>
-            <button onClick={handleSubmit} disabled={submitting} className="flex-1 py-2 rounded-lg text-sm font-semibold disabled:opacity-60" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-              {submitting ? 'Submitting…' : 'Submit Withdrawal'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    </Modal>
   );
 }
 
-// ─── Transfer panel ───────────────────────────────────────────────────────────
+// ─── Crypto Withdrawal Modal ──────────────────────────────────────────────────
 
-function TransferPanel({ balance }: { balance: CustomerBalance }) {
-  const [currency, setCurrency] = useState('USD');
+function CryptoWithdrawalModal({ open, onClose, balance }: { open: boolean; onClose: () => void; balance: CustomerBalance | null }) {
+  const [asset, setAsset] = useState('');
+  const [chain, setChain] = useState('');
+  const [address, setAddress] = useState('');
   const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [transferId, setTransferId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const chains = asset ? (CHAINS[asset] || []) : [];
+
+  const handleClose = () => {
+    setAsset(''); setChain(''); setAddress(''); setAmount('');
+    setSubmitted(false); setSubmitting(false);
+    onClose();
+  };
 
   const handleSubmit = async () => {
+    if (!asset || !chain || !address || !amount) return;
     setSubmitting(true);
-    const result = await transferService.submitTransfer({
-      type: 'internal_account',
-      currency,
-      amount: parseFloat(amount),
-      note: note || undefined,
-    });
+    await new Promise(r => setTimeout(r, 1200));
     setSubmitting(false);
-    if (result.success) {
-      setTransferId(result.transferId ?? null);
-      setSubmitted(true);
-    }
+    setSubmitted(true);
   };
 
   if (submitted) {
     return (
-      <div className="rounded-xl border p-8 text-center" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-          <Check size={20} style={{ color: '#22c55e' }} />
+      <Modal open={open} onClose={handleClose} title="Crypto Withdrawal" subtitle="Withdraw to your wallet" icon={<ArrowUpRight size={16} />} iconBg="rgba(239,68,68,0.12)" iconColor="#ef4444">
+        <div className="text-center py-6">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)' }}>
+            <CheckCircle2 size={26} style={{ color: '#22c55e' }} />
+          </div>
+          <h3 className="text-base font-bold mb-1" style={{ color: 'var(--foreground)' }}>Withdrawal Request Submitted</h3>
+          <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>Your {asset} withdrawal on {chain} is pending review.</p>
+          <div className="rounded-xl p-3 text-xs text-left mb-5 space-y-1.5" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
+            <div className="flex justify-between"><span style={{ color: 'var(--muted-foreground)' }}>Asset</span><span className="font-semibold" style={{ color: 'var(--foreground)' }}>{asset}</span></div>
+            <div className="flex justify-between"><span style={{ color: 'var(--muted-foreground)' }}>Network</span><span className="font-semibold" style={{ color: 'var(--foreground)' }}>{chain}</span></div>
+            <div className="flex justify-between"><span style={{ color: 'var(--muted-foreground)' }}>Amount</span><span className="font-semibold" style={{ color: 'var(--foreground)' }}>{amount} {asset}</span></div>
+            <div className="flex justify-between gap-2"><span className="shrink-0" style={{ color: 'var(--muted-foreground)' }}>Address</span><span className="font-mono text-xs truncate" style={{ color: 'var(--foreground)' }}>{address}</span></div>
+          </div>
+          <div className="flex items-start gap-2 p-3 rounded-xl text-xs mb-5 text-left" style={{ backgroundColor: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <Shield size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
+            <p style={{ color: 'var(--muted-foreground)' }}>Withdrawals are reviewed by our team before processing. You will be notified once approved.</p>
+          </div>
+          <button onClick={handleClose} className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Done</button>
         </div>
-        <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--foreground)' }}>Transfer Request Submitted</h3>
-        {transferId && <p className="text-xs font-mono mb-4" style={{ color: 'var(--muted-foreground)' }}>Reference: {transferId}</p>}
-        <button onClick={() => { setSubmitted(false); setAmount(''); setNote(''); }} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>New Transfer</button>
-      </div>
+      </Modal>
     );
   }
 
   return (
-    <div className="rounded-xl border p-5 space-y-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-      <div>
-        <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--foreground)' }}>Transfer</h3>
-        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Transfer is distinct from withdrawal. Backend determines allowed destination types and transfer rules.</p>
-      </div>
-      <div className="flex items-start gap-2 p-3 rounded-lg text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.05)', border: '1px solid rgba(212,168,0,0.15)' }}>
-        <Info size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-        <p style={{ color: 'var(--muted-foreground)' }}>
-          Available transfer types are determined by backend configuration. Balance is only affected after backend processing.
-        </p>
-      </div>
-      <div>
-        <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Currency</label>
-        <div className="grid grid-cols-4 gap-2">
-          {['USD', 'EUR', 'BTC', 'ETH'].map(c => (
-            <button key={c} onClick={() => setCurrency(c)} className="py-2 rounded-lg border text-sm font-semibold transition-all" style={{ borderColor: currency === c ? 'var(--primary)' : 'var(--border)', backgroundColor: currency === c ? 'rgba(212,168,0,0.08)' : 'var(--muted)', color: currency === c ? 'var(--primary)' : 'var(--foreground)' }}>{c}</button>
-          ))}
+    <Modal open={open} onClose={handleClose} title="Crypto Withdrawal" subtitle="Withdraw to your external wallet" icon={<ArrowUpRight size={16} />} iconBg="rgba(239,68,68,0.12)" iconColor="#ef4444">
+      <div className="space-y-5">
+        {/* Balance */}
+        {balance && (
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Available Balance</span>
+            <span className="text-sm font-bold font-mono" style={{ color: '#22c55e' }}>{balance.currency} {balance.availableBalance.toFixed(2)}</span>
+          </div>
+        )}
+
+        {/* Asset */}
+        <div>
+          <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>1. Select Crypto Asset</label>
+          <div className="grid grid-cols-4 gap-2">
+            {CRYPTO_ASSETS.map(a => (
+              <button
+                key={a.symbol}
+                onClick={() => { setAsset(a.symbol); setChain(''); }}
+                className="flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border transition-all"
+                style={{
+                  borderColor: asset === a.symbol ? a.color : 'var(--border)',
+                  backgroundColor: asset === a.symbol ? `${a.color}14` : 'var(--muted)',
+                }}
+              >
+                <span className="text-xs font-bold" style={{ color: asset === a.symbol ? a.color : 'var(--foreground)' }}>{a.symbol}</span>
+                <span className="text-xs leading-tight text-center" style={{ color: 'var(--muted-foreground)', fontSize: 9 }}>{a.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Chain */}
+        {asset && (
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>2. Select Network / Chain</label>
+            <div className="space-y-1.5">
+              {chains.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setChain(c)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-all"
+                  style={{
+                    borderColor: chain === c ? '#ef4444' : 'var(--border)',
+                    backgroundColor: chain === c ? 'rgba(239,68,68,0.07)' : 'var(--muted)',
+                    color: chain === c ? '#ef4444' : 'var(--foreground)',
+                  }}
+                >
+                  <span className="font-medium text-xs">{c}</span>
+                  {chain === c && <Check size={13} style={{ color: '#ef4444' }} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Address + Amount */}
+        {asset && chain && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>3. Destination Wallet Address</label>
+              <input
+                type="text"
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="0x... or wallet address"
+                className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none"
+                style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>4. Amount ({asset})</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none"
+                style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}>
+          <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
+          <p style={{ color: 'var(--muted-foreground)' }}>Double-check the destination address and network. Crypto transactions are irreversible. Wrong address = permanent loss.</p>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!asset || !chain || !address || !amount || submitting}
+          className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
+          style={{ backgroundColor: '#ef4444', color: '#fff' }}
+        >
+          {submitting ? 'Submitting…' : 'Submit Withdrawal Request'}
+        </button>
       </div>
-      <div>
-        <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Amount ({currency})</label>
-        <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="w-full px-3 py-2.5 rounded-lg border text-sm font-mono focus:outline-none" style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }} />
-        <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>Available: {balance.currency} {balance.availableBalance.toFixed(2)}</p>
+    </Modal>
+  );
+}
+
+// ─── Bank Withdrawal Modal ────────────────────────────────────────────────────
+
+function BankWithdrawalModal({ open, onClose, balance }: { open: boolean; onClose: () => void; balance: CustomerBalance | null }) {
+  const [currency, setCurrency] = useState('USD');
+  const [amount, setAmount] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [swift, setSwift] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleClose = () => {
+    setCurrency('USD'); setAmount(''); setBankName(''); setAccountName('');
+    setAccountNumber(''); setSwift('');
+    setSubmitted(false); setSubmitting(false);
+    onClose();
+  };
+
+  const handleSubmit = async () => {
+    if (!amount || parseFloat(amount) <= 0 || !bankName || !accountNumber) return;
+    setSubmitting(true);
+    await new Promise(r => setTimeout(r, 1200));
+    setSubmitting(false);
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <Modal open={open} onClose={handleClose} title="Bank Withdrawal" subtitle="Withdraw to your bank account" icon={<Building2 size={16} />} iconBg="rgba(139,92,246,0.12)" iconColor="#8b5cf6">
+        <div className="text-center py-6">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'rgba(34,197,94,0.12)', border: '2px solid rgba(34,197,94,0.3)' }}>
+            <CheckCircle2 size={26} style={{ color: '#22c55e' }} />
+          </div>
+          <h3 className="text-base font-bold mb-1" style={{ color: 'var(--foreground)' }}>Bank Withdrawal Submitted</h3>
+          <p className="text-xs mb-4" style={{ color: 'var(--muted-foreground)' }}>Your withdrawal of {currency} {parseFloat(amount || '0').toFixed(2)} is pending review.</p>
+          <div className="flex items-start gap-2 p-3 rounded-xl text-xs mb-5 text-left" style={{ backgroundColor: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+            <Clock size={12} className="shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
+            <p style={{ color: 'var(--muted-foreground)' }}>Bank withdrawals are reviewed within 1 business day. Funds typically arrive within 2–5 business days after approval.</p>
+          </div>
+          <button onClick={handleClose} className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>Done</button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal open={open} onClose={handleClose} title="Bank Withdrawal" subtitle="Withdraw funds to your bank account" icon={<Building2 size={16} />} iconBg="rgba(139,92,246,0.12)" iconColor="#8b5cf6">
+      <div className="space-y-4">
+        {/* Balance */}
+        {balance && (
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
+            <span className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Available Balance</span>
+            <span className="text-sm font-bold font-mono" style={{ color: '#22c55e' }}>{balance.currency} {balance.availableBalance.toFixed(2)}</span>
+          </div>
+        )}
+
+        {/* Currency */}
+        <div>
+          <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--muted-foreground)' }}>Currency</label>
+          <div className="grid grid-cols-3 gap-2">
+            {BANK_CURRENCIES.map(c => (
+              <button
+                key={c}
+                onClick={() => setCurrency(c)}
+                className="py-2 rounded-xl border text-sm font-semibold transition-all"
+                style={{
+                  borderColor: currency === c ? '#8b5cf6' : 'var(--border)',
+                  backgroundColor: currency === c ? 'rgba(139,92,246,0.1)' : 'var(--muted)',
+                  color: currency === c ? '#8b5cf6' : 'var(--foreground)',
+                }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Amount */}
+        <div>
+          <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Amount ({currency})</label>
+          <input
+            type="number"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            placeholder="0.00"
+            className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none"
+            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+        </div>
+
+        {/* Bank Details */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold block" style={{ color: 'var(--muted-foreground)' }}>Your Bank Details</label>
+          <input
+            type="text"
+            value={bankName}
+            onChange={e => setBankName(e.target.value)}
+            placeholder="Bank Name"
+            className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none"
+            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+          <input
+            type="text"
+            value={accountName}
+            onChange={e => setAccountName(e.target.value)}
+            placeholder="Account Holder Name"
+            className="w-full px-3 py-2.5 rounded-xl border text-sm focus:outline-none"
+            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+          <input
+            type="text"
+            value={accountNumber}
+            onChange={e => setAccountNumber(e.target.value)}
+            placeholder="Account Number / IBAN"
+            className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none"
+            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+          <input
+            type="text"
+            value={swift}
+            onChange={e => setSwift(e.target.value)}
+            placeholder="SWIFT / BIC Code"
+            className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono focus:outline-none"
+            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
+          />
+        </div>
+
+        <div className="flex items-start gap-2 p-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.06)', border: '1px solid rgba(212,168,0,0.2)' }}>
+          <Shield size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+          <p style={{ color: 'var(--muted-foreground)' }}>All withdrawal requests are reviewed by our compliance team before processing. Ensure your bank details are correct.</p>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={!amount || parseFloat(amount) <= 0 || !bankName || !accountNumber || submitting}
+          className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-40 transition-all"
+          style={{ backgroundColor: '#8b5cf6', color: '#fff' }}
+        >
+          {submitting ? 'Submitting…' : 'Submit Bank Withdrawal'}
+        </button>
       </div>
-      <div>
-        <label className="text-xs mb-1.5 block" style={{ color: 'var(--muted-foreground)' }}>Note (optional)</label>
-        <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="Transfer reference or note" className="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none" style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }} />
-      </div>
-      <button onClick={handleSubmit} disabled={submitting || !amount || parseFloat(amount) <= 0} className="w-full py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ backgroundColor: 'var(--primary)', color: '#000' }}>
-        {submitting ? 'Submitting…' : 'Submit Transfer'}
-      </button>
-    </div>
+    </Modal>
   );
 }
 
@@ -635,408 +754,31 @@ function HistoryPanel({ history }: { history: FundsHistoryEntry[] }) {
   );
 }
 
-// ─── Overview Dashboard ───────────────────────────────────────────────────────
-
-type ChartRange = '1D' | '1W' | '1M' | '3M' | '1Y' | 'All';
-
-const CHART_RANGES: ChartRange[] = ['1D', '1W', '1M', '3M', '1Y', 'All'];
-
-function OverviewDashboard({
-  balance,
-  onNavigate,
-}: {
-  balance: CustomerBalance;
-  onNavigate: (tab: FundsTab) => void;
-}) {
-  const [chartRange, setChartRange] = useState<ChartRange>('1M');
-  const [dismissedNotice, setDismissedNotice] = useState(false);
-
-  const kpiCards = [
-    {
-      label: 'Total Balance',
-      value: balance.totalBalance,
-      currency: balance.currency,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="2" y="5" width="20" height="14" rx="2" />
-          <line x1="2" y1="10" x2="22" y2="10" />
-        </svg>
-      ),
-      iconBg: 'rgba(212,168,0,0.12)',
-      iconColor: 'var(--primary)',
-      iconBorder: 'rgba(212,168,0,0.25)',
-      sub: <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>All accounts</span>,
-      isZero: balance.totalBalance === 0,
-    },
-    {
-      label: 'Available Balance',
-      value: balance.availableBalance,
-      currency: balance.currency,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="8" />
-          <path d="M12 8v4l3 3" />
-        </svg>
-      ),
-      iconBg: 'rgba(34,197,94,0.1)',
-      iconColor: '#22c55e',
-      iconBorder: 'rgba(34,197,94,0.2)',
-      sub: <span style={{ color: '#22c55e', fontSize: 11 }}>Ready for trading</span>,
-      isZero: balance.availableBalance === 0,
-    },
-    {
-      label: 'Profit & Loss',
-      value: null,
-      currency: balance.currency,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-          <polyline points="16 7 22 7 22 13" />
-        </svg>
-      ),
-      iconBg: 'rgba(34,197,94,0.1)',
-      iconColor: '#22c55e',
-      iconBorder: 'rgba(34,197,94,0.2)',
-      sub: <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>Realized + Unrealized</span>,
-      isZero: true,
-      emptyLabel: '—',
-    },
-    {
-      label: 'Pending',
-      value: balance.pendingBalance,
-      currency: balance.currency,
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-      ),
-      iconBg: 'rgba(245,158,11,0.1)',
-      iconColor: '#f59e0b',
-      iconBorder: 'rgba(245,158,11,0.2)',
-      sub: <span style={{ color: 'var(--muted-foreground)', fontSize: 11 }}>In progress</span>,
-      isZero: balance.pendingBalance === 0,
-    },
-  ];
-
-  return (
-    <div className="space-y-5">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpiCards.map((card, i) => (
-          <div
-            key={i}
-            className="rounded-xl border p-4"
-            style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: card.iconBg, border: `1px solid ${card.iconBorder}`, color: card.iconColor }}
-              >
-                {card.icon}
-              </div>
-            </div>
-            <p className="text-xs font-medium mb-1" style={{ color: 'var(--muted-foreground)' }}>{card.label}</p>
-            {card.emptyLabel ? (
-              <p className="text-xl font-bold tabular-nums font-mono mb-1" style={{ color: 'var(--muted-foreground)' }}>{card.emptyLabel}</p>
-            ) : (
-              <p className="text-xl font-bold tabular-nums font-mono mb-1" style={{ color: 'var(--foreground)' }}>
-                {card.isZero ? (
-                  <span style={{ color: 'var(--muted-foreground)' }}>—</span>
-                ) : (
-                  `$${(card.value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                )}
-              </p>
-            )}
-            <div>{card.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Data integrity notice */}
-      {!dismissedNotice && (
-        <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl text-xs" style={{ backgroundColor: 'rgba(212,168,0,0.06)', border: '1px solid rgba(212,168,0,0.18)' }}>
-          <Info size={13} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-          <p style={{ color: 'var(--muted-foreground)' }}>
-            Balances shown are indicative. The authoritative balance is maintained by the backend financial ledger.
-            Frontend actions do not directly modify your balance — all changes require backend confirmation.
-          </p>
-          <button onClick={() => setDismissedNotice(true)} className="shrink-0 ml-auto text-base leading-none" style={{ color: 'var(--muted-foreground)' }}>×</button>
-        </div>
-      )}
-
-      {/* Funding Actions */}
-      <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-          {/* Left label */}
-          <div className="shrink-0 sm:w-44">
-            <h2 className="text-base font-bold mb-1" style={{ color: 'var(--foreground)' }}>Funding Actions</h2>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Fund your account with secure and simple options.</p>
-          </div>
-
-          {/* Deposit */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                <ArrowDownLeft size={14} style={{ color: '#22c55e' }} />
-              </div>
-              <div>
-                <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Deposit</p>
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Add funds to your account</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onNavigate('deposit')}
-                className="flex-1 flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-                style={{ backgroundColor: 'var(--primary)', color: '#000' }}
-              >
-                <div className="flex items-center gap-2">
-                  <DollarSign size={16} />
-                  <span>Crypto Deposit</span>
-                </div>
-                <ChevronRight size={14} />
-              </button>
-              <button
-                onClick={() => onNavigate('deposit')}
-                className="flex-1 flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm border transition-all hover:bg-muted"
-                style={{ borderColor: 'var(--border)', color: 'var(--foreground)', backgroundColor: 'var(--background)' }}
-              >
-                <div className="flex items-center gap-2">
-                  <CreditCard size={16} />
-                  <span>Bank Deposit</span>
-                </div>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="hidden sm:block w-px self-stretch" style={{ backgroundColor: 'var(--border)' }} />
-
-          {/* Withdrawal */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                <ArrowUpRight size={14} style={{ color: '#ef4444' }} />
-              </div>
-              <div>
-                <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Withdrawal</p>
-                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Transfer funds out of your account</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onNavigate('withdraw')}
-                className="flex-1 flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-                style={{ backgroundColor: 'var(--primary)', color: '#000' }}
-              >
-                <div className="flex items-center gap-2">
-                  <DollarSign size={16} />
-                  <span>Crypto Withdrawal</span>
-                </div>
-                <ChevronRight size={14} />
-              </button>
-              <button
-                onClick={() => onNavigate('withdraw')}
-                className="flex-1 flex items-center justify-between gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm border transition-all hover:bg-muted"
-                style={{ borderColor: 'var(--border)', color: 'var(--foreground)', backgroundColor: 'var(--background)' }}
-              >
-                <div className="flex items-center gap-2">
-                  <CreditCard size={16} />
-                  <span>Bank Withdrawal</span>
-                </div>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Account Balance Overview Chart */}
-      <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-          <div>
-            <h2 className="text-base font-bold" style={{ color: 'var(--foreground)' }}>Account Balance Overview</h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-              Your total account balance over time, including deposits, withdrawals, and trading activity.
-            </p>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {CHART_RANGES.map(r => (
-              <button
-                key={r}
-                onClick={() => setChartRange(r)}
-                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-                style={{
-                  backgroundColor: chartRange === r ? 'rgba(212,168,0,0.15)' : 'transparent',
-                  color: chartRange === r ? 'var(--primary)' : 'var(--muted-foreground)',
-                  border: chartRange === r ? '1px solid rgba(212,168,0,0.3)' : '1px solid transparent',
-                }}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Empty state chart area */}
-        <div className="rounded-xl flex flex-col items-center justify-center" style={{ height: 220, backgroundColor: 'var(--muted)', border: '1px dashed var(--border)' }}>
-          <Activity size={28} className="mb-3" style={{ color: 'var(--muted-foreground)', opacity: 0.35 }} />
-          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Balance history unavailable</p>
-          <p className="text-xs text-center max-w-xs" style={{ color: 'var(--muted-foreground)' }}>
-            Account balance history will be populated from the backend ledger once connected.
-            No artificial data is shown.
-          </p>
-        </div>
-      </div>
-
-      {/* Bottom panels: Recent Transactions + Trading History */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent Transactions */}
-        <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-            <div>
-              <h3 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Recent Transactions</h3>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Your latest deposits, withdrawals, and other funding activity.</p>
-            </div>
-            <Link
-              href="/transactions"
-              className="text-xs font-semibold shrink-0"
-              style={{ color: 'var(--primary)' }}
-            >
-              View all
-            </Link>
-          </div>
-          {/* Table header */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ backgroundColor: 'var(--muted)' }}>
-                  {['DATE', 'TYPE', 'AMOUNT', 'ASSET', 'STATUS', 'REFERENCE'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-semibold tracking-wide" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-            </table>
-          </div>
-          {/* Empty state */}
-          <div className="py-10 text-center">
-            <History size={22} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)', opacity: 0.35 }} />
-            <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>No transactions yet</p>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              Transaction history will appear here once backend is connected.
-            </p>
-          </div>
-        </div>
-
-        {/* Trading History */}
-        <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-          <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-            <div>
-              <h3 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Trading History</h3>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Your recent trades across all markets.</p>
-            </div>
-            <Link
-              href="/portfolio"
-              className="text-xs font-semibold shrink-0"
-              style={{ color: 'var(--primary)' }}
-            >
-              View all
-            </Link>
-          </div>
-          {/* Table header */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr style={{ backgroundColor: 'var(--muted)' }}>
-                  {['DATE', 'MARKET', 'TYPE', 'AMOUNT', 'PRICE', 'P&L', 'STATUS'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-semibold tracking-wide" style={{ color: 'var(--muted-foreground)', fontSize: '10px' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-            </table>
-          </div>
-          {/* Empty state */}
-          <div className="py-10 text-center">
-            <TrendingUp size={22} className="mx-auto mb-2" style={{ color: 'var(--muted-foreground)', opacity: 0.35 }} />
-            <p className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)' }}>No trading history yet</p>
-            <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>
-              Completed trades will appear here once backend is connected.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const VALID_TABS: FundsTab[] = ['overview', 'deposit', 'withdraw', 'transfer', 'history'];
-
-function isValidTab(tab: string | null): tab is FundsTab {
-  return VALID_TABS.includes(tab as FundsTab);
-}
-
 function FinancePageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const tabFromUrl = searchParams.get('tab');
-  const initialTab: FundsTab = isValidTab(tabFromUrl) ? tabFromUrl : 'overview';
-
-  const [activeTab, setActiveTab] = useState<FundsTab>(initialTab);
   const [balance, setBalance] = useState<CustomerBalance | null>(null);
   const [history, setHistory] = useState<FundsHistoryEntry[]>([]);
-  const [depositMethods, setDepositMethods] = useState<DepositMethodConfig[]>([]);
-  const [destinations, setDestinations] = useState<WithdrawalDestination[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Modal states
+  const [cryptoDepositOpen, setCryptoDepositOpen] = useState(false);
+  const [bankDepositOpen, setBankDepositOpen] = useState(false);
+  const [cryptoWithdrawOpen, setCryptoWithdrawOpen] = useState(false);
+  const [bankWithdrawOpen, setBankWithdrawOpen] = useState(false);
+
   useEffect(() => {
-    const tab = searchParams.get('tab');
-    if (isValidTab(tab) && tab !== activeTab) {
-      setActiveTab(tab);
-    } else if (!tab && activeTab !== 'overview') {
-      setActiveTab('overview');
-    }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleTabChange = useCallback((tab: FundsTab) => {
-    setActiveTab(tab);
-    const params = new URLSearchParams(searchParams.toString());
-    if (tab === 'overview') {
-      params.delete('tab');
-    } else {
-      params.set('tab', tab);
-    }
-    router.push(`/finance?${params.toString()}`);
-  }, [router, searchParams]);
-
-  const loadData = async () => {
-    const [bal, hist, methods, dests] = await Promise.all([
-      fundsService.getBalance(),
-      fundsService.getHistory(),
-      depositService.getDepositMethods(),
-      withdrawalService.getDestinations(),
-    ]);
-    setBalance(bal);
-    setHistory(hist);
-    setDepositMethods(methods);
-    setDestinations(dests);
-    setLoading(false);
-  };
-
-  useEffect(() => { loadData(); }, []);
-
-  const TABS: { id: FundsTab; label: string; icon: React.ElementType }[] = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'deposit', label: 'Deposit', icon: ArrowDownLeft },
-    { id: 'withdraw', label: 'Withdraw', icon: ArrowUpRight },
-    { id: 'transfer', label: 'Transfer', icon: ArrowLeftRight },
-    { id: 'history', label: 'History', icon: History },
-  ];
+    const loadData = async () => {
+      const [bal, hist] = await Promise.all([
+        fundsService.getBalance(),
+        fundsService.getHistory(),
+      ]);
+      setBalance(bal);
+      setHistory(hist);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
 
   if (loading) {
     return (
@@ -1051,75 +793,166 @@ function FinancePageInner() {
     );
   }
 
+  const kpiCards = [
+    {
+      label: 'Total Balance',
+      value: balance ? `$${balance.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
+      icon: <DollarSign size={18} />,
+      iconBg: 'rgba(212,168,0,0.12)',
+      iconColor: 'var(--primary)',
+      sub: 'All accounts',
+    },
+    {
+      label: 'Available Balance',
+      value: balance ? `$${balance.availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
+      icon: <Activity size={18} />,
+      iconBg: 'rgba(34,197,94,0.1)',
+      iconColor: '#22c55e',
+      sub: 'Ready for trading',
+    },
+    {
+      label: 'Pending',
+      value: balance ? `$${balance.pendingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—',
+      icon: <Clock size={18} />,
+      iconBg: 'rgba(245,158,11,0.1)',
+      iconColor: '#f59e0b',
+      sub: 'In progress',
+    },
+    {
+      label: 'Currency',
+      value: balance?.currency ?? 'USD',
+      icon: <TrendingUp size={18} />,
+      iconBg: 'rgba(59,130,246,0.1)',
+      iconColor: '#3b82f6',
+      sub: 'Account currency',
+    },
+  ];
+
   return (
     <AppLayout>
       <div className="py-5 w-full">
         {/* Header */}
-        <div className="mb-5">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--foreground)' }}>Balance &amp; Funds</h1>
           <p className="text-sm" style={{ color: 'var(--muted-foreground)' }}>
-            Manage your account balance, track performance, and view your transaction history.
+            Manage your account balance, deposit or withdraw funds, and view your transaction history.
           </p>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar border-b mb-5" style={{ borderColor: 'var(--border)' }}>
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors shrink-0"
-              style={{
-                color: activeTab === tab.id ? 'var(--primary)' : 'var(--muted-foreground)',
-                borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
-                marginBottom: '-1px',
-              }}
-            >
-              <tab.icon size={13} />
-              {tab.label}
-            </button>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {kpiCards.map((card, i) => (
+            <div key={i} className="rounded-xl border p-4" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: card.iconBg, color: card.iconColor }}>
+                  {card.icon}
+                </div>
+              </div>
+              <p className="text-xs font-medium mb-1" style={{ color: 'var(--muted-foreground)' }}>{card.label}</p>
+              <p className="text-xl font-bold tabular-nums font-mono mb-1" style={{ color: 'var(--foreground)' }}>{card.value}</p>
+              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>{card.sub}</p>
+            </div>
           ))}
         </div>
 
-        {/* Tab content */}
-        {activeTab === 'overview' && balance && (
-          <OverviewDashboard balance={balance} onNavigate={handleTabChange} />
-        )}
-
-        {activeTab === 'deposit' && (
-          <div className="max-w-2xl">
-            <div className="mb-4">
-              <h2 className="text-base font-bold mb-0.5" style={{ color: 'var(--foreground)' }}>Deposit Funds</h2>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Add funds to your trading account.</p>
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Deposit Card */}
+          <div className="rounded-2xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                <ArrowDownLeft size={15} style={{ color: '#22c55e' }} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Deposit Funds</h2>
+                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Add funds to your trading account</p>
+              </div>
             </div>
-            <DepositPanel methods={depositMethods} />
-          </div>
-        )}
-
-        {activeTab === 'withdraw' && balance && (
-          <div className="max-w-2xl">
-            <div className="mb-4">
-              <h2 className="text-base font-bold mb-0.5" style={{ color: 'var(--foreground)' }}>Withdraw Funds</h2>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Transfer funds out of your trading account.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setCryptoDepositOpen(true)}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border transition-all hover:border-yellow-400/40 hover:opacity-90"
+                style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(212,168,0,0.12)', border: '1px solid rgba(212,168,0,0.25)' }}>
+                  <Wallet size={14} style={{ color: 'var(--primary)' }} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>Crypto Deposit</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>BTC, ETH, USDT, USDC &amp; more</p>
+                </div>
+              </button>
+              <button
+                onClick={() => setBankDepositOpen(true)}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border transition-all hover:border-blue-400/40 hover:opacity-90"
+                style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                  <Landmark size={14} style={{ color: '#3b82f6' }} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>Bank Deposit</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>USD, EUR, GBP wire transfer</p>
+                </div>
+              </button>
             </div>
-            <WithdrawPanel balance={balance} destinations={destinations} />
           </div>
-        )}
 
-        {activeTab === 'transfer' && balance && (
-          <div className="max-w-2xl">
-            <div className="mb-4">
-              <h2 className="text-base font-bold mb-0.5" style={{ color: 'var(--foreground)' }}>Transfer Funds</h2>
-              <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Move funds between accounts.</p>
+          {/* Withdrawal Card */}
+          <div className="rounded-2xl border p-5" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <ArrowUpRight size={15} style={{ color: '#ef4444' }} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Withdraw Funds</h2>
+                <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Transfer funds out of your account</p>
+              </div>
             </div>
-            <TransferPanel balance={balance} />
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setCryptoWithdrawOpen(true)}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border transition-all hover:border-red-400/40 hover:opacity-90"
+                style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <Wallet size={14} style={{ color: '#ef4444' }} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>Crypto Withdrawal</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Withdraw to your wallet</p>
+                </div>
+              </button>
+              <button
+                onClick={() => setBankWithdrawOpen(true)}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border transition-all hover:border-purple-400/40 hover:opacity-90"
+                style={{ backgroundColor: 'var(--muted)', borderColor: 'var(--border)' }}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                  <Building2 size={14} style={{ color: '#8b5cf6' }} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>Bank Withdrawal</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Wire to your bank account</p>
+                </div>
+              </button>
+            </div>
           </div>
-        )}
+        </div>
 
-        {activeTab === 'history' && (
-          <HistoryPanel history={history} />
-        )}
+        {/* Transaction History */}
+        <div className="mb-4">
+          <h2 className="text-base font-bold mb-1" style={{ color: 'var(--foreground)' }}>Transaction History</h2>
+          <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Your deposits, withdrawals, and other funding activity.</p>
+        </div>
+        <HistoryPanel history={history} />
       </div>
+
+      {/* Modals */}
+      <CryptoDepositModal open={cryptoDepositOpen} onClose={() => setCryptoDepositOpen(false)} />
+      <BankDepositModal open={bankDepositOpen} onClose={() => setBankDepositOpen(false)} />
+      <CryptoWithdrawalModal open={cryptoWithdrawOpen} onClose={() => setCryptoWithdrawOpen(false)} balance={balance} />
+      <BankWithdrawalModal open={bankWithdrawOpen} onClose={() => setBankWithdrawOpen(false)} balance={balance} />
     </AppLayout>
   );
 }
