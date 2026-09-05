@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, ExternalLink, Gift, Globe, Users } from 'lucide-react';
+import { Bell, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, Gift, Globe, Users } from 'lucide-react';
 import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
 import { notificationService, AppNotification } from '@/services/notification.service';
 import { preferencesService } from '@/services/preferences.service';
@@ -365,9 +365,6 @@ export default function TopNav() {
                   </div>
                   <div className="px-4 py-2.5 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Dismissed items remain in history</p>
-                    <Link href="/notifications" onClick={() => setNotifOpen(false)} className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--primary)' }}>
-                      View all <ExternalLink size={10} />
-                    </Link>
                   </div>
                 </div>
               )}
