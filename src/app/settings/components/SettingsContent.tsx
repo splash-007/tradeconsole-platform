@@ -1,14 +1,14 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Shield, Bell, Eye, EyeOff, Smartphone, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info, Gift } from 'lucide-react';
+import { User, Shield, Bell, Eye, EyeOff, Smartphone, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info } from 'lucide-react';
 import KYCVerificationFlow from '@/components/kyc/KYCVerificationFlow';
 import { kycService, KYCStatus } from '@/services/kyc.service';
 import { DividendEligibilityStatus, EmploymentStatus } from '@/services/dividend.service';
 import { preferencesService, UserPreferences } from '@/services/preferences.service';
 import { sessionService, CustomerSession, LoginHistoryEntry } from '@/services/session.service';
 import { documentsService, CustomerDocument } from '@/services/documents.service';
-import Link from 'next/link';
+
 
 type SettingsSection =
   | 'overview' | 'personal' | 'account' | 'kyc' | 'security' | 'preferences' | 'notifications' | 'dividend' | 'documents' | 'sessions';
@@ -294,7 +294,7 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
   const activeNavItem = NAV_ITEMS.find(n => n.id === activeSection);
 
   return (
-    <div className="py-4 max-w-6xl">
+    <div className="py-4">
       {/* Unsaved changes dialog */}
       {showUnsavedDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -327,22 +327,22 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
       )}
 
       <div className="mb-5">
-        <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Profile &amp; Settings</h1>
-        <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Manage your account, security, verification, and preferences</p>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--foreground)' }}>Profile &amp; Settings</h1>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--muted-foreground)' }}>Manage your account, security, verification, and preferences</p>
       </div>
 
       {/* Mobile nav toggle */}
       <div className="lg:hidden mb-4">
         <button
           onClick={() => setMobileNavOpen(!mobileNavOpen)}
-          className="w-full flex items-center justify-between px-4 py-2.5 rounded border text-sm font-medium"
+          className="w-full flex items-center justify-between px-4 py-3 rounded border text-sm font-medium"
           style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
         >
           <div className="flex items-center gap-2">
-            {activeNavItem && <activeNavItem.icon size={14} style={{ color: 'var(--primary)' }} />}
+            {activeNavItem && <activeNavItem.icon size={16} style={{ color: 'var(--primary)' }} />}
             <span>{activeNavItem?.label}</span>
           </div>
-          <ChevronDown size={14} className={`transition-transform ${mobileNavOpen ? 'rotate-180' : ''}`} style={{ color: 'var(--muted-foreground)' }} />
+          <ChevronDown size={16} className={`transition-transform ${mobileNavOpen ? 'rotate-180' : ''}`} style={{ color: 'var(--muted-foreground)' }} />
         </button>
         {mobileNavOpen && (
           <div className="mt-1 rounded border overflow-hidden" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
@@ -350,53 +350,34 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
               <button
                 key={item.id}
                 onClick={() => handleSectionClick(item.id)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
                 style={{ borderColor: 'var(--border)', color: activeSection === item.id ? 'var(--primary)' : 'var(--foreground)', backgroundColor: activeSection === item.id ? 'rgba(212,168,0,0.06)' : 'transparent' }}
               >
-                <item.icon size={13} />
+                <item.icon size={15} />
                 {item.label}
-                {item.id === 'kyc' && kycIncomplete && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />}
+                {item.id === 'kyc' && kycIncomplete && <span className="ml-auto w-2 h-2 rounded-full" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
-            {/* Programs & Benefits — navigates to /programs */}
-            <Link
-              href="/programs"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
-            >
-              <Gift size={13} />
-              Programs &amp; Benefits
-            </Link>
           </div>
         )}
       </div>
 
-      <div className="flex gap-5">
+      <div className="flex gap-6">
         {/* Left nav — desktop */}
-        <div className="hidden lg:block w-52 shrink-0">
+        <div className="hidden lg:block w-64 shrink-0">
           <div className="rounded border overflow-hidden sticky top-16" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             {NAV_ITEMS.map(item => (
               <button
                 key={item.id}
                 onClick={() => handleSectionClick(item.id)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b transition-colors hover:bg-muted"
+                className="w-full flex items-center gap-3 px-5 py-3 text-sm text-left border-b transition-colors hover:bg-muted"
                 style={{ borderColor: 'var(--border)', color: activeSection === item.id ? 'var(--primary)' : 'var(--muted-foreground)', backgroundColor: activeSection === item.id ? 'rgba(212,168,0,0.06)' : 'transparent' }}
               >
-                <item.icon size={13} />
+                <item.icon size={15} />
                 <span className="flex-1">{item.label}</span>
-                {item.id === 'kyc' && kycIncomplete && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />}
+                {item.id === 'kyc' && kycIncomplete && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
-            {/* Programs & Benefits — dedicated page link */}
-            <Link
-              href="/programs"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)', display: 'flex' }}
-            >
-              <Gift size={13} />
-              <span className="flex-1">Programs &amp; Benefits</span>
-              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(212,168,0,0.1)', color: 'var(--primary)' }}>4</span>
-            </Link>
           </div>
         </div>
 

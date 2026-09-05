@@ -175,16 +175,6 @@ export default function MarketsContent() {
             )}
           </p>
         </div>
-        <div className="relative">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--muted-foreground)' }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search instruments…"
-            className="pl-8 pr-3 py-2 rounded-md text-xs border focus:outline-none w-52"
-            style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-          />
-        </div>
       </div>
 
       {/* Category Tabs */}

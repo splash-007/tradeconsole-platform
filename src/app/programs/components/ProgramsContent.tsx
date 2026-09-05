@@ -600,18 +600,7 @@ export default function ProgramsContent() {
   }
 
   return (
-    <div className="py-4 max-w-6xl">
-      {/* Back to Settings */}
-      <div className="mb-4">
-        <Link
-          href="/settings"
-          className="inline-flex items-center gap-1.5 text-xs font-medium transition-colors hover:opacity-80"
-          style={{ color: 'var(--muted-foreground)' }}
-        >
-          <ArrowLeft size={13} />
-          Back to Settings
-        </Link>
-      </div>
+    <div className="py-4">
 
       <div className="mb-5">
         <h1 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Programs &amp; Benefits</h1>
@@ -621,26 +610,26 @@ export default function ProgramsContent() {
       </div>
 
       {/* Settings-style two-column layout */}
-      <div className="flex gap-5">
+      <div className="flex gap-6">
         {/* Left sidebar */}
-        <div className="hidden lg:block w-52 shrink-0">
+        <div className="hidden lg:block w-64 shrink-0">
           <div className="rounded-xl border overflow-hidden sticky top-16" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
             {SIDEBAR_ITEMS.map(item => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
+                className="w-full flex items-center gap-3 px-5 py-3 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
                 style={{
                   borderColor: 'var(--border)',
                   color: activeTab === item.id ? 'var(--primary)' : 'var(--muted-foreground)',
                   backgroundColor: activeTab === item.id ? 'rgba(212,168,0,0.06)' : 'transparent',
                 }}
               >
-                <item.icon size={13} />
+                <item.icon size={15} />
                 <span className="flex-1">{item.label}</span>
               </button>
             ))}
-            <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
+            <div className="px-5 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
               <Link
                 href="/settings"
                 className="flex items-center gap-2 text-xs transition-colors hover:opacity-80"

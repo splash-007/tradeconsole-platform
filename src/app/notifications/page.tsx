@@ -1,11 +1,5 @@
-import React from 'react';
-import AppLayout from '@/components/AppLayout';
-import NotificationsContent from './components/NotificationsContent';
+import { redirect } from 'next/navigation';
 
 export default function NotificationsPage() {
-  return (
-    <AppLayout>
-      <NotificationsContent />
-    </AppLayout>
-  );
+  redirect('/trading-dashboard');
 }

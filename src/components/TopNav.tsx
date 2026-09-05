@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, ChevronDown, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, ExternalLink, Gift, Globe } from 'lucide-react';
+import { Bell, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, Gift, Globe, Users } from 'lucide-react';
 import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
 import { notificationService, AppNotification } from '@/services/notification.service';
 import { preferencesService } from '@/services/preferences.service';
@@ -13,10 +13,10 @@ const NAV_ITEMS = [
   { label: 'Markets', href: '/markets', icon: BarChart2 },
   { label: 'Portfolio', href: '/portfolio', icon: Briefcase },
   { label: 'Trading Bot', href: '/trading-bot', icon: Bot },
+  { label: 'Copy Trading', href: '/copy-trading', icon: Users },
   { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
   { label: 'Watchlist', href: '/watchlist', icon: Star },
   { label: 'News & Learn', href: '/news-learn', icon: BookOpen },
-  { label: 'Support', href: '/messages', icon: MessageSquare },
 ];
 
 const LANGUAGES = [
@@ -176,7 +176,7 @@ export default function TopNav() {
     <>
       {/* Modern glassmorphism header */}
       <header
-        className="sticky top-0 z-50 w-full"
+        className="fixed top-0 left-0 right-0 z-50 w-full"
         style={{
           backgroundColor: isDark ? '#000000' : 'rgba(255,255,255, 0.92)',
           backdropFilter: isDark ? 'none' : 'blur(20px) saturate(180%)',
@@ -187,15 +187,15 @@ export default function TopNav() {
       >
         <div className="w-full flex items-center h-14 px-3 gap-3">
           {/* Logo */}
-          <Link href="/portfolio" className="flex items-center gap-2.5 shrink-0 group">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105"
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)', boxShadow: '0 2px 8px rgba(212,168,0,0.30)' }}
             >
               <AppLogo size={18} />
             </div>
             <span className="font-bold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--foreground)' }}>Trade Console</span>
-          </Link>
+          </div>
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-0.5 ml-3">
@@ -249,7 +249,6 @@ export default function TopNav() {
                 style={{ color: 'var(--muted-foreground)' }}
                 title="Language"
               >
-                <Globe size={13} />
                 <span className="hidden md:block">{currentLang.flag} {currentLang.code.toUpperCase()}</span>
               </button>
               {langOpen && (
@@ -268,40 +267,6 @@ export default function TopNav() {
                       {selectedLang === lang.code && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />}
                     </button>
                   ))}
-                </div>
-              )}
-            </div>
-
-            {/* Currency selector */}
-            <div className="relative hidden sm:block" ref={currencyRef}>
-              <button
-                onClick={() => { setCurrencyOpen(!currencyOpen); setLangOpen(false); setNotifOpen(false); setProfileOpen(false); }}
-                className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-muted transition-all text-xs font-medium"
-                style={{ color: 'var(--muted-foreground)' }}
-                title="Display currency"
-              >
-                <span className="font-mono font-semibold" style={{ color: 'var(--foreground)' }}>{selectedCurrency}</span>
-                <ChevronDown size={10} />
-              </button>
-              {currencyOpen && (
-                <div className="absolute right-0 top-full mt-2 w-40 overflow-hidden animate-fade-in dropdown-modern" style={{ zIndex: 400 }}>
-                  <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>Display Currency</p>
-                  </div>
-                  {CURRENCIES.map(c => (
-                    <button
-                      key={c.code}
-                      onClick={() => handleSelectCurrency(c.code)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 text-xs hover:bg-muted transition-colors"
-                      style={{ color: selectedCurrency === c.code ? 'var(--primary)' : 'var(--foreground)' }}
-                    >
-                      <span><span className="font-mono font-semibold">{c.symbol}</span> {c.code}</span>
-                      {selectedCurrency === c.code && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />}
-                    </button>
-                  ))}
-                  <div className="px-3 py-2 border-t" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Display preference only</p>
-                  </div>
                 </div>
               )}
             </div>
@@ -400,9 +365,6 @@ export default function TopNav() {
                   </div>
                   <div className="px-4 py-2.5 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
                     <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Dismissed items remain in history</p>
-                    <Link href="/notifications" onClick={() => setNotifOpen(false)} className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--primary)' }}>
-                      View all <ExternalLink size={10} />
-                    </Link>
                   </div>
                 </div>
               )}
@@ -446,6 +408,14 @@ export default function TopNav() {
                     </Link>
                     <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors rounded-lg mx-1.5" style={{ color: 'var(--foreground)' }}>
                       <Gift size={13} style={{ color: 'var(--muted-foreground)' }} /> Programs &amp; Benefits
+                    </Link>
+                    <Link href="/messages" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors rounded-lg mx-1.5" style={{ color: 'var(--foreground)' }}>
+                      <MessageSquare size={13} style={{ color: 'var(--muted-foreground)' }} /> Support
+                      {supportUnread > 0 && (
+                        <span className="ml-auto w-4 h-4 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '9px' }}>
+                          {supportUnread}
+                        </span>
+                      )}
                     </Link>
                   </div>
                   <div className="border-t py-1.5" style={{ borderColor: 'var(--border)' }}>
@@ -513,17 +483,6 @@ export default function TopNav() {
                   style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                 >
                   {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-semibold w-4" style={{ color: 'var(--muted-foreground)' }}>$</span>
-                <select
-                  value={selectedCurrency}
-                  onChange={e => handleSelectCurrency(e.target.value)}
-                  className="flex-1 text-xs rounded-lg border px-2 py-1.5 focus:outline-none"
-                  style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                >
-                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
                 </select>
               </div>
             </div>
