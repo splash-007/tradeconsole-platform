@@ -17,7 +17,6 @@ const NAV_ITEMS = [
   { label: 'Prediction Markets', href: '/prediction-markets', icon: Activity },
   { label: 'Watchlist', href: '/watchlist', icon: Star },
   { label: 'News & Learn', href: '/news-learn', icon: BookOpen },
-  { label: 'Support', href: '/messages', icon: MessageSquare },
 ];
 
 const LANGUAGES = [
@@ -447,6 +446,14 @@ export default function TopNav() {
                     </Link>
                     <Link href="/programs" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors rounded-lg mx-1.5" style={{ color: 'var(--foreground)' }}>
                       <Gift size={13} style={{ color: 'var(--muted-foreground)' }} /> Programs &amp; Benefits
+                    </Link>
+                    <Link href="/messages" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-muted transition-colors rounded-lg mx-1.5" style={{ color: 'var(--foreground)' }}>
+                      <MessageSquare size={13} style={{ color: 'var(--muted-foreground)' }} /> Support
+                      {supportUnread > 0 && (
+                        <span className="ml-auto w-4 h-4 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: 'var(--negative)', color: '#fff', fontSize: '9px' }}>
+                          {supportUnread}
+                        </span>
+                      )}
                     </Link>
                   </div>
                   <div className="border-t py-1.5" style={{ borderColor: 'var(--border)' }}>
