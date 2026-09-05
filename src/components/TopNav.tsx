@@ -187,15 +187,15 @@ export default function TopNav() {
       >
         <div className="w-full flex items-center h-14 px-3 gap-3">
           {/* Logo */}
-          <Link href="/portfolio" className="flex items-center gap-2.5 shrink-0 group">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105"
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #D4A800 0%, #B88E00 100%)', boxShadow: '0 2px 8px rgba(212,168,0,0.30)' }}
             >
               <AppLogo size={18} />
             </div>
             <span className="font-bold text-sm tracking-tight hidden sm:block" style={{ color: 'var(--foreground)' }}>Trade Console</span>
-          </Link>
+          </div>
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-0.5 ml-3">
