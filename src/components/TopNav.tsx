@@ -249,7 +249,6 @@ export default function TopNav() {
                 style={{ color: 'var(--muted-foreground)' }}
                 title="Language"
               >
-                <Globe size={13} />
                 <span className="hidden md:block">{currentLang.flag} {currentLang.code.toUpperCase()}</span>
               </button>
               {langOpen && (
