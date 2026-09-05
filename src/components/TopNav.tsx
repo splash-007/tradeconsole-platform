@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { Bell, ChevronDown, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, ExternalLink, Gift, Globe, Users } from 'lucide-react';
+import { Bell, Sun, Moon, Menu, X, TrendingUp, BarChart2, Briefcase, MessageSquare, Wallet, BookOpen, Star, LogOut, Settings, AlertCircle, DollarSign, Bot, Activity, CheckCheck, ExternalLink, Gift, Globe, Users } from 'lucide-react';
 import { useCustomerAuthGuard, performLogout } from '@/lib/auth-guard';
 import { notificationService, AppNotification } from '@/services/notification.service';
 import { preferencesService } from '@/services/preferences.service';
@@ -272,40 +272,6 @@ export default function TopNav() {
               )}
             </div>
 
-            {/* Currency selector */}
-            <div className="relative hidden sm:block" ref={currencyRef}>
-              <button
-                onClick={() => { setCurrencyOpen(!currencyOpen); setLangOpen(false); setNotifOpen(false); setProfileOpen(false); }}
-                className="flex items-center gap-1 px-2.5 py-2 rounded-lg hover:bg-muted transition-all text-xs font-medium"
-                style={{ color: 'var(--muted-foreground)' }}
-                title="Display currency"
-              >
-                <span className="font-mono font-semibold" style={{ color: 'var(--foreground)' }}>{selectedCurrency}</span>
-                <ChevronDown size={10} />
-              </button>
-              {currencyOpen && (
-                <div className="absolute right-0 top-full mt-2 w-40 overflow-hidden animate-fade-in dropdown-modern" style={{ zIndex: 400 }}>
-                  <div className="px-3 py-2.5 border-b" style={{ borderColor: 'var(--border)' }}>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--muted-foreground)' }}>Display Currency</p>
-                  </div>
-                  {CURRENCIES.map(c => (
-                    <button
-                      key={c.code}
-                      onClick={() => handleSelectCurrency(c.code)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 text-xs hover:bg-muted transition-colors"
-                      style={{ color: selectedCurrency === c.code ? 'var(--primary)' : 'var(--foreground)' }}
-                    >
-                      <span><span className="font-mono font-semibold">{c.symbol}</span> {c.code}</span>
-                      {selectedCurrency === c.code && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />}
-                    </button>
-                  ))}
-                  <div className="px-3 py-2 border-t" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--muted)' }}>
-                    <p className="text-xs" style={{ color: 'var(--muted-foreground)' }}>Display preference only</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>
               <button
@@ -521,17 +487,6 @@ export default function TopNav() {
                   style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
                 >
                   {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.flag} {l.label}</option>)}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-semibold w-4" style={{ color: 'var(--muted-foreground)' }}>$</span>
-                <select
-                  value={selectedCurrency}
-                  onChange={e => handleSelectCurrency(e.target.value)}
-                  className="flex-1 text-xs rounded-lg border px-2 py-1.5 focus:outline-none"
-                  style={{ backgroundColor: 'var(--input)', borderColor: 'var(--border)', color: 'var(--foreground)' }}
-                >
-                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
                 </select>
               </div>
             </div>
