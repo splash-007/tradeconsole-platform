@@ -185,7 +185,7 @@ export default function TopNav() {
           boxShadow: isDark ? '0 1px 0 #1a1a1a' : '0 1px 0 var(--border), 0 4px 24px rgba(0,0,0,0.04)',
         }}
       >
-        <div className="max-w-screen-2xl mx-auto flex items-center h-14 px-2 xl:px-4 gap-3">
+        <div className="w-full flex items-center h-14 px-3 gap-3">
           {/* Logo */}
           <Link href="/portfolio" className="flex items-center gap-2.5 shrink-0 group">
             <div
