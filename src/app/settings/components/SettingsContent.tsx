@@ -1,14 +1,14 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Shield, Bell, Eye, EyeOff, Smartphone, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info, Gift } from 'lucide-react';
+import { User, Shield, Bell, Eye, EyeOff, Smartphone, LogOut, Check, Monitor, MapPin, Clock, AlertTriangle, History, Globe, Lock, CheckCircle, XCircle, AlertCircle, RefreshCw, FileCheck, LayoutDashboard, CreditCard, FileText, Settings, DollarSign, Award, Calendar, Hash, ChevronDown, Info } from 'lucide-react';
 import KYCVerificationFlow from '@/components/kyc/KYCVerificationFlow';
 import { kycService, KYCStatus } from '@/services/kyc.service';
 import { DividendEligibilityStatus, EmploymentStatus } from '@/services/dividend.service';
 import { preferencesService, UserPreferences } from '@/services/preferences.service';
 import { sessionService, CustomerSession, LoginHistoryEntry } from '@/services/session.service';
 import { documentsService, CustomerDocument } from '@/services/documents.service';
-import Link from 'next/link';
+
 
 type SettingsSection =
   | 'overview' | 'personal' | 'account' | 'kyc' | 'security' | 'preferences' | 'notifications' | 'dividend' | 'documents' | 'sessions';
@@ -358,15 +358,6 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 {item.id === 'kyc' && kycIncomplete && <span className="ml-auto w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
-            {/* Programs & Benefits — navigates to /programs */}
-            <Link
-              href="/programs"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)' }}
-            >
-              <Gift size={13} />
-              Programs &amp; Benefits
-            </Link>
           </div>
         )}
       </div>
@@ -387,16 +378,6 @@ export default function SettingsContent({ initialTab }: SettingsContentProps) {
                 {item.id === 'kyc' && kycIncomplete && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: '#f59e0b' }} />}
               </button>
             ))}
-            {/* Programs & Benefits — dedicated page link */}
-            <Link
-              href="/programs"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left border-b last:border-b-0 transition-colors hover:bg-muted"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted-foreground)', display: 'flex' }}
-            >
-              <Gift size={13} />
-              <span className="flex-1">Programs &amp; Benefits</span>
-              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: 'rgba(212,168,0,0.1)', color: 'var(--primary)' }}>4</span>
-            </Link>
           </div>
         </div>
 
