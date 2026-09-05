@@ -46,8 +46,8 @@ module.exports = {
         '3xl': '24px',
       },
       fontFamily: {
-        sans: ['var(--font-ibm-plex-sans)', 'sans-serif'],
-        mono: ['var(--font-ibm-plex-mono)', 'monospace'],
+        sans: ['var(--font-inter)', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'monospace'],
       },
       boxShadow: {
         'card': '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)',
